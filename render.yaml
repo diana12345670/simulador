@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: discord-tournament-bot
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BOT_TOKEN
+        sync: false
+      - key: APPLICATION_ID
+        sync: false
+      - key: OWNER_ID
+        sync: false
+    healthCheckPath: /ping
+    autoDeploy: true

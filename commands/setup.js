@@ -1,0 +1,41 @@
+
+// setup.js - Comando para configurar cargo de criador de simuladores
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { readConfig, writeConfig } = require('../utils/database');
+const { createRedEmbed, createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
+
+module.exports = {
+    data: new SlashCommandBuilder()
+        .setName('setup')
+        .setDescription('Configura o cargo que pode criar simuladores')
+        .addRoleOption(option =>
+            option.setName('cargo')
+                .setDescription('Cargo que poderá criar simuladores')
+                .setRequired(true))
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    
+    async execute(interaction) {
+        await interaction.deferReply();
+
+        const role = interaction.options.getRole('cargo');
+
+        // Carrega configuração do PostgreSQL
+        const config = await readConfig('guild_config', {});
+
+        // Define cargo para esta guild
+        if (!config[interaction.guildId]) {
+            config[interaction.guildId] = {};
+        }
+
+        config[interaction.guildId].simuCreatorRole = role.id;
+
+        // Salva configuração no PostgreSQL
+        await writeConfig('guild_config', config);
+
+        await interaction.editReply({
+            embeds: [createSuccessEmbed(
+                `<:positive:1442668038691491943> Cargo configurado!\n\nApenas membros com o cargo ${role} poderão criar simuladores.`
+            )]
+        });
+    }
+};

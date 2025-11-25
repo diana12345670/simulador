@@ -1,0 +1,55 @@
+// interactionCreate.js - Gerencia todas as interações (comandos e botões)
+const { handleButton } = require('../handlers/buttonHandler');
+const { MessageFlags } = require('discord.js');
+
+module.exports = {
+    name: 'interactionCreate',
+    async execute(interaction) {
+        // Comandos slash
+        if (interaction.isChatInputCommand()) {
+            const command = interaction.client.commands.get(interaction.commandName);
+
+            if (!command) {
+                console.error(`Comando ${interaction.commandName} não encontrado`);
+                return;
+            }
+
+            try {
+                await command.execute(interaction);
+            } catch (error) {
+                console.error(`Erro ao executar comando ${interaction.commandName}:`, error);
+                
+                const errorMessage = { 
+                    content: '<:negative:1442668040465682643> Ocorreu um erro ao executar este comando.', 
+                    flags: MessageFlags.Ephemeral 
+                };
+
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.followUp(errorMessage);
+                } else {
+                    await interaction.reply(errorMessage);
+                }
+            }
+        }
+        // Botões
+        else if (interaction.isButton()) {
+            console.log(`🔘 Interação de botão detectada: ${interaction.customId}`);
+            try {
+                await handleButton(interaction);
+            } catch (error) {
+                console.error('❌ Erro ao processar botão:', error);
+                
+                const errorMessage = { 
+                    content: '<:negative:1442668040465682643> Ocorreu um erro ao processar esta ação.', 
+                    flags: MessageFlags.Ephemeral 
+                };
+
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.followUp(errorMessage);
+                } else {
+                    await interaction.reply(errorMessage);
+                }
+            }
+        }
+    }
+};

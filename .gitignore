@@ -1,0 +1,8 @@
+node_modules/
+.env
+data/*.json
+data/rank_local/*.json
+!data/.gitkeep
+!data/rank_local/.gitkeep
+*.log
+.DS_Store
