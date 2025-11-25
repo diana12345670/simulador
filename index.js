@@ -196,9 +196,9 @@ function formatUptime(seconds) {
 async function start() {
     try {
         // 1. Inicializa o banco de dados PRIMEIRO
-        console.log('🔄 Inicializando PostgreSQL...');
+        console.log('🔄 Inicializando banco de dados...');
         await initDatabase();
-        console.log('✅ PostgreSQL inicializado com sucesso!');
+        console.log('✅ Banco de dados inicializado!');
 
         // 2. Inicia o servidor web
         app.listen(PORT, '0.0.0.0', () => {
