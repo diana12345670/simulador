@@ -165,10 +165,22 @@ async function initDatabase() {
                 )
             `);
 
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS live_rank_panels (
+                    id SERIAL PRIMARY KEY,
+                    guild_id VARCHAR(50) NOT NULL,
+                    channel_id VARCHAR(50) NOT NULL,
+                    message_id VARCHAR(50) NOT NULL,
+                    tipo VARCHAR(20) NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
             await client.query('CREATE INDEX IF NOT EXISTS idx_rank_global_points ON rank_global(points DESC)');
             await client.query('CREATE INDEX IF NOT EXISTS idx_rank_local_guild_points ON rank_local(guild_id, points DESC)');
             await client.query('CREATE INDEX IF NOT EXISTS idx_tournaments_guild ON tournaments(guild_id)');
             await client.query('CREATE INDEX IF NOT EXISTS idx_tournaments_state ON tournaments(state)');
+            await client.query('CREATE INDEX IF NOT EXISTS idx_live_rank_panels_guild ON live_rank_panels(guild_id)');
 
             console.log('✅ Tabelas PostgreSQL inicializadas');
         } catch (error) {
@@ -745,6 +757,124 @@ function isUsingPostgres() {
     return usePostgres;
 }
 
+async function addLiveRankPanel(guildId, channelId, messageId, tipo) {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            await client.query(
+                'INSERT INTO live_rank_panels (guild_id, channel_id, message_id, tipo) VALUES ($1, $2, $3, $4)',
+                [guildId, channelId, messageId, tipo]
+            );
+        } catch (error) {
+            console.error(`Erro ao adicionar painel ao vivo:`, error.message);
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const panels = readJSON(path.join(DATA_DIR, 'live_rank_panels.json'), []);
+        panels.push({ guildId, channelId, messageId, tipo, createdAt: new Date().toISOString() });
+        writeJSON(path.join(DATA_DIR, 'live_rank_panels.json'), panels);
+    }
+}
+
+async function removeLiveRankPanel(guildId, messageId) {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            await client.query(
+                'DELETE FROM live_rank_panels WHERE guild_id = $1 AND message_id = $2',
+                [guildId, messageId]
+            );
+        } catch (error) {
+            console.error(`Erro ao remover painel ao vivo:`, error.message);
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        let panels = readJSON(path.join(DATA_DIR, 'live_rank_panels.json'), []);
+        panels = panels.filter(p => !(p.guildId === guildId && p.messageId === messageId));
+        writeJSON(path.join(DATA_DIR, 'live_rank_panels.json'), panels);
+    }
+}
+
+async function getLiveRankPanelsByGuild(guildId) {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            const result = await client.query(
+                'SELECT * FROM live_rank_panels WHERE guild_id = $1',
+                [guildId]
+            );
+            return result.rows.map(row => ({
+                id: row.id,
+                guildId: row.guild_id,
+                channelId: row.channel_id,
+                messageId: row.message_id,
+                tipo: row.tipo,
+                createdAt: row.created_at
+            }));
+        } catch (error) {
+            console.error(`Erro ao buscar painéis ao vivo:`, error.message);
+            return [];
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const panels = readJSON(path.join(DATA_DIR, 'live_rank_panels.json'), []);
+        return panels.filter(p => p.guildId === guildId);
+    }
+}
+
+async function getAllLiveRankPanels() {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            const result = await client.query('SELECT * FROM live_rank_panels');
+            return result.rows.map(row => ({
+                id: row.id,
+                guildId: row.guild_id,
+                channelId: row.channel_id,
+                messageId: row.message_id,
+                tipo: row.tipo,
+                createdAt: row.created_at
+            }));
+        } catch (error) {
+            console.error(`Erro ao buscar todos painéis ao vivo:`, error.message);
+            return [];
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        return readJSON(path.join(DATA_DIR, 'live_rank_panels.json'), []);
+    }
+}
+
+async function countLiveRankPanelsByGuild(guildId) {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            const result = await client.query(
+                'SELECT COUNT(*) FROM live_rank_panels WHERE guild_id = $1',
+                [guildId]
+            );
+            return parseInt(result.rows[0].count);
+        } catch (error) {
+            console.error(`Erro ao contar painéis ao vivo:`, error.message);
+            return 0;
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const panels = readJSON(path.join(DATA_DIR, 'live_rank_panels.json'), []);
+        return panels.filter(p => p.guildId === guildId).length;
+    }
+}
+
 module.exports = {
     initDatabase,
     getPool,
@@ -767,5 +897,10 @@ module.exports = {
     updateTournament,
     deleteTournament,
     listOpenTournamentsByGuild,
-    countActiveTournaments
+    countActiveTournaments,
+    addLiveRankPanel,
+    removeLiveRankPanel,
+    getLiveRankPanelsByGuild,
+    getAllLiveRankPanels,
+    countLiveRankPanelsByGuild
 };

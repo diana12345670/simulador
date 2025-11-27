@@ -374,11 +374,14 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
 
     // ✅ ATUALIZA RANKINGS para cada membro do time vencedor
     for (const playerId of championTeam) {
-        await updateRankGlobal(playerId, { wins: 1, points: 100 });
-        await updateRankLocal(interaction.guildId, playerId, { wins: 1, points: 100 });
+        await updateRankGlobal(playerId, { wins: 1, points: 1 });
+        await updateRankLocal(interaction.guildId, playerId, { wins: 1, points: 1 });
     }
 
     console.log(`✅ Rankings atualizados para ${championTeam.length} jogadores`);
+
+    // ✅ ATUALIZA PAINÉIS AO VIVO
+    await updateLiveRankPanels(interaction.client);
 
     // Marca como finalizado no banco
     await updateTournament(simulator.id, { state: 'finished', bracketData });
@@ -421,6 +424,78 @@ async function createNextRoundChannels(interaction, simulator, round, bracketDat
         const roundName = getRoundName(match.round, bracketData.totalRounds);
         const matchNumber = match.id.split('match')[1];
         await createMatchChannel(interaction.guild, category, simulator, match, `${roundName}-${matchNumber}`);
+    }
+}
+
+/**
+ * Atualiza todos os painéis de rank ao vivo
+ */
+async function updateLiveRankPanels(client) {
+    const { getAllLiveRankPanels, removeLiveRankPanel, getRankGlobal, getRankLocal } = require('../utils/database');
+    
+    try {
+        const panels = await getAllLiveRankPanels();
+        
+        for (const panel of panels) {
+            try {
+                const guild = client.guilds.cache.get(panel.guildId);
+                if (!guild) {
+                    await removeLiveRankPanel(panel.guildId, panel.messageId);
+                    console.log(`🗑️ Painel removido: servidor não encontrado`);
+                    continue;
+                }
+
+                const channel = guild.channels.cache.get(panel.channelId);
+                if (!channel) {
+                    await removeLiveRankPanel(panel.guildId, panel.messageId);
+                    console.log(`🗑️ Painel removido: canal não encontrado`);
+                    continue;
+                }
+
+                let message;
+                try {
+                    message = await channel.messages.fetch(panel.messageId);
+                } catch (err) {
+                    await removeLiveRankPanel(panel.guildId, panel.messageId);
+                    console.log(`🗑️ Painel removido: mensagem apagada`);
+                    continue;
+                }
+
+                let rankData;
+                let rankTitle;
+
+                if (panel.tipo === 'global') {
+                    rankData = await getRankGlobal(10);
+                    rankTitle = '🏆 Ranking Global de Simuladores 🔴';
+                } else {
+                    rankData = await getRankLocal(panel.guildId, 10);
+                    rankTitle = '🏆 Ranking Local de Simuladores 🔴';
+                }
+
+                if (!rankData || rankData.length === 0) {
+                    continue;
+                }
+
+                const rankDescription = rankData.map((player, index) => {
+                    const medal = index === 0 ? '<:coroapixel:1442668026813087836>' : index === 1 ? '<:trofeupixel:1442668024891969588>' : index === 2 ? '<:fogo:1442667877332422847>' : '<:raiopixel:1442668029065564341>';
+                    return `${medal} **#${index + 1}** <@${player.user_id}>\n<:moedapixel:1442668030932029461> Pontos: ${player.points || 0} | <:positive:1442668038691491943> Vitórias: ${player.wins || 0} | <:negative:1442668040465682643> Derrotas: ${player.losses || 0}`;
+                }).join('\n\n');
+
+                const rankEmbed = createRedEmbed({
+                    title: rankTitle,
+                    description: rankDescription || 'Nenhum dado disponível',
+                    footer: { text: '🔴 AO VIVO - Atualiza automaticamente quando jogadores vencem' },
+                    timestamp: true
+                });
+
+                await message.edit({ embeds: [rankEmbed] });
+                console.log(`✅ Painel ao vivo atualizado: ${panel.messageId}`);
+            } catch (error) {
+                console.error(`Erro ao atualizar painel ${panel.messageId}:`, error.message);
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar painéis ao vivo:', error.message);
     }
 }
 
