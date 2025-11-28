@@ -29,7 +29,7 @@ if (!process.env.APPLICATION_ID) {
     console.log('✅ Usando APPLICATION_ID padrão:', DEFAULT_APPLICATION_ID);
 }
 
-// Cria cliente do Discord com intents necessários
+// Cria cliente do Discord com intents necessário
 // IMPORTANTE: Você precisa habilitar "SERVER MEMBERS INTENT" no Discord Developer Portal
 // Vá em: https://discord.com/developers/applications > Sua Aplicação > Bot > Privileged Gateway Intents
 // Habilite: SERVER MEMBERS INTENT
