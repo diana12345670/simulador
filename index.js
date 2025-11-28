@@ -106,23 +106,63 @@ app.get('/', async (req, res) => {
         });
     }
 
-    // Remove a chamada para readDB e usa as funções do PostgreSQL
-    // const { readDB, DB_KEYS } = require('./utils/database');
-    // const rankGlobal = await readDB(DB_KEYS.RANK_GLOBAL, {});
-    // const simuladores = await readDB(DB_KEYS.SIMULADORES, {});
-
-    const { getRankGlobal, countActiveTournaments } = require('./utils/database');
+    const { getRankGlobal, countActiveTournaments, getTopServers } = require('./utils/database');
 
     // Conta simuladores ativos
     const activeSimulators = await countActiveTournaments();
 
-    const topPlayers = await getRankGlobal(10); // Obtém os 10 melhores jogadores
+    const topPlayers = await getRankGlobal(10);
+
+    // Busca nomes dos jogadores do Discord
+    const rankGlobalWithNames = await Promise.all(topPlayers.map(async (player) => {
+        let username = 'Jogador Desconhecido';
+        try {
+            const user = await client.users.fetch(player.user_id);
+            if (user) {
+                username = user.displayName || user.username;
+            }
+        } catch (err) {
+            console.log(`Não foi possível buscar usuário ${player.user_id}`);
+        }
+        return {
+            id: player.user_id,
+            username: username,
+            wins: player.wins || 0,
+            points: player.points || 0
+        };
+    }));
+
+    // Busca top 3 servidores que mais criam simuladores
+    const topServersData = await getTopServers(3);
+    const topServers = await Promise.all(topServersData.map(async (server) => {
+        const guild = client.guilds.cache.get(server.guildId);
+        if (guild) {
+            let inviteUrl = null;
+            try {
+                const invites = await guild.invites.fetch();
+                const permanentInvite = invites.find(inv => inv.maxAge === 0) || invites.first();
+                if (permanentInvite) {
+                    inviteUrl = `https://discord.gg/${permanentInvite.code}`;
+                }
+            } catch (err) {
+                console.log(`Não foi possível buscar convites do servidor ${guild.name}`);
+            }
+            return {
+                name: guild.name,
+                icon: guild.iconURL(),
+                memberCount: guild.memberCount,
+                simulatorsCreated: server.simulatorsCreated,
+                inviteUrl: inviteUrl
+            };
+        }
+        return null;
+    }));
 
     const stats = {
         totalGuilds: client.guilds.cache.size,
         totalUsers: client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0),
         totalCommands: client.commands.size,
-        totalPlayers: topPlayers.length, // Usa o número de top players como total de jogadores
+        totalPlayers: topPlayers.length,
         activeSimulators: activeSimulators,
         uptime: formatUptime(process.uptime())
     };
@@ -135,11 +175,8 @@ app.get('/', async (req, res) => {
         },
         stats: stats,
         ready: true,
-        rankGlobal: topPlayers.map(player => ({ // Mapeia os top players para o formato esperado
-            id: player.user_id, // Assume que a coluna é 'user_id'
-            wins: player.wins || 0, // Assume que a coluna é 'wins'
-            // Adicione outras propriedades conforme necessário
-        })),
+        rankGlobal: rankGlobalWithNames,
+        topServers: topServers.filter(s => s !== null),
         guilds: client.guilds.cache.map(g => ({
             name: g.name,
             memberCount: g.memberCount,

@@ -10,7 +10,8 @@ const {
     updateTournament,
     deleteTournament,
     updateRankGlobal,
-    updateRankLocal
+    updateRankLocal,
+    incrementServerSimulators
 } = require('../../utils/database');
 
 const RANK_LOCAL_DIR = path.join(__dirname, '../../data/rank_local');
@@ -48,6 +49,9 @@ async function createSimulator(guild, creator, options) {
 
     // Salva no banco de dados
     await createTournament(simulator);
+
+    // Incrementa contador de simuladores do servidor (para Top Servidores)
+    await incrementServerSimulators(guild.id);
 
     // Cria e envia painel de entrada
     const panelEmbed = createRedEmbed({

@@ -162,9 +162,10 @@
                                         <span class="rank-number">#<%= index + 1 %></span>
                                     </div>
                                     <div class="player-info">
-                                        <span class="player-id"><%= (player.id || player.user_id || 'N/A').substring(0, 8) %>...</span>
+                                        <span class="player-name"><%= player.username || 'Jogador Desconhecido' %></span>
                                         <div class="player-stats">
                                             <span class="wins"><%= player.wins || 0 %> vitórias</span>
+                                            <span class="points"><%= player.points || 0 %> pts</span>
                                         </div>
                                     </div>
                                 </div>
@@ -177,6 +178,71 @@
                                     <line x1="12" y1="16" x2="12.01" y2="16"></line>
                                 </svg>
                                 <p>Nenhum jogador no ranking ainda</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </section>
+
+                <section class="card top-servers-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg class="title-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                            </svg>
+                            Top Servidores
+                        </h2>
+                        <span class="card-badge">Mais Ativos</span>
+                    </div>
+                    <div class="top-servers-list">
+                        <% if (topServers && topServers.length > 0) { %>
+                            <% topServers.forEach((server, index) => { %>
+                                <div class="top-server-item">
+                                    <div class="rank-position rank-<%= index + 1 %>">
+                                        <% if (index === 0) { %>
+                                            <svg class="medal-icon gold" viewBox="0 0 24 24" fill="currentColor">
+                                                <circle cx="12" cy="8" r="3"></circle>
+                                                <path d="M12 12L15 21H9L12 12Z"></path>
+                                            </svg>
+                                        <% } else if (index === 1) { %>
+                                            <svg class="medal-icon silver" viewBox="0 0 24 24" fill="currentColor">
+                                                <circle cx="12" cy="8" r="3"></circle>
+                                                <path d="M12 12L15 21H9L12 12Z"></path>
+                                            </svg>
+                                        <% } else if (index === 2) { %>
+                                            <svg class="medal-icon bronze" viewBox="0 0 24 24" fill="currentColor">
+                                                <circle cx="12" cy="8" r="3"></circle>
+                                                <path d="M12 12L15 21H9L12 12Z"></path>
+                                            </svg>
+                                        <% } %>
+                                        <span class="rank-number">#<%= index + 1 %></span>
+                                    </div>
+                                    <% if (server.icon) { %>
+                                        <img src="<%= server.icon %>" alt="<%= server.name %>" class="server-icon">
+                                    <% } else { %>
+                                        <div class="server-icon-placeholder"><%= server.name.charAt(0) %></div>
+                                    <% } %>
+                                    <div class="server-info">
+                                        <% if (server.inviteUrl) { %>
+                                            <a href="<%= server.inviteUrl %>" target="_blank" class="server-name server-link"><%= server.name %></a>
+                                        <% } else { %>
+                                            <span class="server-name"><%= server.name %></span>
+                                        <% } %>
+                                        <span class="server-stats">
+                                            <svg class="stat-icon" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                                            </svg>
+                                            <%= server.simulatorsCreated %> simuladores
+                                        </span>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <div class="empty-state">
+                                <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                                </svg>
+                                <p>Nenhum servidor no ranking ainda</p>
                             </div>
                         <% } %>
                     </div>

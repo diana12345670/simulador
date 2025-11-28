@@ -76,12 +76,74 @@ async function analyzeMessage(context, userMessage) {
     }
 }
 
+async function analyzeConfirmation(context, userMessage) {
+    if (!openai) {
+        return null;
+    }
+
+    try {
+        const response = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [
+                { 
+                    role: 'system', 
+                    content: `Você é a Kaori, assistente de torneios. Analise se o usuário está CONFIRMANDO ou NEGANDO um resultado de partida.
+Responda APENAS com uma das opções:
+- "confirmed" se o usuário confirmar (ex: sim, ok, verdade, confirmado, ganharam, perdemos, etc)
+- "denied" se o usuário negar (ex: não, mentira, falso, errado, eu ganhei, etc)
+- "unclear" se não for possível determinar
+
+Seja inteligente ao interpretar gírias, erros de digitação e linguagem informal.` 
+                },
+                { role: 'user', content: `Contexto: ${context}\n\nMensagem do usuário: "${userMessage}"` }
+            ],
+            max_tokens: 20,
+            temperature: 0.1
+        });
+
+        const content = response.choices[0].message.content.toLowerCase().trim();
+        
+        if (content.includes('confirmed')) return 'confirmed';
+        if (content.includes('denied')) return 'denied';
+        return null;
+    } catch (error) {
+        console.error('Erro ao analisar confirmação:', error.message);
+        return null;
+    }
+}
+
 function detectVictoryClaim(message, match) {
     const content = message.content.toLowerCase();
     const authorId = message.author.id;
 
-    const victoryWords = ['ganhei', 'venci', 'ganhamos', 'vencemos', 'vitoria', 'vitória', 'win', 'gg'];
-    const woWords = ['wo', 'w.o', 'w.o.', 'sumiu', 'não apareceu', 'nao apareceu', 'fugiu', 'desistiu'];
+    // Palavras-chave expandidas com gírias, abreviações e variações
+    const victoryWords = [
+        'ganhei', 'venci', 'ganhamos', 'vencemos', 'vitoria', 'vitória', 'win', 'gg',
+        'já é', 'ja é', 'já era', 'ja era', 'passamos', 'passei', 'fechamos', 'fechei',
+        'amassamos', 'amassei', 'destrui', 'destruimos', 'matei', 'matamos',
+        'é nosso', 'e nosso', 'é nois', 'e nois', 'suave', 'tranquilo', 'easy',
+        'next', 'proximo', 'próximo', 'bora pro próximo', 'acabou',
+        'fch', 'fechou', 'fecho', 'ganhemo', 'vencemo', 'ganhou', 'venceu',
+        'izi', 'ez', 'ezz', 'ezzz', 'facil', 'fácil', 'moleza', 'mamata',
+        'demos conta', 'deu bom', 'deu certo', 'conseguimos', 'consegui',
+        'passemo', 'passaram', 'eliminamos', 'eliminei', 'derrotamos', 'derrotei',
+        'humilhamos', 'humilhei', 'atropelamos', 'atropelei', 'massacramos',
+        'goleada', 'lavada', 'passeio', 'barbada', 'foi facil', 'foi fácil'
+    ];
+    
+    const woWords = [
+        'wo', 'w.o', 'w.o.', 'walko', 'walkover', 'wou', 'woou',
+        'sumiu', 'sumiram', 'não apareceu', 'nao apareceu', 'n apareceu',
+        'fugiu', 'fugiram', 'desistiu', 'desistiram', 'abandonou', 'abandonaram',
+        'não veio', 'nao veio', 'n veio', 'não vem', 'nao vem', 'n vem',
+        'cadê', 'cade', 'onde ta', 'onde tá', 'sumido', 'sumidos', 'cade ele',
+        'deu pt', 'deu ruim', 'vazou', 'vazaram', 'pipocou', 'pipocaram',
+        'amarelou', 'amarelaram', 'correu', 'correram', 'saiu fora',
+        'nao vai jogar', 'não vai jogar', 'n vai jogar', 'desistência', 'desistencia',
+        'deu no pe', 'deu no pé', 'se mandou', 'meteu o pe', 'meteu o pé',
+        'ta off', 'tá off', 'ficou off', 'offline', 'saiu do server', 'saiu do discord',
+        'deu ghost', 'ghostou', 'ignorando', 'nem responde', 'n responde'
+    ];
 
     const isTeam1 = match.team1.includes(authorId);
     const isTeam2 = match.team2.includes(authorId);
@@ -104,19 +166,53 @@ function detectVictoryClaim(message, match) {
     return null;
 }
 
+function mightBeRelevantMessage(content) {
+    const lowerContent = content.toLowerCase();
+    const relevantIndicators = [
+        'olha', 'olha aí', 'olha ai', 'ó', 'ow', 'ei', 'eai', 'e aí',
+        'pronto', 'feito', 'acabou', 'terminou', 'resultado',
+        'oxi', 'mano', 'cara', 'véi', 'vei', 'pow', 'pô',
+        'partida', 'jogo', 'match', 'round'
+    ];
+    return relevantIndicators.some(word => lowerContent.includes(word));
+}
+
 function detectConfirmation(message, pendingData) {
     const content = message.content.toLowerCase();
     const authorId = message.author.id;
 
     if (!pendingData.loserTeam.includes(authorId)) return null;
 
-    const confirmWords = ['sim', 'yes', 'confirmo', 'confirmado', 'ok', 'isso', 'verdade', 'ganharam', 'perdemos', 'perdi'];
-    const denyWords = ['não', 'nao', 'mentira', 'errado', 'fake', 'falso'];
+    // Palavras de confirmação expandidas com gírias e abreviações
+    const confirmWords = [
+        'sim', 'yes', 'confirmo', 'confirmado', 'ok', 'isso', 'verdade', 
+        'ganharam', 'perdemos', 'perdi', 'perdemo', 'foi mal', 'gg',
+        'isso mesmo', 'exato', 'certeza', 'pode crer', 'é isso', 'e isso',
+        'foi isso', 'aconteceu', 'real', 'vdd', 'ss', 'sss', 'simm', 'simmm',
+        'blz', 'beleza', 'suave', 'tranquilo', 'de boa', 'dboa', 'd boa',
+        'vlw', 'valeu', 'tmj', 'fechou', 'certo', 'positivo', 'uhum', 'aham',
+        'pdp', 'pdc', 'fch', 'fx', 'flw', 'fmz', 'firmeza', 'firm', 'joia',
+        'jóia', 'show', 'top', 'bom', 'boa', 'dahora', 'massa', 'irado',
+        'de rocha', 'dboa', 'dboas', 'ta certo', 'tá certo', 'ta bem', 'tá bem',
+        'bele', 'bls', 'blzinha', 'deboa', 'deboassa', 'yes sir', 'yep', 'yeah',
+        'aff', 'fazer oq', 'fazer o que', 'fz oq', 'infelizmente', 'pse', 'pois é'
+    ];
+    
+    // Palavras de negação expandidas com gírias
+    const denyWords = [
+        'não', 'nao', 'n', 'mentira', 'errado', 'fake', 'falso',
+        'nada a ver', 'nada haver', 'que isso', 'que issu', 'oxi', 'oxe',
+        'ta doido', 'tá doido', 'ta loco', 'tá loco', 'doido', 'loco',
+        'eu ganhei', 'eu venci', 'ganhei', 'venci', 'ganhamos', 'vencemos',
+        'nunca', 'jamais', 'de jeito nenhum', 'nem', 'nananinanão',
+        'para', 'pera', 'espera', 'calma', 'opa', 'eita', 'xiii',
+        'errou', 'se enganou', 'engano', 'confundiu', 'viajou', 'viajando'
+    ];
 
     const confirms = confirmWords.some(word => content.includes(word));
     const denies = denyWords.some(word => content.includes(word));
 
-    if (confirms) return 'confirmed';
+    if (confirms && !denies) return 'confirmed';
     if (denies) return 'denied';
     return null;
 }
@@ -201,12 +297,17 @@ async function giveVictoryByKaori(channel, confirmationData) {
 
 async function handleKaoriMention(message, simulator, match) {
     const pending = pendingConfirmations.get(message.channel.id);
+    const mentionsKaori = message.content.toLowerCase().includes('kaori');
+    
+    // Processa confirmações pendentes
     if (pending) {
-        const confirmation = detectConfirmation(message, pending);
-        if (confirmation === 'confirmed') {
+        // Primeiro tenta detectar por palavras-chave (econômico)
+        const keywordConfirmation = detectConfirmation(message, pending);
+        
+        if (keywordConfirmation === 'confirmed') {
             await giveVictoryByKaori(message.channel, pending);
             return;
-        } else if (confirmation === 'denied') {
+        } else if (keywordConfirmation === 'denied') {
             const embed = new EmbedBuilder()
                 .setColor('#FF69B4')
                 .setDescription('O resultado foi contestado. O criador do torneio precisa decidir o vencedor.')
@@ -216,46 +317,75 @@ async function handleKaoriMention(message, simulator, match) {
             pendingConfirmations.delete(message.channel.id);
             return;
         }
+        
+        // Se não detectou por palavras-chave mas mencionou Kaori, usa IA
+        if (mentionsKaori && openai) {
+            const confirmContext = `O usuário está respondendo a uma confirmação de resultado.
+Time vencedor alegado: ${pending.winnerTeam.map(id => `<@${id}>`).join(', ')}
+Time perdedor: ${pending.loserTeam.map(id => `<@${id}>`).join(', ')}`;
+            
+            const confirmAnalysis = await analyzeConfirmation(confirmContext, message.content);
+            
+            if (confirmAnalysis === 'confirmed') {
+                await giveVictoryByKaori(message.channel, pending);
+                return;
+            } else if (confirmAnalysis === 'denied') {
+                const embed = new EmbedBuilder()
+                    .setColor('#FF69B4')
+                    .setDescription('O resultado foi contestado. O criador do torneio precisa decidir o vencedor.')
+                    .setFooter({ text: 'Kaori - Assistente de Torneios' });
+
+                await message.reply({ embeds: [embed] });
+                pendingConfirmations.delete(message.channel.id);
+                return;
+            }
+        }
     }
 
+    // Primeiro tenta detectar vitória/WO por palavras-chave (econômico)
     const claim = detectVictoryClaim(message, match);
     if (claim) {
         await askForConfirmation(message.channel, claim, match, simulator);
         return;
     }
 
-    const context = `Torneio: ${simulator.name || 'Simulador'}
+    // Usa IA se: mencionou "Kaori" OU a mensagem parece relevante mas não foi detectada
+    const shouldUseAI = mentionsKaori || mightBeRelevantMessage(message.content);
+    
+    if (shouldUseAI && openai) {
+        const context = `Torneio: ${simulator.name || 'Simulador'}
 Time 1: ${match.team1.map(id => `<@${id}>`).join(', ')}
 Time 2: ${match.team2.map(id => `<@${id}>`).join(', ')}
 Rodada: ${match.round}
 Usuário: ${message.author.username} (${match.team1.includes(message.author.id) ? 'Time 1' : match.team2.includes(message.author.id) ? 'Time 2' : 'Espectador'})`;
 
-    const analysis = await analyzeMessage(context, message.content);
+        const analysis = await analyzeMessage(context, message.content);
 
-    if (analysis.tipo === 'vitoria' || analysis.tipo === 'wo') {
-        const isTeam1 = match.team1.includes(message.author.id);
-        const isTeam2 = match.team2.includes(message.author.id);
+        if (analysis.tipo === 'vitoria' || analysis.tipo === 'wo') {
+            const isTeam1 = match.team1.includes(message.author.id);
+            const isTeam2 = match.team2.includes(message.author.id);
 
-        if (isTeam1 || isTeam2) {
-            const claim = {
-                claimerId: message.author.id,
-                claimerTeam: isTeam1 ? 1 : 2,
-                winnerTeam: isTeam1 ? match.team1 : match.team2,
-                loserTeam: isTeam1 ? match.team2 : match.team1,
-                isWO: analysis.tipo === 'wo'
-            };
-            await askForConfirmation(message.channel, claim, match, simulator);
-            return;
+            if (isTeam1 || isTeam2) {
+                const aiClaim = {
+                    claimerId: message.author.id,
+                    claimerTeam: isTeam1 ? 1 : 2,
+                    winnerTeam: isTeam1 ? match.team1 : match.team2,
+                    loserTeam: isTeam1 ? match.team2 : match.team1,
+                    isWO: analysis.tipo === 'wo'
+                };
+                await askForConfirmation(message.channel, aiClaim, match, simulator);
+                return;
+            }
         }
-    }
 
-    if (analysis.resposta) {
-        const embed = new EmbedBuilder()
-            .setColor('#FF69B4')
-            .setDescription(analysis.resposta)
-            .setFooter({ text: 'Kaori - Assistente de Torneios' });
+        if (analysis.resposta) {
+            const embed = new EmbedBuilder()
+                .setColor('#FF69B4')
+                .setDescription(analysis.resposta)
+                .setFooter({ text: 'Kaori - Assistente de Torneios' });
 
-        await message.reply({ embeds: [embed] });
+            await message.reply({ embeds: [embed] });
+        }
     }
 }
 

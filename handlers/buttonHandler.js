@@ -410,9 +410,12 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
     const { updateRankGlobal, updateRankLocal } = require('../utils/database');
     const championMentions = championTeam.map(id => `<@${id}>`).join(', ');
 
+    const totalParticipants = simulator.players ? simulator.players.length : 0;
+    const minParticipantsForPoints = 3;
+
     const championEmbed = createRedEmbed({
         title: 'CAMPEÃO DO SIMULADOR',
-        description: `Vencedor: ${championMentions}\nPrêmio: ${simulator.prize}`,
+        description: `Vencedor: ${championMentions}\nPrêmio: ${simulator.prize}${totalParticipants < minParticipantsForPoints ? '\n\n⚠️ Pontos não contabilizados (mínimo 3 participantes)' : ''}`,
         image: interaction.guild.iconURL() || interaction.guild.bannerURL() || null,
         timestamp: true
     });
@@ -422,13 +425,16 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
         await mainChannel.send({ embeds: [championEmbed] });
     }
 
-    // ✅ ATUALIZA RANKINGS para cada membro do time vencedor
-    for (const playerId of championTeam) {
-        await updateRankGlobal(playerId, { wins: 1, points: 1 });
-        await updateRankLocal(interaction.guildId, playerId, { wins: 1, points: 1 });
+    // ✅ ATUALIZA RANKINGS apenas se tiver 3 ou mais participantes
+    if (totalParticipants >= minParticipantsForPoints) {
+        for (const playerId of championTeam) {
+            await updateRankGlobal(playerId, { wins: 1, points: 1 });
+            await updateRankLocal(interaction.guildId, playerId, { wins: 1, points: 1 });
+        }
+        console.log(`✅ Rankings atualizados para ${championTeam.length} jogadores`);
+    } else {
+        console.log(`⚠️ Simulador com apenas ${totalParticipants} participantes - pontos não contabilizados`);
     }
-
-    console.log(`✅ Rankings atualizados para ${championTeam.length} jogadores`);
 
     // ✅ ATUALIZA PAINÉIS AO VIVO
     await updateLiveRankPanels(interaction.client);

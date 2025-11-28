@@ -176,11 +176,20 @@ async function initDatabase() {
                 )
             `);
 
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS server_stats (
+                    guild_id VARCHAR(50) PRIMARY KEY,
+                    simulators_created INTEGER DEFAULT 0,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
             await client.query('CREATE INDEX IF NOT EXISTS idx_rank_global_points ON rank_global(points DESC)');
             await client.query('CREATE INDEX IF NOT EXISTS idx_rank_local_guild_points ON rank_local(guild_id, points DESC)');
             await client.query('CREATE INDEX IF NOT EXISTS idx_tournaments_guild ON tournaments(guild_id)');
             await client.query('CREATE INDEX IF NOT EXISTS idx_tournaments_state ON tournaments(state)');
             await client.query('CREATE INDEX IF NOT EXISTS idx_live_rank_panels_guild ON live_rank_panels(guild_id)');
+            await client.query('CREATE INDEX IF NOT EXISTS idx_server_stats_simulators ON server_stats(simulators_created DESC)');
 
             console.log('✅ Tabelas PostgreSQL inicializadas');
         } catch (error) {
@@ -875,6 +884,64 @@ async function countLiveRankPanelsByGuild(guildId) {
     }
 }
 
+async function incrementServerSimulators(guildId) {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            await client.query(`
+                INSERT INTO server_stats (guild_id, simulators_created, updated_at) 
+                VALUES ($1, 1, CURRENT_TIMESTAMP)
+                ON CONFLICT (guild_id) DO UPDATE SET 
+                    simulators_created = server_stats.simulators_created + 1,
+                    updated_at = CURRENT_TIMESTAMP
+            `, [guildId]);
+        } catch (error) {
+            console.error(`Erro ao incrementar simuladores do servidor ${guildId}:`, error.message);
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const statsFile = path.join(DATA_DIR, 'server_stats.json');
+        const stats = readJSON(statsFile, {});
+        if (!stats[guildId]) {
+            stats[guildId] = { simulators_created: 0 };
+        }
+        stats[guildId].simulators_created += 1;
+        writeJSON(statsFile, stats);
+    }
+}
+
+async function getTopServers(limit = 3) {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            const result = await client.query(
+                'SELECT guild_id, simulators_created FROM server_stats ORDER BY simulators_created DESC LIMIT $1',
+                [limit]
+            );
+            return result.rows.map(row => ({
+                guildId: row.guild_id,
+                simulatorsCreated: row.simulators_created
+            }));
+        } catch (error) {
+            console.error('Erro ao buscar top servidores:', error.message);
+            return [];
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const statsFile = path.join(DATA_DIR, 'server_stats.json');
+        const stats = readJSON(statsFile, {});
+        const sorted = Object.entries(stats)
+            .map(([guildId, data]) => ({ guildId, simulatorsCreated: data.simulators_created || 0 }))
+            .sort((a, b) => b.simulatorsCreated - a.simulatorsCreated)
+            .slice(0, limit);
+        return sorted;
+    }
+}
+
 module.exports = {
     initDatabase,
     getPool,
@@ -902,5 +969,7 @@ module.exports = {
     removeLiveRankPanel,
     getLiveRankPanelsByGuild,
     getAllLiveRankPanels,
-    countLiveRankPanelsByGuild
+    countLiveRankPanelsByGuild,
+    incrementServerSimulators,
+    getTopServers
 };
