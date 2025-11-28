@@ -43,6 +43,8 @@ Na seção **Environment**, adicione as seguintes variáveis:
 - `APPLICATION_ID` - ID da aplicação Discord
 - `OWNER_ID` - Seu ID de usuário Discord
 - `NODE_ENV` - `production`
+- `OPENAI_API_KEY` - Chave da API da OpenAI (necessária para a Kaori funcionar com IA)
+- `DATABASE_URL` - URL de conexão do banco de dados PostgreSQL (se estiver usando)
 
 **Importante:** Nunca compartilhe ou commite esses valores!
 
