@@ -28,8 +28,11 @@ module.exports = {
 
             const rest = new REST().setToken(process.env.BOT_TOKEN);
             
+            // Usa o ID da aplicação do próprio client (mais confiável)
+            const applicationId = client.user.id;
+            
             await rest.put(
-                Routes.applicationCommands(process.env.APPLICATION_ID),
+                Routes.applicationCommands(applicationId),
                 { body: commands }
             );
 

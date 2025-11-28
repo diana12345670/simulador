@@ -230,12 +230,6 @@ async function handleMatchWin(interaction, winnerTeamNum) {
     const winnerTeam = winnerTeamNum === 1 ? match.team1 : match.team2;
     const result = advanceWinner(simulator.bracketData, matchId, winnerTeam);
 
-    if (result.isFinal) {
-        await handleChampion(interaction, simulator, result.champion, result.bracketData);
-    } else if (result.isNewRound && result.nextMatch) {
-        await createNextRoundChannels(interaction, simulator, result.nextMatch.round, result.bracketData);
-    }
-
     await updateTournament(simulatorId, { bracketData: result.bracketData });
 
     const winnerMentions = winnerTeam.map(id => `<@${id}>`).join(', ');
@@ -247,12 +241,8 @@ async function handleMatchWin(interaction, winnerTeamNum) {
         components: []
     });
 
-    // Apaga o canal da partida
-    const channel = interaction.guild.channels.cache.get(interaction.channelId);
-    if (channel && (channel.name.includes('rodada') || channel.name.includes('quartas') || 
-                    channel.name.includes('semifinal') || channel.name.includes('final'))) {
-        setTimeout(() => channel.delete('Partida finalizada'), 3000);
-    }
+    // Verifica se todas as partidas da rodada acabaram
+    await checkRoundComplete(interaction, simulator, result);
 }
 
 /**
@@ -278,17 +268,17 @@ async function handleWalkover(interaction) {
     const team1Mentions = match.team1.map(id => `<@${id}>`).join(', ');
     const team2Mentions = match.team2.map(id => `<@${id}>`).join(', ');
 
-    // Cria botões para escolher qual time recebeu W.O.
+    // Cria botões para escolher qual time VENCEU pelo W.O.
     const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
     const woButtons = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
                 .setCustomId(`wo_team1_${simulatorId}_${matchId}`)
-                .setLabel(`Time 1 levou W.O.`)
+                .setLabel(`Time 1 venceu`)
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
                 .setCustomId(`wo_team2_${simulatorId}_${matchId}`)
-                .setLabel(`Time 2 levou W.O.`)
+                .setLabel(`Time 2 venceu`)
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
                 .setCustomId(`wo_cancel_${simulatorId}_${matchId}`)
@@ -299,7 +289,7 @@ async function handleWalkover(interaction) {
     await interaction.reply({
         embeds: [createRedEmbed({
             title: '⚠️ Declarar W.O.',
-            description: `**Time 1:** ${team1Mentions}\n**Time 2:** ${team2Mentions}\n\nQual time **LEVOU W.O.** (não compareceu)?`,
+            description: `**Time 1:** ${team1Mentions}\n**Time 2:** ${team2Mentions}\n\n**Quem VENCEU pelo W.O.?**\n(O adversário sumiu/não compareceu)`,
             timestamp: true
         })],
         components: [woButtons],
@@ -308,9 +298,9 @@ async function handleWalkover(interaction) {
 }
 
 /**
- * Processa a seleção de W.O.
+ * Processa a seleção de W.O. - Agora escolhe o VENCEDOR
  */
-async function handleWalkoverSelection(interaction, woTeamNum) {
+async function handleWalkoverSelection(interaction, winnerTeamNum) {
     const parts = interaction.customId.split('_');
     const simulatorId = parts[2];
     const matchId = parts[3];
@@ -321,35 +311,95 @@ async function handleWalkoverSelection(interaction, woTeamNum) {
     const { advanceWinner } = require('../systems/tournament/bracket');
     const match = simulator.bracketData.matches.find(m => m.id === matchId);
 
-    // O time que NÃO recebeu W.O. avança
-    const winnerTeam = woTeamNum === 1 ? match.team2 : match.team1;
-    const loserMentions = (woTeamNum === 1 ? match.team1 : match.team2).map(id => `<@${id}>`).join(', ');
+    // Agora o botão indica quem VENCEU
+    const winnerTeam = winnerTeamNum === 1 ? match.team1 : match.team2;
+    const loserTeam = winnerTeamNum === 1 ? match.team2 : match.team1;
+    const loserMentions = loserTeam.map(id => `<@${id}>`).join(', ');
     const winnerMentions = winnerTeam.map(id => `<@${id}>`).join(', ');
 
     const result = advanceWinner(simulator.bracketData, matchId, winnerTeam);
-
-    if (result.isFinal) {
-        await handleChampion(interaction, simulator, result.champion, result.bracketData);
-    } else if (result.isNewRound && result.nextMatch) {
-        await createNextRoundChannels(interaction, simulator, result.nextMatch.round, result.bracketData);
-    }
 
     await updateTournament(simulatorId, { bracketData: result.bracketData });
 
     await interaction.update({
         embeds: [createRedEmbed({
             title: '✅ W.O. Registrado',
-            description: `**Faltou:** ${loserMentions}\n**Avançou:** ${winnerMentions}`,
+            description: `**Vencedor:** ${winnerMentions}\n**Não compareceu:** ${loserMentions}`,
             timestamp: true
         })],
         components: []
     });
 
-    // Apaga o canal da partida
-    const channel = interaction.guild.channels.cache.get(interaction.channelId);
-    if (channel && (channel.name.includes('rodada') || channel.name.includes('quartas') || 
-                    channel.name.includes('semifinal') || channel.name.includes('final'))) {
-        setTimeout(() => channel.delete('Partida finalizada por W.O.'), 3000);
+    // Verifica se todas as partidas da rodada acabaram
+    await checkRoundComplete(interaction, simulator, result);
+}
+
+/**
+ * Verifica se todas as partidas da rodada acabaram
+ * Se sim, deleta os canais e cria a próxima rodada
+ */
+async function checkRoundComplete(interaction, simulator, result) {
+    // Se é a final, processa o campeão
+    if (result.isFinal) {
+        await handleChampion(interaction, simulator, result.champion, result.bracketData);
+        return;
+    }
+
+    // Busca o simulador atualizado
+    const updatedSimulator = await getTournamentById(simulator.id);
+    if (!updatedSimulator) return;
+
+    const bracketData = updatedSimulator.bracketData;
+    
+    // Encontra a rodada atual (menor rodada com partidas não finalizadas)
+    const currentRound = Math.min(...bracketData.matches
+        .filter(m => m.state !== 'finished')
+        .map(m => m.round));
+
+    // Verifica se todas as partidas da rodada atual foram finalizadas
+    const currentRoundMatches = bracketData.matches.filter(m => m.round === currentRound);
+    const allFinished = currentRoundMatches.every(m => m.state === 'finished');
+
+    if (allFinished && result.isNewRound) {
+        // Deleta todos os canais da rodada atual
+        await deleteRoundChannels(interaction, simulator);
+
+        // Cria canais para a próxima rodada
+        if (result.nextMatch) {
+            await createNextRoundChannels(interaction, simulator, result.nextMatch.round, bracketData);
+        }
+    }
+}
+
+/**
+ * Deleta todos os canais de partidas da categoria do simulador
+ */
+async function deleteRoundChannels(interaction, simulator) {
+    try {
+        if (!simulator.categoryId) return;
+
+        const category = interaction.guild.channels.cache.get(simulator.categoryId);
+        if (!category) return;
+
+        const matchChannels = category.children.cache.filter(ch => 
+            ch.name.includes('rodada') || 
+            ch.name.includes('quartas') || 
+            ch.name.includes('semifinal') || 
+            ch.name.includes('final')
+        );
+
+        // Deleta todos os canais de partidas
+        for (const [, channel] of matchChannels) {
+            try {
+                await channel.delete('Rodada finalizada');
+            } catch (err) {
+                console.error('Erro ao deletar canal:', err.message);
+            }
+        }
+
+        console.log(`✅ ${matchChannels.size} canais de partida deletados`);
+    } catch (error) {
+        console.error('Erro ao deletar canais da rodada:', error);
     }
 }
 
@@ -499,4 +549,4 @@ async function updateLiveRankPanels(client) {
     }
 }
 
-module.exports = { handleButton };
+module.exports = { handleButton, checkRoundComplete };

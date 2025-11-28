@@ -68,7 +68,7 @@ async function createSimulator(guild, creator, options) {
             new ButtonBuilder()
                 .setCustomId(`simu_join_${simulatorId}`)
                 .setLabel('Entrar')
-                .setStyle(ButtonStyle.Primary),
+                .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
                 .setCustomId(`simu_leave_${simulatorId}`)
                 .setLabel('Sair')
@@ -76,7 +76,7 @@ async function createSimulator(guild, creator, options) {
             new ButtonBuilder()
                 .setCustomId(`simu_cancel_${simulatorId}`)
                 .setLabel('Cancelar Simulador')
-                .setStyle(ButtonStyle.Danger)
+                .setStyle(ButtonStyle.Secondary)
         );
 
     console.log(`📤 Enviando painel com ${buttons.components.length} botões`);
@@ -305,6 +305,8 @@ async function startTournament(client, simulatorId) {
  * Cria canal de partida
  */
 async function createMatchChannel(guild, category, simulator, match, channelName) {
+    const { startInactivityTimer } = require('../kaori/assistant');
+
     const team1Mentions = match.team1.map(id => `<@${id}>`).join(', ');
     const team2Mentions = match.team2.map(id => `<@${id}>`).join(', ');
 
@@ -328,6 +330,9 @@ async function createMatchChannel(guild, category, simulator, match, channelName
         ]
     });
 
+    match.channelId = matchChannel.id;
+    await updateTournament(simulator.id, { bracketData: simulator.bracketData });
+
     const matchEmbed = createRedEmbed({
         title: '<:raiopixel:1442668029065564341> Partida',
         fields: [
@@ -335,7 +340,7 @@ async function createMatchChannel(guild, category, simulator, match, channelName
             { name: 'VS', value: '<:raiopixel:1442668029065564341>', inline: true },
             { name: 'Time 2', value: team2Mentions, inline: true }
         ],
-        description: 'Boa sorte! O criador do simulador declarará o vencedor.',
+        description: 'Boa sorte! O criador do simulador declarará o vencedor.\n\n*Mencione o criador ou digite "Kaori" se precisar de ajuda!*',
         timestamp: true
     });
 
@@ -344,21 +349,23 @@ async function createMatchChannel(guild, category, simulator, match, channelName
             new ButtonBuilder()
                 .setCustomId(`match_win1_${simulator.id}_${match.id}`)
                 .setLabel('Time 1 Venceu')
-                .setStyle(ButtonStyle.Success),
+                .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
                 .setCustomId(`match_win2_${simulator.id}_${match.id}`)
                 .setLabel('Time 2 Venceu')
-                .setStyle(ButtonStyle.Success),
+                .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
                 .setCustomId(`match_wo_${simulator.id}_${match.id}`)
                 .setLabel('W.O.')
-                .setStyle(ButtonStyle.Danger)
+                .setStyle(ButtonStyle.Secondary)
         );
 
     await matchChannel.send({
         embeds: [matchEmbed],
         components: [matchButtons]
     });
+
+    startInactivityTimer(matchChannel.id, matchChannel, match, simulator.creatorId);
 }
 
 /**
