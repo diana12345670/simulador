@@ -11,8 +11,7 @@ const {
     deleteTournament,
     updateRankGlobal,
     updateRankLocal,
-    incrementServerSimulators,
-    saveTournament // Assuming saveTournament is the correct function name based on context
+    incrementServerSimulators
 } = require('../../utils/database');
 
 const RANK_LOCAL_DIR = path.join(__dirname, '../../data/rank_local');

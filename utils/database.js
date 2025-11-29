@@ -541,7 +541,7 @@ async function createTournament(tournamentData) {
     const {
         id, guild_id, channel_id, creator_id, mode, jogo, versao,
         max_players, prize, panel_message_id, category_id, players, bracket_data,
-        modoJogo, teamSelection, playersPerTeam, totalTeams, teamsData
+        modoJogo, teamSelection, startMode, playersPerTeam, totalTeams, teamsData
     } = tournamentData;
 
     if (usePostgres && pool) {
