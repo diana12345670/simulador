@@ -747,7 +747,12 @@ async function listOpenTournamentsByGuild(guildId) {
                 mode: row.mode,
                 jogo: row.jogo,
                 versao: row.versao,
+                modoJogo: row.modo_jogo,
                 maxPlayers: row.max_players,
+                teamSelection: row.team_selection || 'aleatorio',
+                playersPerTeam: row.players_per_team,
+                totalTeams: row.total_teams,
+                teamsData: row.teams_data || {},
                 prize: row.prize,
                 state: row.state,
                 panelMessageId: row.panel_message_id,
@@ -766,6 +771,57 @@ async function listOpenTournamentsByGuild(guildId) {
         const tournaments = readJSON(JSON_FILES.tournaments, {});
         return Object.values(tournaments)
             .filter(t => t.guildId === guildId && t.state === 'open');
+    }
+}
+
+async function getRunningTournamentByGuild(guildId) {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            const result = await client.query(
+                "SELECT * FROM tournaments WHERE guild_id = $1 AND state = 'running' ORDER BY created_at DESC LIMIT 1",
+                [guildId]
+            );
+            
+            if (result.rows.length === 0) return null;
+            
+            const row = result.rows[0];
+            return {
+                id: row.id,
+                guildId: row.guild_id,
+                channelId: row.channel_id,
+                creatorId: row.creator_id,
+                mode: row.mode,
+                jogo: row.jogo,
+                versao: row.versao,
+                modoJogo: row.modo_jogo,
+                maxPlayers: row.max_players,
+                teamSelection: row.team_selection || 'aleatorio',
+                playersPerTeam: row.players_per_team,
+                totalTeams: row.total_teams,
+                teamsData: row.teams_data || {},
+                prize: row.prize,
+                state: row.state,
+                panelMessageId: row.panel_message_id,
+                categoryId: row.category_id,
+                players: row.players || [],
+                bracketData: row.bracket_data,
+                createdAt: row.created_at
+            };
+        } catch (error) {
+            console.error(`Erro ao buscar torneio em andamento ${guildId}:`, error.message);
+            return null;
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const tournaments = readJSON(JSON_FILES.tournaments, {});
+        const runningTournaments = Object.values(tournaments)
+            .filter(t => t.guildId === guildId && t.state === 'running')
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
+        return runningTournaments.length > 0 ? runningTournaments[0] : null;
     }
 }
 
@@ -990,6 +1046,7 @@ module.exports = {
     updateTournament,
     deleteTournament,
     listOpenTournamentsByGuild,
+    getRunningTournamentByGuild,
     countActiveTournaments,
     addLiveRankPanel,
     removeLiveRankPanel,
