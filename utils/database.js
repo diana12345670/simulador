@@ -539,22 +539,37 @@ async function isGuildBanned(guildId) {
 async function createTournament(tournamentData) {
     const {
         id, guild_id, channel_id, creator_id, mode, jogo, versao,
-        max_players, prize, panel_message_id, category_id, players, bracket_data
+        max_players, prize, panel_message_id, category_id, players, bracket_data,
+        modoJogo, teamSelection, playersPerTeam, totalTeams, teamsData
     } = tournamentData;
 
     if (usePostgres && pool) {
         let client;
         try {
             client = await pool.connect();
+            
+            // Adiciona colunas se não existirem
+            await client.query(`
+                ALTER TABLE tournaments 
+                ADD COLUMN IF NOT EXISTS modo_jogo VARCHAR(100),
+                ADD COLUMN IF NOT EXISTS team_selection VARCHAR(20),
+                ADD COLUMN IF NOT EXISTS players_per_team INTEGER,
+                ADD COLUMN IF NOT EXISTS total_teams INTEGER,
+                ADD COLUMN IF NOT EXISTS teams_data JSONB
+            `).catch(() => {}); // Ignora erro se já existirem
+            
             await client.query(`
                 INSERT INTO tournaments (
                     id, guild_id, channel_id, creator_id, mode, jogo, versao,
-                    max_players, prize, panel_message_id, category_id, players, bracket_data, updated_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
+                    max_players, prize, panel_message_id, category_id, players, bracket_data,
+                    modo_jogo, team_selection, players_per_team, total_teams, teams_data, updated_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, CURRENT_TIMESTAMP)
             `, [
                 id, guild_id, channel_id, creator_id, mode, jogo, versao,
                 max_players, prize || 'Nenhum', panel_message_id, category_id,
-                JSON.stringify(players || []), bracket_data ? JSON.stringify(bracket_data) : null
+                JSON.stringify(players || []), bracket_data ? JSON.stringify(bracket_data) : null,
+                modoJogo, teamSelection || 'aleatorio', playersPerTeam, totalTeams,
+                teamsData ? JSON.stringify(teamsData) : null
             ]);
             return tournamentData;
         } catch (error) {
@@ -573,7 +588,12 @@ async function createTournament(tournamentData) {
             mode,
             jogo,
             versao,
+            modoJogo: modoJogo || mode,
             maxPlayers: max_players,
+            teamSelection: teamSelection || 'aleatorio',
+            playersPerTeam: playersPerTeam,
+            totalTeams: totalTeams,
+            teamsData: teamsData || {},
             prize: prize || 'Nenhum',
             state: 'open',
             panelMessageId: panel_message_id,
@@ -605,7 +625,12 @@ async function getTournamentById(tournamentId) {
                 mode: row.mode,
                 jogo: row.jogo,
                 versao: row.versao,
+                modoJogo: row.modo_jogo,
                 maxPlayers: row.max_players,
+                teamSelection: row.team_selection || 'aleatorio',
+                playersPerTeam: row.players_per_team,
+                totalTeams: row.total_teams,
+                teamsData: row.teams_data || {},
                 prize: row.prize,
                 state: row.state,
                 panelMessageId: row.panel_message_id,
@@ -648,13 +673,14 @@ async function updateTournament(tournamentId, updates) {
                 panelMessageId: 'panel_message_id',
                 categoryId: 'category_id',
                 players: 'players',
-                bracketData: 'bracket_data'
+                bracketData: 'bracket_data',
+                teamsData: 'teams_data'
             };
 
             for (const [key, dbField] of Object.entries(fieldMap)) {
                 if (updates[key] !== undefined) {
                     fields.push(`${dbField} = $${paramIndex}`);
-                    if (key === 'players' || key === 'bracketData') {
+                    if (key === 'players' || key === 'bracketData' || key === 'teamsData') {
                         values.push(JSON.stringify(updates[key]));
                     } else {
                         values.push(updates[key]);

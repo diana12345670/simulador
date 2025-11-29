@@ -1,14 +1,18 @@
-// buttonHandler.js - Handler para botões do Discord
+
 const { createRedEmbed, createErrorEmbed } = require('../utils/embeds');
 const { getTournamentById, updateTournament, deleteTournament } = require('../utils/database');
 const { updateSimulatorPanel } = require('../systems/tournament/manager');
-const { MessageFlags } = require('discord.js');
+const { MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 
-/**
- * Processa interações de botões
- */
 async function handleButton(interaction) {
     const customId = interaction.customId;
+
+    if (interaction.isStringSelectMenu()) {
+        if (customId.startsWith('team_select_')) {
+            await handleTeamSelect(interaction);
+        }
+        return;
+    }
 
     if (customId.startsWith('simu_join_')) {
         await handleJoin(interaction);
@@ -16,6 +20,10 @@ async function handleButton(interaction) {
         await handleLeave(interaction);
     } else if (customId.startsWith('simu_cancel_')) {
         await handleCancel(interaction);
+    } else if (customId.startsWith('simu_start_')) {
+        await handleStart(interaction);
+    } else if (customId.startsWith('team_join_')) {
+        await handleTeamJoin(interaction);
     } else if (customId.startsWith('match_win1_')) {
         await handleMatchWin(interaction, 1);
     } else if (customId.startsWith('match_win2_')) {
@@ -37,9 +45,176 @@ async function handleButton(interaction) {
     }
 }
 
-/**
- * Lida com entrada de jogador no simulador
- */
+async function handleTeamSelect(interaction) {
+    const parts = interaction.customId.split('_');
+    const simulatorId = parts[2];
+    const selectedTeamNumber = parseInt(interaction.values[0].replace('time', ''));
+
+    const simulator = await getTournamentById(simulatorId);
+
+    if (!simulator || simulator.state !== 'open') {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Este simulador não está mais aberto.')],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    const playerId = interaction.user.id;
+    const teamsData = simulator.teamsData || {};
+    const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
+    const currentPlayers = simulator.players || [];
+
+    const isNewPlayer = !currentPlayers.includes(playerId);
+    if (isNewPlayer && currentPlayers.length >= simulator.maxPlayers) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Este simulador já está lotado!')],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    let currentTeam = null;
+    for (const [teamKey, players] of Object.entries(teamsData)) {
+        if (players.includes(playerId)) {
+            currentTeam = teamKey;
+            break;
+        }
+    }
+
+    if (currentTeam === `time${selectedTeamNumber}`) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Você já está neste time!')],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    const targetTeam = teamsData[`time${selectedTeamNumber}`] || [];
+    if (targetTeam.length >= playersPerTeam) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Este time já está cheio!')],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    if (currentTeam) {
+        teamsData[currentTeam] = teamsData[currentTeam].filter(id => id !== playerId);
+    }
+
+    if (!teamsData[`time${selectedTeamNumber}`]) {
+        teamsData[`time${selectedTeamNumber}`] = [];
+    }
+    teamsData[`time${selectedTeamNumber}`].push(playerId);
+
+    const newPlayers = [];
+    for (const teamPlayers of Object.values(teamsData)) {
+        for (const pid of teamPlayers) {
+            if (!newPlayers.includes(pid)) {
+                newPlayers.push(pid);
+            }
+        }
+    }
+
+    await updateTournament(simulatorId, { 
+        teamsData: teamsData,
+        players: newPlayers 
+    });
+
+    const action = currentTeam ? `trocou para o Time ${selectedTeamNumber}` : `entrou no Time ${selectedTeamNumber}`;
+    await interaction.reply({
+        embeds: [createRedEmbed({
+            description: `✅ Você ${action}!`,
+            timestamp: true
+        })],
+        flags: MessageFlags.Ephemeral
+    });
+
+    await updateSimulatorPanel(interaction.client, simulatorId);
+}
+
+async function handleTeamJoin(interaction) {
+    const parts = interaction.customId.split('_');
+    const simulatorId = parts[2];
+    const teamNumber = parseInt(parts[3]);
+
+    const simulator = await getTournamentById(simulatorId);
+
+    if (!simulator || simulator.state !== 'open') {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Este simulador não está mais aberto.')],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    const playerId = interaction.user.id;
+    const teamsData = simulator.teamsData || {};
+    const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
+    const currentPlayers = simulator.players || [];
+
+    const isNewPlayer = !currentPlayers.includes(playerId);
+    if (isNewPlayer && currentPlayers.length >= simulator.maxPlayers) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Este simulador já está lotado!')],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    let currentTeam = null;
+    for (const [teamKey, players] of Object.entries(teamsData)) {
+        if (players.includes(playerId)) {
+            currentTeam = teamKey;
+            break;
+        }
+    }
+
+    if (currentTeam === `time${teamNumber}`) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Você já está neste time!')],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    const targetTeam = teamsData[`time${teamNumber}`] || [];
+    if (targetTeam.length >= playersPerTeam) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Este time já está cheio!')],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    if (currentTeam) {
+        teamsData[currentTeam] = teamsData[currentTeam].filter(id => id !== playerId);
+    }
+
+    if (!teamsData[`time${teamNumber}`]) {
+        teamsData[`time${teamNumber}`] = [];
+    }
+    teamsData[`time${teamNumber}`].push(playerId);
+
+    const newPlayers = [];
+    for (const teamPlayers of Object.values(teamsData)) {
+        for (const pid of teamPlayers) {
+            if (!newPlayers.includes(pid)) {
+                newPlayers.push(pid);
+            }
+        }
+    }
+
+    await updateTournament(simulatorId, { 
+        teamsData: teamsData,
+        players: newPlayers 
+    });
+
+    const action = currentTeam ? `trocou para o Time ${teamNumber}` : `entrou no Time ${teamNumber}`;
+    await interaction.reply({
+        embeds: [createRedEmbed({
+            description: `✅ Você ${action}!`,
+            timestamp: true
+        })],
+        flags: MessageFlags.Ephemeral
+    });
+
+    await updateSimulatorPanel(interaction.client, simulatorId);
+}
+
 async function handleJoin(interaction) {
     const simulatorId = interaction.customId.replace('simu_join_', '');
     const simulator = await getTournamentById(simulatorId);
@@ -51,7 +226,6 @@ async function handleJoin(interaction) {
         });
     }
 
-    // Verifica se já está inscrito
     if (simulator.players.includes(interaction.user.id)) {
         return interaction.reply({
             embeds: [createErrorEmbed('Você já está inscrito neste simulador.')],
@@ -59,7 +233,6 @@ async function handleJoin(interaction) {
         });
     }
 
-    // Verifica se está cheio
     if (simulator.players.length >= simulator.maxPlayers) {
         return interaction.reply({
             embeds: [createErrorEmbed('Este simulador já está lotado.')],
@@ -67,7 +240,6 @@ async function handleJoin(interaction) {
         });
     }
 
-    // Adiciona jogador
     const newPlayers = [...simulator.players, interaction.user.id];
     await updateTournament(simulatorId, { players: newPlayers });
 
@@ -82,9 +254,6 @@ async function handleJoin(interaction) {
     await updateSimulatorPanel(interaction.client, simulatorId);
 }
 
-/**
- * Lida com saída de jogador do simulador
- */
 async function handleLeave(interaction) {
     const simulatorId = interaction.customId.replace('simu_leave_', '');
     const simulator = await getTournamentById(simulatorId);
@@ -96,7 +265,6 @@ async function handleLeave(interaction) {
         });
     }
 
-    // Verifica se está inscrito
     if (!simulator.players.includes(interaction.user.id)) {
         return interaction.reply({
             embeds: [createErrorEmbed('Você não está inscrito neste simulador.')],
@@ -104,9 +272,19 @@ async function handleLeave(interaction) {
         });
     }
 
-    // Remove jogador
     const newPlayers = simulator.players.filter(id => id !== interaction.user.id);
-    await updateTournament(simulatorId, { players: newPlayers });
+
+    let teamsData = simulator.teamsData || {};
+    if (simulator.teamSelection === 'manual') {
+        for (const teamKey of Object.keys(teamsData)) {
+            teamsData[teamKey] = teamsData[teamKey].filter(id => id !== interaction.user.id);
+        }
+    }
+
+    await updateTournament(simulatorId, { 
+        players: newPlayers,
+        teamsData: teamsData
+    });
 
     await interaction.reply({
         embeds: [createRedEmbed({
@@ -119,9 +297,6 @@ async function handleLeave(interaction) {
     await updateSimulatorPanel(interaction.client, simulatorId);
 }
 
-/**
- * Lida com cancelamento de simulador
- */
 async function handleCancel(interaction) {
     const simulatorId = interaction.customId.replace('simu_cancel_', '');
     const simulator = await getTournamentById(simulatorId);
@@ -133,7 +308,6 @@ async function handleCancel(interaction) {
         });
     }
 
-    // Verifica se é o criador ou owner
     const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
     if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
         return interaction.reply({
@@ -151,7 +325,6 @@ async function handleCancel(interaction) {
     });
 
     try {
-        // Atualiza o painel principal primeiro
         const mainChannel = interaction.guild.channels.cache.get(simulator.channelId);
         if (mainChannel && simulator.panelMessageId) {
             try {
@@ -170,10 +343,8 @@ async function handleCancel(interaction) {
             }
         }
 
-        // Remove do banco primeiro
         await deleteTournament(simulatorId);
 
-        // Apaga categoria e canais depois de um delay
         setTimeout(async () => {
             try {
                 if (simulator.categoryId) {
@@ -205,9 +376,13 @@ async function handleCancel(interaction) {
     }
 }
 
-/**
- * Lida com vitória de partida
- */
+async function handleStart(interaction) {
+    return interaction.reply({
+        embeds: [createErrorEmbed('Função não implementada.')],
+        flags: MessageFlags.Ephemeral
+    });
+}
+
 async function handleMatchWin(interaction, winnerTeamNum) {
     const parts = interaction.customId.split('_');
     const simulatorId = parts[2];
@@ -216,7 +391,6 @@ async function handleMatchWin(interaction, winnerTeamNum) {
     const simulator = await getTournamentById(simulatorId);
     if (!simulator) return;
 
-    // Verifica se é o criador
     if (interaction.user.id !== simulator.creatorId) {
         return interaction.reply({
             embeds: [createErrorEmbed('Apenas o criador pode declarar vencedor.')],
@@ -241,13 +415,9 @@ async function handleMatchWin(interaction, winnerTeamNum) {
         components: []
     });
 
-    // Verifica se todas as partidas da rodada acabaram
     await checkRoundComplete(interaction, simulator, result);
 }
 
-/**
- * Lida com W.O.
- */
 async function handleWalkover(interaction) {
     const parts = interaction.customId.split('_');
     const simulatorId = parts[2];
@@ -256,7 +426,6 @@ async function handleWalkover(interaction) {
     const simulator = await getTournamentById(simulatorId);
     if (!simulator) return;
 
-    // Verifica se é o criador
     if (interaction.user.id !== simulator.creatorId) {
         return interaction.reply({
             embeds: [createErrorEmbed('Apenas o criador pode declarar W.O.')],
@@ -268,8 +437,6 @@ async function handleWalkover(interaction) {
     const team1Mentions = match.team1.map(id => `<@${id}>`).join(', ');
     const team2Mentions = match.team2.map(id => `<@${id}>`).join(', ');
 
-    // Cria botões para escolher qual time VENCEU pelo W.O.
-    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
     const woButtons = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -297,9 +464,6 @@ async function handleWalkover(interaction) {
     });
 }
 
-/**
- * Processa a seleção de W.O. - Agora escolhe o VENCEDOR
- */
 async function handleWalkoverSelection(interaction, winnerTeamNum) {
     const parts = interaction.customId.split('_');
     const simulatorId = parts[2];
@@ -311,7 +475,6 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
     const { advanceWinner } = require('../systems/tournament/bracket');
     const match = simulator.bracketData.matches.find(m => m.id === matchId);
 
-    // Agora o botão indica quem VENCEU
     const winnerTeam = winnerTeamNum === 1 ? match.team1 : match.team2;
     const loserTeam = winnerTeamNum === 1 ? match.team2 : match.team1;
     const loserMentions = loserTeam.map(id => `<@${id}>`).join(', ');
@@ -330,50 +493,36 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
         components: []
     });
 
-    // Verifica se todas as partidas da rodada acabaram
     await checkRoundComplete(interaction, simulator, result);
 }
 
-/**
- * Verifica se todas as partidas da rodada acabaram
- * Se sim, deleta os canais e cria a próxima rodada
- */
 async function checkRoundComplete(interaction, simulator, result) {
-    // Se é a final, processa o campeão
     if (result.isFinal) {
         await handleChampion(interaction, simulator, result.champion, result.bracketData);
         return;
     }
 
-    // Busca o simulador atualizado
     const updatedSimulator = await getTournamentById(simulator.id);
     if (!updatedSimulator) return;
 
     const bracketData = updatedSimulator.bracketData;
-    
-    // Encontra a rodada atual (menor rodada com partidas não finalizadas)
+
     const currentRound = Math.min(...bracketData.matches
         .filter(m => m.state !== 'finished')
         .map(m => m.round));
 
-    // Verifica se todas as partidas da rodada atual foram finalizadas
     const currentRoundMatches = bracketData.matches.filter(m => m.round === currentRound);
     const allFinished = currentRoundMatches.every(m => m.state === 'finished');
 
     if (allFinished && result.isNewRound) {
-        // Deleta todos os canais da rodada atual
         await deleteRoundChannels(interaction, simulator);
 
-        // Cria canais para a próxima rodada
         if (result.nextMatch) {
             await createNextRoundChannels(interaction, simulator, result.nextMatch.round, bracketData);
         }
     }
 }
 
-/**
- * Deleta todos os canais de partidas da categoria do simulador
- */
 async function deleteRoundChannels(interaction, simulator) {
     try {
         if (!simulator.categoryId) return;
@@ -388,7 +537,6 @@ async function deleteRoundChannels(interaction, simulator) {
             ch.name.includes('final')
         );
 
-        // Deleta todos os canais de partidas
         for (const [, channel] of matchChannels) {
             try {
                 await channel.delete('Rodada finalizada');
@@ -403,9 +551,6 @@ async function deleteRoundChannels(interaction, simulator) {
     }
 }
 
-/**
- * Lida com campeão - ATUALIZA RANKING E REMOVE SIMULADOR
- */
 async function handleChampion(interaction, simulator, championTeam, bracketData) {
     const { updateRankGlobal, updateRankLocal } = require('../utils/database');
     const championMentions = championTeam.map(id => `<@${id}>`).join(', ');
@@ -424,7 +569,6 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
         await mainChannel.send({ embeds: [championEmbed] });
     }
 
-    // ✅ ATUALIZA RANKINGS apenas se tiver 3 ou mais participantes
     if (totalParticipants >= minParticipantsForPoints) {
         for (const playerId of championTeam) {
             await updateRankGlobal(playerId, { wins: 1, points: 1 });
@@ -435,16 +579,12 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
         console.log(`⚠️ Simulador com apenas ${totalParticipants} participantes - pontos não contabilizados`);
     }
 
-    // ✅ ATUALIZA PAINÉIS AO VIVO
     await updateLiveRankPanels(interaction.client);
 
-    // Marca como finalizado no banco
     await updateTournament(simulator.id, { state: 'finished', bracketData });
 
-    // Apaga categoria e canais após 5 segundos
     setTimeout(async () => {
         try {
-            // Apaga categoria e canais dos brackets
             if (simulator.categoryId) {
                 const category = interaction.guild.channels.cache.get(simulator.categoryId);
                 if (category) {
@@ -456,7 +596,6 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
                 }
             }
 
-            // ✅ REMOVE DO BANCO DE DADOS
             await deleteTournament(simulator.id);
             console.log(`✅ Simulador ${simulator.id} removido do banco de dados`);
         } catch (error) {
@@ -465,9 +604,6 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
     }, 5000);
 }
 
-/**
- * Cria canais para próxima rodada
- */
 async function createNextRoundChannels(interaction, simulator, round, bracketData) {
     const { createMatchChannel } = require('../systems/tournament/manager');
     const { getRoundName } = require('../systems/tournament/bracket');
@@ -482,15 +618,12 @@ async function createNextRoundChannels(interaction, simulator, round, bracketDat
     }
 }
 
-/**
- * Atualiza todos os painéis de rank ao vivo
- */
 async function updateLiveRankPanels(client) {
     const { getAllLiveRankPanels, removeLiveRankPanel, getRankGlobal, getRankLocal } = require('../utils/database');
-    
+
     try {
         const panels = await getAllLiveRankPanels();
-        
+
         for (const panel of panels) {
             try {
                 const guild = client.guilds.cache.get(panel.guildId);

@@ -31,13 +31,14 @@ module.exports = {
                 }
             }
         }
-        // Botões
-        else if (interaction.isButton()) {
-            console.log(`🔘 Interação de botão detectada: ${interaction.customId}`);
+        // Botões e Select Menus
+        else if (interaction.isButton() || interaction.isStringSelectMenu()) {
+            const type = interaction.isButton() ? 'botão' : 'select menu';
+            console.log(`🔘 Interação de ${type} detectada: ${interaction.customId}`);
             try {
                 await handleButton(interaction);
             } catch (error) {
-                console.error('❌ Erro ao processar botão:', error);
+                console.error(`❌ Erro ao processar ${type}:`, error);
                 
                 const errorMessage = { 
                     content: '<:negative:1442668040465682643> Ocorreu um erro ao processar esta ação.', 

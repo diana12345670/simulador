@@ -4,15 +4,34 @@
  * Gera a estrutura de bracket inicial
  * @param {Array} players - Lista de IDs dos jogadores
  * @param {string} mode - Modo do torneio (1v1, 2v2, 3v3, 4v4)
+ * @param {Object} options - Opções adicionais (teamSelection, teamsData)
  * @returns {Object} Estrutura do bracket
  */
-function generateBracket(players, mode) {
+function generateBracket(players, mode, options = {}) {
     const playersPerTeam = parseInt(mode.charAt(0)); // Extrai número do modo (1v1 -> 1, 2v2 -> 2, etc)
-    const teams = [];
+    let teams = [];
 
-    // Divide jogadores em times
-    for (let i = 0; i < players.length; i += playersPerTeam) {
-        teams.push(players.slice(i, i + playersPerTeam));
+    if (options.teamSelection === 'manual' && options.teamsData) {
+        // Usa os times já formados manualmente
+        const teamsData = options.teamsData;
+        const totalTeams = Object.keys(teamsData).length;
+        
+        for (let i = 1; i <= totalTeams; i++) {
+            const teamPlayers = teamsData[`time${i}`] || [];
+            if (teamPlayers.length > 0) {
+                teams.push(teamPlayers);
+            }
+        }
+
+        // Embaralha os times para confrontos aleatórios
+        teams = shuffleArray(teams);
+    } else {
+        // Modo aleatório: embaralha jogadores e divide em times
+        const shuffledPlayers = shuffleArray([...players]);
+        
+        for (let i = 0; i < shuffledPlayers.length; i += playersPerTeam) {
+            teams.push(shuffledPlayers.slice(i, i + playersPerTeam));
+        }
     }
 
     // Gera os confrontos da primeira rodada
@@ -34,6 +53,18 @@ function generateBracket(players, mode) {
         matches: matches,
         mode: mode
     };
+}
+
+/**
+ * Embaralha um array (Fisher-Yates shuffle)
+ */
+function shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
 }
 
 /**

@@ -1,7 +1,7 @@
 // manager.js - Gerenciador principal de torneios (simuladores)
 const { readJSON, writeJSON } = require('../../utils/jsonDB');
 const { createRedEmbed } = require('../../utils/embeds');
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder } = require('discord.js');
 const { generateBracket, advanceWinner, getRoundName } = require('./bracket');
 const path = require('path');
 const {
@@ -24,10 +24,22 @@ const RANK_LOCAL_DIR = path.join(__dirname, '../../data/rank_local');
  * @returns {Promise<Object>} Dados do simulador criado
  */
 async function createSimulator(guild, creator, options) {
-    const { mode, jogo, versao, maxPlayers, prize = 'Nenhum', channel } = options;
+    const { mode, jogo, versao, modo, maxPlayers, teamSelection = 'aleatorio', prize = 'Nenhum', channel } = options;
 
     // Gera ID único
     const simulatorId = `sim-${guild.id}-${Date.now()}`;
+
+    // Calcula quantos jogadores por time e total de times
+    const playersPerTeam = parseInt(mode.charAt(0));
+    const totalTeams = maxPlayers / playersPerTeam;
+
+    // Inicializa estrutura de times para seleção manual
+    const teamsData = {};
+    if (teamSelection === 'manual') {
+        for (let i = 1; i <= totalTeams; i++) {
+            teamsData[`time${i}`] = [];
+        }
+    }
 
     // Cria dados do simulador
     const simulator = {
@@ -38,7 +50,12 @@ async function createSimulator(guild, creator, options) {
         mode,
         jogo,
         versao,
+        modo_jogo: modo,
         max_players: maxPlayers,
+        team_selection: teamSelection,
+        players_per_team: playersPerTeam,
+        total_teams: totalTeams,
+        teams_data: teamsData,
         prize,
         players: [],
         bracket_data: null,
@@ -47,16 +64,40 @@ async function createSimulator(guild, creator, options) {
         category_id: null
     };
 
-    // Salva no banco de dados
-    await createTournament(simulator);
+    // Salva no banco de dados com todos os campos
+    await createTournament({
+        ...simulator,
+        modoJogo: modo,
+        teamSelection,
+        playersPerTeam,
+        totalTeams,
+        teamsData
+    });
 
     // Incrementa contador de simuladores do servidor (para Top Servidores)
     await incrementServerSimulators(guild.id);
 
+    // Monta descrição do painel
+    const selectionText = teamSelection === 'manual' 
+        ? '<:joiapixel:1442668036090888274> **Escolha de Times:** Manual (escolha seu time)'
+        : '<:joiapixel:1442668036090888274> **Escolha de Times:** Aleatório';
+
+    let panelDescription;
+    if (teamSelection === 'manual') {
+        // Monta lista de times para seleção manual
+        let teamsText = '';
+        for (let i = 1; i <= totalTeams; i++) {
+            teamsText += `\n**Time ${i}** (0/${playersPerTeam}): Vazio`;
+        }
+        panelDescription = `<:raiopixel:1442668029065564341> **Jogo:** ${jogo}\n<:pergaminhopixel:1442668033242959963> **Versão:** ${versao}\n<:joiapixel:1442668036090888274> **Modo/Mapa:** ${modo}\n${selectionText}\n<:presentepixel:1442667950313308332> **Prêmio:** ${prize}\n\n**Jogadores (0/${maxPlayers})**${teamsText}`;
+    } else {
+        panelDescription = `<:raiopixel:1442668029065564341> **Jogo:** ${jogo}\n<:pergaminhopixel:1442668033242959963> **Versão:** ${versao}\n<:joiapixel:1442668036090888274> **Modo/Mapa:** ${modo}\n${selectionText}\n<:presentepixel:1442667950313308332> **Prêmio:** ${prize}\n\n**Jogadores (0/${maxPlayers})**\nNenhum jogador ainda`;
+    }
+
     // Cria e envia painel de entrada
     const panelEmbed = createRedEmbed({
         title: `<:fogo:1442667877332422847> Simulador ${mode} – ${jogo}`,
-        description: `<:raiopixel:1442668029065564341> **Jogo:** ${jogo}\n<:pergaminhopixel:1442668033242959963> **Versão:** ${versao}\n<:joiapixel:1442668036090888274> **Modo/Mapa:** ${options.modo}\n<:presentepixel:1442667950313308332> **Prêmio:** ${prize}\n\n**Jogadores (0/${maxPlayers})**\nNenhum jogador ainda`,
+        description: panelDescription,
         footer: { text: '<:alerta:1442668042873081866> Aguardando jogadores...' },
         timestamp: true
     });
@@ -67,29 +108,89 @@ async function createSimulator(guild, creator, options) {
         panelEmbed.setThumbnail(guildImage);
     }
 
-    const buttons = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(`simu_join_${simulatorId}`)
-                .setLabel('Entrar')
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId(`simu_leave_${simulatorId}`)
-                .setLabel('Sair')
-                .setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder()
-                .setCustomId(`simu_cancel_${simulatorId}`)
-                .setLabel('Cancelar Simulador')
-                .setStyle(ButtonStyle.Secondary)
-        );
+    // Cria botões dependendo do modo de seleção
+    const components = [];
 
-    console.log(`📤 Enviando painel com ${buttons.components.length} botões`);
-    console.log(`📋 Componentes:`, buttons.components.map(b => ({ customId: b.data.custom_id, label: b.data.label })));
+    if (teamSelection === 'manual') {
+        // Se houver mais de 2 times, usa um menu de seleção
+        if (totalTeams > 2) {
+            const teamOptions = [];
+            for (let i = 1; i <= totalTeams; i++) {
+                teamOptions.push({
+                    label: `Time ${i}`,
+                    value: `time${i}`
+                });
+            }
+
+            const selectMenu = new StringSelectMenuBuilder()
+                .setCustomId(`team_select_${simulatorId}`)
+                .setPlaceholder('Selecione um time...')
+                .addOptions(teamOptions);
+
+            components.push(new ActionRowBuilder().addComponents(selectMenu));
+        } else {
+            // Botões para escolher time (máximo 5 por row)
+            let currentRow = new ActionRowBuilder();
+            let buttonsInRow = 0;
+
+            for (let i = 1; i <= totalTeams; i++) {
+                if (buttonsInRow >= 5) {
+                    components.push(currentRow);
+                    currentRow = new ActionRowBuilder();
+                    buttonsInRow = 0;
+                }
+                currentRow.addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`team_join_${simulatorId}_${i}`)
+                        .setLabel(`Time ${i}`)
+                        .setStyle(ButtonStyle.Primary)
+                );
+                buttonsInRow++;
+            }
+            if (buttonsInRow > 0) {
+                components.push(currentRow);
+            }
+        }
+
+        // Adiciona botões de sair e cancelar
+        const controlButtons = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`simu_leave_${simulatorId}`)
+                    .setLabel('Sair')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId(`simu_cancel_${simulatorId}`)
+                    .setLabel('Cancelar Simulador')
+                    .setStyle(ButtonStyle.Secondary)
+            );
+        components.push(controlButtons);
+    } else {
+        // Botões normais para seleção aleatória
+        const buttons = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`simu_join_${simulatorId}`)
+                    .setLabel('Entrar')
+                    .setStyle(ButtonStyle.Danger),
+                new ButtonBuilder()
+                    .setCustomId(`simu_leave_${simulatorId}`)
+                    .setLabel('Sair')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId(`simu_cancel_${simulatorId}`)
+                    .setLabel('Cancelar Simulador')
+                    .setStyle(ButtonStyle.Secondary)
+            );
+        components.push(buttons);
+    }
+
+    console.log(`📤 Enviando painel com ${components.length} rows de botões`);
 
     try {
         const panelMessage = await channel.send({
             embeds: [panelEmbed],
-            components: [buttons]
+            components: components
         });
 
         console.log(`✅ Painel enviado - ID: ${panelMessage.id}`);
@@ -217,13 +318,38 @@ async function updateSimulatorPanel(client, simulatorId) {
 
         console.log(`🔄 Atualizando painel - Mensagem tem ${message.components.length} ActionRows`);
 
-        const playersList = simulator.players.length > 0
-            ? simulator.players.map(id => `<@${id}>`).join('\n')
-            : 'Nenhum jogador ainda';
+        // Monta descrição dependendo do modo de seleção
+        const selectionText = simulator.teamSelection === 'manual' 
+            ? '<:joiapixel:1442668036090888274> **Escolha de Times:** Manual (escolha seu time)'
+            : '<:joiapixel:1442668036090888274> **Escolha de Times:** Aleatório';
+
+        let panelDescription;
+        if (simulator.teamSelection === 'manual') {
+            // Monta lista de times para seleção manual
+            let teamsText = '';
+            const teamsData = simulator.teamsData || {};
+            const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
+            const totalTeams = simulator.totalTeams || Math.floor(simulator.maxPlayers / playersPerTeam);
+
+            for (let i = 1; i <= totalTeams; i++) {
+                const teamPlayers = teamsData[`time${i}`] || [];
+                const playerMentions = teamPlayers.length > 0 
+                    ? teamPlayers.map(id => `<@${id}>`).join(', ')
+                    : 'Vazio';
+                teamsText += `\n**Time ${i}** (${teamPlayers.length}/${playersPerTeam}): ${playerMentions}`;
+            }
+            const currentPlayers = simulator.players || [];
+            panelDescription = `<:raiopixel:1442668029065564341> **Jogo:** ${simulator.jogo}\n<:pergaminhopixel:1442668033242959963> **Versão:** ${simulator.versao}\n<:joiapixel:1442668036090888274> **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n<:presentepixel:1442667950313308332> **Prêmio:** ${simulator.prize}\n\n**Jogadores (${currentPlayers.length}/${simulator.maxPlayers})**${teamsText}`;
+        } else {
+            const playersList = simulator.players.length > 0
+                ? simulator.players.map(id => `<@${id}>`).join('\n')
+                : 'Nenhum jogador ainda';
+            panelDescription = `<:raiopixel:1442668029065564341> **Jogo:** ${simulator.jogo}\n<:pergaminhopixel:1442668033242959963> **Versão:** ${simulator.versao}\n<:joiapixel:1442668036090888274> **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n<:presentepixel:1442667950313308332> **Prêmio:** ${simulator.prize}\n\n**Jogadores (${simulator.players.length}/${simulator.maxPlayers})**\n${playersList}`;
+        }
 
         const updatedEmbed = createRedEmbed({
             title: `<:fogo:1442667877332422847> Simulador ${simulator.mode} – ${simulator.jogo}`,
-            description: `<:raiopixel:1442668029065564341> **Jogo:** ${simulator.jogo}\n<:pergaminhopixel:1442668033242959963> **Versão:** ${simulator.versao}\n<:joiapixel:1442668036090888274> **Modo/Mapa:** ${simulator.mode}\n<:presentepixel:1442667950313308332> **Prêmio:** ${simulator.prize}\n\n**Jogadores (${simulator.players.length}/${simulator.maxPlayers})**\n${playersList}`,
+            description: panelDescription,
             footer: { text: simulator.players.length >= simulator.maxPlayers ? '<:positive:1442668038691491943> Simulador lotado!' : '<:alerta:1442668042873081866> Aguardando jogadores...' },
             timestamp: true
         });
@@ -260,8 +386,35 @@ async function startTournament(client, simulatorId) {
     const guild = client.guilds.cache.get(simulator.guildId);
     const channel = guild.channels.cache.get(simulator.channelId);
 
-    // Gera chaveamento
-    const bracketData = generateBracket(simulator.players, simulator.mode);
+    // Se for seleção manual, valida se todos os times estão completos
+    if (simulator.teamSelection === 'manual') {
+        const teamsData = simulator.teamsData || {};
+        const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
+        const totalTeams = simulator.totalTeams || (simulator.maxPlayers / playersPerTeam);
+
+        // Verifica se todos os times estão completos
+        for (let i = 1; i <= totalTeams; i++) {
+            const teamPlayers = teamsData[`time${i}`] || [];
+            if (teamPlayers.length !== playersPerTeam) {
+                console.log(`❌ Time ${i} incompleto: ${teamPlayers.length}/${playersPerTeam}`);
+                await channel.send({
+                    embeds: [createRedEmbed({
+                        title: '<:negative:1442668040465682643> Erro ao iniciar torneio',
+                        description: `O Time ${i} está incompleto! (${teamPlayers.length}/${playersPerTeam} jogadores)`,
+                        timestamp: true
+                    })]
+                });
+                return;
+            }
+        }
+    }
+
+    // Gera chaveamento (passa opções de times se for seleção manual)
+    const bracketOptions = {
+        teamSelection: simulator.teamSelection,
+        teamsData: simulator.teamsData
+    };
+    const bracketData = generateBracket(simulator.players, simulator.mode, bracketOptions);
 
     // Cria categoria para partidas
     const category = await guild.channels.create({

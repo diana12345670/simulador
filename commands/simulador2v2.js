@@ -35,6 +35,14 @@ module.exports = {
                     { name: '64 jogadores (32 times)', value: 64 }
                 ))
         .addStringOption(option =>
+            option.setName('escolha_times')
+                .setDescription('Como os times serão formados')
+                .setRequired(true)
+                .addChoices(
+                    { name: 'Aleatório (bot distribui)', value: 'aleatorio' },
+                    { name: 'Manual (jogadores escolhem)', value: 'manual' }
+                ))
+        .addStringOption(option =>
             option.setName('premio')
                 .setDescription('Prêmio do torneio (opcional)')
                 .setRequired(false)),
@@ -44,6 +52,7 @@ module.exports = {
         const versao = interaction.options.getString('versao');
         const modo = interaction.options.getString('modo');
         const jogadores = interaction.options.getInteger('jogadores');
+        const escolhaTimes = interaction.options.getString('escolha_times');
         const premio = interaction.options.getString('premio') || 'Nenhum';
 
         if (!VALID_QUANTITIES.includes(jogadores)) {
@@ -82,7 +91,9 @@ module.exports = {
                 mode: '2v2',
                 jogo,
                 versao,
+                modo,
                 maxPlayers: jogadores,
+                teamSelection: escolhaTimes,
                 prize: premio,
                 channel: interaction.channel
             });
