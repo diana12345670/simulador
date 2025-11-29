@@ -44,7 +44,7 @@ async function handleButton(interaction) {
             })],
             components: []
         });
-    
+    }
 }
 
 
