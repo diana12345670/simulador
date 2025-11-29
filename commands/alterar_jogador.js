@@ -1,6 +1,7 @@
-const { SlashCommandBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { getTournamentById, updateTournament, getRunningTournamentByGuild } = require('../utils/database');
 const { createErrorEmbed, createRedEmbed, createSuccessEmbed } = require('../utils/embeds');
+const { updateSimulatorPanel } = require('../systems/tournament/manager');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -142,11 +143,44 @@ module.exports = {
                                 timestamp: true
                             })]
                         });
+
+                        // Atualiza o embed principal da partida com os novos jogadores
+                        const messages = await matchChannel.messages.fetch({ limit: 20 });
+                        const matchMessage = messages.find(m => 
+                            m.author.bot && 
+                            m.embeds.length > 0 && 
+                            m.embeds[0].title?.includes('Partida') &&
+                            m.components.length > 0
+                        );
+
+                        if (matchMessage) {
+                            const team1Mentions = matchEncontrada.team1.map(id => `<@${id}>`).join(', ');
+                            const team2Mentions = matchEncontrada.team2.map(id => `<@${id}>`).join(', ');
+
+                            const updatedMatchEmbed = createRedEmbed({
+                                title: '<:raiopixel:1442668029065564341> Partida',
+                                fields: [
+                                    { name: 'Time 1', value: team1Mentions, inline: true },
+                                    { name: 'VS', value: '<:raiopixel:1442668029065564341>', inline: true },
+                                    { name: 'Time 2', value: team2Mentions, inline: true }
+                                ],
+                                description: 'Boa sorte! O criador do simulador declarará o vencedor.\n\n*Mencione o criador ou digite "Kaori" se precisar de ajuda!*',
+                                timestamp: true
+                            });
+
+                            await matchMessage.edit({
+                                embeds: [updatedMatchEmbed],
+                                components: matchMessage.components
+                            });
+                        }
                     }
                 } catch (error) {
                     console.error('Erro ao atualizar canal da partida:', error);
                 }
             }
+
+            // Atualiza o painel principal do simulador
+            await updateSimulatorPanel(interaction.client, simulator.id);
 
             const roundName = getRoundName(matchEncontrada.round, bracketData.totalRounds);
 

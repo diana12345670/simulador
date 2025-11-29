@@ -11,7 +11,8 @@ const {
     deleteTournament,
     updateRankGlobal,
     updateRankLocal,
-    incrementServerSimulators
+    incrementServerSimulators,
+    saveTournament // Assuming saveTournament is the correct function name based on context
 } = require('../../utils/database');
 
 const RANK_LOCAL_DIR = path.join(__dirname, '../../data/rank_local');
@@ -24,16 +25,13 @@ const RANK_LOCAL_DIR = path.join(__dirname, '../../data/rank_local');
  * @returns {Promise<Object>} Dados do simulador criado
  */
 async function createSimulator(guild, creator, options) {
-    const { mode, jogo, versao, modo, maxPlayers, teamSelection = 'aleatorio', prize = 'Nenhum', channel } = options;
+    const { mode, jogo, versao, modo, maxPlayers, teamSelection = 'aleatorio', startMode = 'automatico', prize = 'Nenhum', channel } = options;
 
-    // Gera ID único
     const simulatorId = `sim-${guild.id}-${Date.now()}`;
 
-    // Calcula quantos jogadores por time e total de times
     const playersPerTeam = parseInt(mode.charAt(0));
     const totalTeams = maxPlayers / playersPerTeam;
 
-    // Inicializa estrutura de times para seleção manual
     const teamsData = {};
     if (teamSelection === 'manual') {
         for (let i = 1; i <= totalTeams; i++) {
@@ -41,7 +39,6 @@ async function createSimulator(guild, creator, options) {
         }
     }
 
-    // Cria dados do simulador
     const simulator = {
         id: simulatorId,
         guild_id: guild.id,
@@ -53,6 +50,7 @@ async function createSimulator(guild, creator, options) {
         modo_jogo: modo,
         max_players: maxPlayers,
         team_selection: teamSelection,
+        start_mode: startMode,
         players_per_team: playersPerTeam,
         total_teams: totalTeams,
         teams_data: teamsData,
@@ -64,18 +62,15 @@ async function createSimulator(guild, creator, options) {
         category_id: null
     };
 
-    // Salva no banco de dados com todos os campos
     await createTournament({
         ...simulator,
         modoJogo: modo,
         teamSelection,
+        startMode,
         playersPerTeam,
         totalTeams,
         teamsData
     });
-
-    // Incrementa contador de simuladores do servidor (para Top Servidores)
-    await incrementServerSimulators(guild.id);
 
     // Monta descrição do painel
     const selectionText = teamSelection === 'manual' 
@@ -136,7 +131,7 @@ async function createSimulator(guild, creator, options) {
                 const chunk = chunks[i];
                 const startNum = i * MAX_OPTIONS + 1;
                 const endNum = Math.min((i + 1) * MAX_OPTIONS, totalTeams);
-                
+
                 const selectMenu = new StringSelectMenuBuilder()
                     .setCustomId(`team_select_${simulatorId}_${i}`)
                     .setPlaceholder(`Selecione um time (${startNum}-${endNum})...`)
@@ -376,16 +371,33 @@ async function updateSimulatorPanel(client, simulatorId) {
             updatedEmbed.setThumbnail(guildImage);
         }
 
-        // Mantém os botões originais ao editar
+        const isFull = simulator.players.length >= simulator.maxPlayers;
+        const startMode = simulator.startMode || simulator.start_mode || 'automatico';
+        let newComponents = message.components;
+
+        if (isFull && startMode === 'manual') {
+            const controlButtons = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`simu_start_${simulatorId}`)
+                        .setLabel('Começar Simulador')
+                        .setStyle(ButtonStyle.Success),
+                    new ButtonBuilder()
+                        .setCustomId(`simu_cancel_${simulatorId}`)
+                        .setLabel('Cancelar Simulador')
+                        .setStyle(ButtonStyle.Danger)
+                );
+            newComponents = [controlButtons];
+        }
+
         await message.edit({
             embeds: [updatedEmbed],
-            components: message.components
+            components: newComponents
         });
 
         console.log(`✅ Painel atualizado`);
 
-        // Se lotado, inicia torneio
-        if (simulator.players.length >= simulator.maxPlayers && simulator.state === 'open') {
+        if (isFull && simulator.state === 'open' && startMode === 'automatico') {
             await startTournament(client, simulatorId);
         }
     } catch (error) {
@@ -401,6 +413,13 @@ async function startTournament(client, simulatorId) {
 
     const guild = client.guilds.cache.get(simulator.guildId);
     const channel = guild.channels.cache.get(simulator.channelId);
+
+    // Incrementa o contador de simuladores para o rank de servidores APENAS quando o torneio iniciar
+    // Verifica se já não foi contado antes
+    if (!simulator.counted_in_stats) {
+        await incrementServerSimulators(simulator.guildId);
+        await updateTournament(simulatorId, { counted_in_stats: true });
+    }
 
     // Se for seleção manual, valida se todos os times estão completos
     if (simulator.teamSelection === 'manual') {

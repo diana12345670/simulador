@@ -11,11 +11,15 @@ module.exports = {
         console.log(`👥 Usuários: ${client.users.cache.size}`);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-        // Define status do bot
+        // Define status do bot com "Não Perturbe"
+        // A nota customizada será definida pelo comando /adicionar-nota
+        // Por padrão, usa a atividade padrão
         client.user.setPresence({
             activities: [{ name: 'Torneios | /setup' }],
-            status: 'online'
+            status: 'dnd' // dnd = Do Not Disturb (Não Perturbe)
         });
+        
+        console.log('💡 Use /adicionar-nota para adicionar uma nota customizada no perfil do bot');
 
         // Registra comandos automaticamente na API do Discord
         try {

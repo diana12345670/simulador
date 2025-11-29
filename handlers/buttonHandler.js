@@ -1,8 +1,10 @@
-
-const { createRedEmbed, createErrorEmbed } = require('../utils/embeds');
-const { getTournamentById, updateTournament, deleteTournament } = require('../utils/database');
-const { updateSimulatorPanel } = require('../systems/tournament/manager');
+const { createRedEmbed, createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
+const { getTournamentById, updateTournament, deleteTournament, incrementServerSimulators } = require('../utils/database');
+const { updateSimulatorPanel, startTournament } = require('../systems/tournament/manager');
 const { MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
+
+// Placeholder for timeouts, assuming it's managed elsewhere or should be integrated
+const timeouts = new Map(); 
 
 async function handleButton(interaction) {
     const customId = interaction.customId;
@@ -42,8 +44,9 @@ async function handleButton(interaction) {
             })],
             components: []
         });
-    }
+    
 }
+
 
 async function handleTeamSelect(interaction) {
     // Novo formato: team_select_sim-GUILDID-TIMESTAMP_MENUINDEX
@@ -382,10 +385,47 @@ async function handleCancel(interaction) {
 }
 
 async function handleStart(interaction) {
-    return interaction.reply({
-        embeds: [createErrorEmbed('Função não implementada.')],
+    const simulatorId = interaction.customId.replace('simu_start_', '');
+    const simulator = await getTournamentById(simulatorId);
+
+    if (!simulator) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Simulador não encontrado.')],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
+    if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Apenas o criador pode iniciar o simulador.')],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    if (simulator.state !== 'open') {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Este simulador não está mais aberto.')],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    if (simulator.players.length < simulator.maxPlayers) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('O simulador ainda não está lotado.')],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    await interaction.reply({
+        embeds: [createRedEmbed({
+            description: '<:alerta:1442668042873081866> Iniciando simulador...',
+            timestamp: true
+        })],
         flags: MessageFlags.Ephemeral
     });
+
+    await startTournament(interaction.client, simulatorId);
 }
 
 async function handleMatchWin(interaction, winnerTeamNum) {
@@ -409,7 +449,7 @@ async function handleMatchWin(interaction, winnerTeamNum) {
     const winnerTeam = winnerTeamNum === 1 ? match.team1 : match.team2;
     const result = advanceWinner(simulator.bracketData, matchId, winnerTeam);
 
-    await updateTournament(simulatorId, { bracketData: result.bracketData });
+    await updateTournament(simulator.id, { bracketData: result.bracketData }); // Use simulator.id
 
     const winnerMentions = winnerTeam.map(id => `<@${id}>`).join(', ');
     await interaction.update({
@@ -487,7 +527,7 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
 
     const result = advanceWinner(simulator.bracketData, matchId, winnerTeam);
 
-    await updateTournament(simulatorId, { bracketData: result.bracketData });
+    await updateTournament(simulator.id, { bracketData: result.bracketData }); // Use simulator.id
 
     await interaction.update({
         embeds: [createRedEmbed({
@@ -507,7 +547,7 @@ async function checkRoundComplete(interaction, simulator, result) {
         return;
     }
 
-    const updatedSimulator = await getTournamentById(simulator.id);
+    const updatedSimulator = await getTournamentById(simulator.id); // Use simulator.id
     if (!updatedSimulator) return;
 
     const bracketData = updatedSimulator.bracketData;
@@ -586,7 +626,7 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
 
     await updateLiveRankPanels(interaction.client);
 
-    await updateTournament(simulator.id, { state: 'finished', bracketData });
+    await updateTournament(simulator.id, { state: 'finished', bracketData }); // Use simulator.id
 
     setTimeout(async () => {
         try {
@@ -601,7 +641,7 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
                 }
             }
 
-            await deleteTournament(simulator.id);
+            await deleteTournament(simulator.id); // Use simulator.id
             console.log(`✅ Simulador ${simulator.id} removido do banco de dados`);
         } catch (error) {
             console.error('Erro ao deletar canais:', error);

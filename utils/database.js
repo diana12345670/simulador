@@ -109,6 +109,7 @@ async function initDatabase() {
                     category_id VARCHAR(50),
                     players JSONB DEFAULT '[]'::jsonb,
                     bracket_data JSONB,
+                    counted_in_stats BOOLEAN DEFAULT FALSE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -548,27 +549,28 @@ async function createTournament(tournamentData) {
         try {
             client = await pool.connect();
             
-            // Adiciona colunas se não existirem
             await client.query(`
                 ALTER TABLE tournaments 
                 ADD COLUMN IF NOT EXISTS modo_jogo VARCHAR(100),
                 ADD COLUMN IF NOT EXISTS team_selection VARCHAR(20),
+                ADD COLUMN IF NOT EXISTS start_mode VARCHAR(20) DEFAULT 'automatico',
                 ADD COLUMN IF NOT EXISTS players_per_team INTEGER,
                 ADD COLUMN IF NOT EXISTS total_teams INTEGER,
-                ADD COLUMN IF NOT EXISTS teams_data JSONB
-            `).catch(() => {}); // Ignora erro se já existirem
+                ADD COLUMN IF NOT EXISTS teams_data JSONB,
+                ADD COLUMN IF NOT EXISTS counted_in_stats BOOLEAN DEFAULT FALSE
+            `).catch(() => {});
             
             await client.query(`
                 INSERT INTO tournaments (
                     id, guild_id, channel_id, creator_id, mode, jogo, versao,
                     max_players, prize, panel_message_id, category_id, players, bracket_data,
-                    modo_jogo, team_selection, players_per_team, total_teams, teams_data, updated_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, CURRENT_TIMESTAMP)
+                    modo_jogo, team_selection, start_mode, players_per_team, total_teams, teams_data, updated_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, CURRENT_TIMESTAMP)
             `, [
                 id, guild_id, channel_id, creator_id, mode, jogo, versao,
                 max_players, prize || 'Nenhum', panel_message_id, category_id,
                 JSON.stringify(players || []), bracket_data ? JSON.stringify(bracket_data) : null,
-                modoJogo, teamSelection || 'aleatorio', playersPerTeam, totalTeams,
+                modoJogo, teamSelection || 'aleatorio', startMode || 'automatico', playersPerTeam, totalTeams,
                 teamsData ? JSON.stringify(teamsData) : null
             ]);
             return tournamentData;
@@ -591,6 +593,7 @@ async function createTournament(tournamentData) {
             modoJogo: modoJogo || mode,
             maxPlayers: max_players,
             teamSelection: teamSelection || 'aleatorio',
+            startMode: startMode || 'automatico',
             playersPerTeam: playersPerTeam,
             totalTeams: totalTeams,
             teamsData: teamsData || {},
@@ -628,6 +631,7 @@ async function getTournamentById(tournamentId) {
                 modoJogo: row.modo_jogo,
                 maxPlayers: row.max_players,
                 teamSelection: row.team_selection || 'aleatorio',
+                startMode: row.start_mode || 'automatico',
                 playersPerTeam: row.players_per_team,
                 totalTeams: row.total_teams,
                 teamsData: row.teams_data || {},
@@ -637,6 +641,7 @@ async function getTournamentById(tournamentId) {
                 categoryId: row.category_id,
                 players: row.players || [],
                 bracketData: row.bracket_data,
+                countedInStats: row.counted_in_stats || false,
                 createdAt: row.created_at,
                 updatedAt: row.updated_at
             };
@@ -674,7 +679,8 @@ async function updateTournament(tournamentId, updates) {
                 categoryId: 'category_id',
                 players: 'players',
                 bracketData: 'bracket_data',
-                teamsData: 'teams_data'
+                teamsData: 'teams_data',
+                counted_in_stats: 'counted_in_stats'
             };
 
             for (const [key, dbField] of Object.entries(fieldMap)) {
@@ -750,6 +756,7 @@ async function listOpenTournamentsByGuild(guildId) {
                 modoJogo: row.modo_jogo,
                 maxPlayers: row.max_players,
                 teamSelection: row.team_selection || 'aleatorio',
+                startMode: row.start_mode || 'automatico',
                 playersPerTeam: row.players_per_team,
                 totalTeams: row.total_teams,
                 teamsData: row.teams_data || {},
@@ -1024,6 +1031,98 @@ async function getTopServers(limit = 3) {
     }
 }
 
+async function getOpenTournamentByChannel(channelId) {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            const result = await client.query(
+                "SELECT * FROM tournaments WHERE channel_id = $1 AND state = 'open' ORDER BY created_at DESC LIMIT 1",
+                [channelId]
+            );
+            
+            if (result.rows.length === 0) return null;
+            
+            const row = result.rows[0];
+            return {
+                id: row.id,
+                guildId: row.guild_id,
+                channelId: row.channel_id,
+                creatorId: row.creator_id,
+                mode: row.mode,
+                jogo: row.jogo,
+                versao: row.versao,
+                modoJogo: row.modo_jogo,
+                maxPlayers: row.max_players,
+                teamSelection: row.team_selection || 'aleatorio',
+                playersPerTeam: row.players_per_team,
+                totalTeams: row.total_teams,
+                teamsData: row.teams_data || {},
+                prize: row.prize,
+                state: row.state,
+                panelMessageId: row.panel_message_id,
+                categoryId: row.category_id,
+                players: row.players || [],
+                bracketData: row.bracket_data,
+                createdAt: row.created_at
+            };
+        } catch (error) {
+            console.error(`Erro ao buscar torneio aberto no canal ${channelId}:`, error.message);
+            return null;
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const tournaments = readJSON(JSON_FILES.tournaments, {});
+        const openTournaments = Object.values(tournaments)
+            .filter(t => t.channelId === channelId && t.state === 'open')
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
+        return openTournaments.length > 0 ? openTournaments[0] : null;
+    }
+}
+
+async function getAllTournaments() {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            const result = await client.query("SELECT * FROM tournaments WHERE state IN ('open', 'running')");
+            
+            return result.rows.map(row => ({
+                id: row.id,
+                guildId: row.guild_id,
+                channelId: row.channel_id,
+                creatorId: row.creator_id,
+                mode: row.mode,
+                jogo: row.jogo,
+                versao: row.versao,
+                modoJogo: row.modo_jogo,
+                maxPlayers: row.max_players,
+                teamSelection: row.team_selection || 'aleatorio',
+                playersPerTeam: row.players_per_team,
+                totalTeams: row.total_teams,
+                teamsData: row.teams_data || {},
+                prize: row.prize,
+                state: row.state,
+                panelMessageId: row.panel_message_id,
+                categoryId: row.category_id,
+                players: row.players || [],
+                bracketData: row.bracket_data,
+                createdAt: row.created_at
+            }));
+        } catch (error) {
+            console.error('Erro ao buscar todos torneios:', error.message);
+            return [];
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const tournaments = readJSON(JSON_FILES.tournaments, {});
+        return Object.values(tournaments).filter(t => t.state === 'open' || t.state === 'running');
+    }
+}
+
 module.exports = {
     initDatabase,
     getPool,
@@ -1047,6 +1146,8 @@ module.exports = {
     deleteTournament,
     listOpenTournamentsByGuild,
     getRunningTournamentByGuild,
+    getOpenTournamentByChannel,
+    getAllTournaments,
     countActiveTournaments,
     addLiveRankPanel,
     removeLiveRankPanel,

@@ -5,7 +5,8 @@ const {
     startInactivityTimer, 
     resetInactivityTimer, 
     clearInactivityTimer,
-    isMatchChannel 
+    isMatchChannel,
+    detectVictoryClaim 
 } = require('../systems/kaori/assistant');
 
 module.exports = {
@@ -39,15 +40,23 @@ module.exports = {
             const creatorId = matchingTournament.creatorId;
             const isCreator = message.author.id === creatorId;
             const mentionsCreator = message.mentions.users.has(creatorId);
-            const mentionsKaori = message.content.toLowerCase().includes('kaori') || 
-                                  message.content.toLowerCase().includes('@kaori');
+            const lowerContent = message.content.toLowerCase();
+            const mentionsKaori = lowerContent.includes('kaori') || lowerContent.includes('@kaori');
+            
+            const victoryPhrases = [
+                'da a vitoria', 'dá a vitória', 'da a vitória', 'dá a vitoria',
+                'da vitoria', 'dá vitória', 'da vitória', 'dá vitoria',
+                'ganhou', 'ganhei', 'ganhamos', 'venceu', 'venci', 'vencemos',
+                'vitoria pro', 'vitória pro', 'vitoria pra', 'vitória pra',
+                'registra a vitoria', 'registra a vitória', 'confirma a vitoria', 'confirma a vitória'
+            ];
+            const hasVictoryPhrase = victoryPhrases.some(phrase => lowerContent.includes(phrase));
 
             if (isCreator) {
                 resetInactivityTimer(message.channel.id, message.channel, matchingMatch, creatorId);
             }
 
-            // Kaori responde quando: alguém menciona o criador, menciona Kaori, ou o próprio criador fala com a Kaori
-            if (mentionsCreator || mentionsKaori || (isCreator && mentionsKaori)) {
+            if (mentionsCreator || mentionsKaori || hasVictoryPhrase) {
                 await handleKaoriMention(message, matchingTournament, matchingMatch);
             }
 

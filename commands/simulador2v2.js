@@ -20,7 +20,7 @@ module.exports = {
                 .setDescription('Versão do jogo')
                 .setRequired(true))
         .addStringOption(option =>
-            option.setName('modo')
+            option.setName('modo_mapa')
                 .setDescription('Modo/Mapa de jogo')
                 .setRequired(true))
         .addIntegerOption(option =>
@@ -43,6 +43,14 @@ module.exports = {
                     { name: 'Manual (jogadores escolhem)', value: 'manual' }
                 ))
         .addStringOption(option =>
+            option.setName('start')
+                .setDescription('Quando o simulador deve iniciar')
+                .setRequired(true)
+                .addChoices(
+                    { name: 'Automático (inicia quando lotar)', value: 'automatico' },
+                    { name: 'Manual (botão para iniciar)', value: 'manual' }
+                ))
+        .addStringOption(option =>
             option.setName('premio')
                 .setDescription('Prêmio do torneio (opcional)')
                 .setRequired(false)),
@@ -50,9 +58,10 @@ module.exports = {
     async execute(interaction) {
         const jogo = interaction.options.getString('jogo');
         const versao = interaction.options.getString('versao');
-        const modo = interaction.options.getString('modo');
+        const modo = interaction.options.getString('modo_mapa');
         const jogadores = interaction.options.getInteger('jogadores');
         const escolhaTimes = interaction.options.getString('escolha_times');
+        const startMode = interaction.options.getString('start');
         const premio = interaction.options.getString('premio') || 'Nenhum';
 
         if (!VALID_QUANTITIES.includes(jogadores)) {
@@ -94,6 +103,7 @@ module.exports = {
                 modo,
                 maxPlayers: jogadores,
                 teamSelection: escolhaTimes,
+                startMode: startMode,
                 prize: premio,
                 channel: interaction.channel
             });
