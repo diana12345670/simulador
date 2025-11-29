@@ -122,12 +122,28 @@ async function createSimulator(guild, creator, options) {
                 });
             }
 
-            const selectMenu = new StringSelectMenuBuilder()
-                .setCustomId(`team_select_${simulatorId}`)
-                .setPlaceholder('Selecione um time...')
-                .addOptions(teamOptions);
+            // Discord limita a 25 opções por select menu
+            // Se houver mais de 25 times, divide em múltiplos menus
+            const MAX_OPTIONS = 25;
+            const chunks = [];
+            for (let i = 0; i < teamOptions.length; i += MAX_OPTIONS) {
+                chunks.push(teamOptions.slice(i, i + MAX_OPTIONS));
+            }
 
-            components.push(new ActionRowBuilder().addComponents(selectMenu));
+            // Adiciona cada chunk como um select menu separado (máximo 4 para deixar espaço para botões de controle)
+            const maxMenus = Math.min(chunks.length, 4);
+            for (let i = 0; i < maxMenus; i++) {
+                const chunk = chunks[i];
+                const startNum = i * MAX_OPTIONS + 1;
+                const endNum = Math.min((i + 1) * MAX_OPTIONS, totalTeams);
+                
+                const selectMenu = new StringSelectMenuBuilder()
+                    .setCustomId(`team_select_${simulatorId}_${i}`)
+                    .setPlaceholder(`Selecione um time (${startNum}-${endNum})...`)
+                    .addOptions(chunk);
+
+                components.push(new ActionRowBuilder().addComponents(selectMenu));
+            }
         } else {
             // Botões para escolher time (máximo 5 por row)
             let currentRow = new ActionRowBuilder();

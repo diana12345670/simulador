@@ -46,8 +46,13 @@ async function handleButton(interaction) {
 }
 
 async function handleTeamSelect(interaction) {
-    const parts = interaction.customId.split('_');
-    const simulatorId = parts[2];
+    // Novo formato: team_select_sim-GUILDID-TIMESTAMP_MENUINDEX
+    // Precisamos extrair o simulatorId corretamente
+    const customId = interaction.customId;
+    const withoutPrefix = customId.replace('team_select_', '');
+    // O último underscore separa o simulatorId do índice do menu
+    const lastUnderscoreIndex = withoutPrefix.lastIndexOf('_');
+    const simulatorId = lastUnderscoreIndex > 0 ? withoutPrefix.substring(0, lastUnderscoreIndex) : withoutPrefix;
     const selectedTeamNumber = parseInt(interaction.values[0].replace('time', ''));
 
     const simulator = await getTournamentById(simulatorId);
