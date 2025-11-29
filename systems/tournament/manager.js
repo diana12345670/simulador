@@ -372,7 +372,7 @@ async function updateSimulatorPanel(client, simulatorId) {
 
         const isFull = simulator.players.length >= simulator.maxPlayers;
         const startMode = simulator.startMode || simulator.start_mode || 'automatico';
-        let newComponents = message.components;
+        let newComponents = [];
 
         if (isFull && startMode === 'manual') {
             const controlButtons = new ActionRowBuilder()
@@ -387,6 +387,92 @@ async function updateSimulatorPanel(client, simulatorId) {
                         .setStyle(ButtonStyle.Danger)
                 );
             newComponents = [controlButtons];
+        } else if (!isFull) {
+            if (simulator.teamSelection === 'manual') {
+                const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
+                const totalTeams = simulator.totalTeams || Math.floor(simulator.maxPlayers / playersPerTeam);
+
+                if (totalTeams > 2) {
+                    const teamOptions = [];
+                    for (let i = 1; i <= totalTeams; i++) {
+                        teamOptions.push({
+                            label: `Time ${i}`,
+                            value: `time${i}`
+                        });
+                    }
+
+                    const MAX_OPTIONS = 25;
+                    const chunks = [];
+                    for (let i = 0; i < teamOptions.length; i += MAX_OPTIONS) {
+                        chunks.push(teamOptions.slice(i, i + MAX_OPTIONS));
+                    }
+
+                    const maxMenus = Math.min(chunks.length, 4);
+                    for (let i = 0; i < maxMenus; i++) {
+                        const chunk = chunks[i];
+                        const startNum = i * MAX_OPTIONS + 1;
+                        const endNum = Math.min((i + 1) * MAX_OPTIONS, totalTeams);
+
+                        const selectMenu = new StringSelectMenuBuilder()
+                            .setCustomId(`team_select_${simulatorId}_${i}`)
+                            .setPlaceholder(`Selecione um time (${startNum}-${endNum})...`)
+                            .addOptions(chunk);
+
+                        newComponents.push(new ActionRowBuilder().addComponents(selectMenu));
+                    }
+                } else {
+                    let currentRow = new ActionRowBuilder();
+                    let buttonsInRow = 0;
+
+                    for (let i = 1; i <= totalTeams; i++) {
+                        if (buttonsInRow >= 5) {
+                            newComponents.push(currentRow);
+                            currentRow = new ActionRowBuilder();
+                            buttonsInRow = 0;
+                        }
+                        currentRow.addComponents(
+                            new ButtonBuilder()
+                                .setCustomId(`team_join_${simulatorId}_${i}`)
+                                .setLabel(`Time ${i}`)
+                                .setStyle(ButtonStyle.Primary)
+                        );
+                        buttonsInRow++;
+                    }
+                    if (buttonsInRow > 0) {
+                        newComponents.push(currentRow);
+                    }
+                }
+
+                const controlButtons = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(`simu_leave_${simulatorId}`)
+                            .setLabel('Sair')
+                            .setStyle(ButtonStyle.Secondary),
+                        new ButtonBuilder()
+                            .setCustomId(`simu_cancel_${simulatorId}`)
+                            .setLabel('Cancelar Simulador')
+                            .setStyle(ButtonStyle.Secondary)
+                    );
+                newComponents.push(controlButtons);
+            } else {
+                const buttons = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(`simu_join_${simulatorId}`)
+                            .setLabel('Entrar')
+                            .setStyle(ButtonStyle.Danger),
+                        new ButtonBuilder()
+                            .setCustomId(`simu_leave_${simulatorId}`)
+                            .setLabel('Sair')
+                            .setStyle(ButtonStyle.Secondary),
+                        new ButtonBuilder()
+                            .setCustomId(`simu_cancel_${simulatorId}`)
+                            .setLabel('Cancelar Simulador')
+                            .setStyle(ButtonStyle.Secondary)
+                    );
+                newComponents.push(buttons);
+            }
         }
 
         await message.edit({
