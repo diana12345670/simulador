@@ -46,7 +46,8 @@ module.exports = {
                 resetInactivityTimer(message.channel.id, message.channel, matchingMatch, creatorId);
             }
 
-            if (mentionsCreator || mentionsKaori) {
+            // Kaori responde quando: alguém menciona o criador, menciona Kaori, ou o próprio criador fala com a Kaori
+            if (mentionsCreator || mentionsKaori || (isCreator && mentionsKaori)) {
                 await handleKaoriMention(message, matchingTournament, matchingMatch);
             }
 

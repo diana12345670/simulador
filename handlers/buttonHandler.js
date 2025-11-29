@@ -416,7 +416,6 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
     const championEmbed = createRedEmbed({
         title: 'CAMPEÃO DO SIMULADOR',
         description: `Vencedor: ${championMentions}\nPrêmio: ${simulator.prize}${totalParticipants < minParticipantsForPoints ? '\n\n⚠️ Pontos não contabilizados (mínimo 3 participantes)' : ''}`,
-        image: interaction.guild.iconURL() || interaction.guild.bannerURL() || null,
         timestamp: true
     });
 
