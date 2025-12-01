@@ -17,13 +17,11 @@ module.exports = {
         let tournament;
 
         if (simulatorId) {
-            // Busca por ID específico
             tournament = await getTournamentById(simulatorId);
         } else {
-            // Busca pelo canal atual
-            const client = await getPool().connect();
+            const dbClient = await getPool().connect();
             try {
-                const result = await client.query(
+                const result = await dbClient.query(
                     'SELECT * FROM tournaments WHERE channel_id = $1 OR category_id = $2',
                     [interaction.channelId, interaction.channel.parentId]
                 );
@@ -33,22 +31,21 @@ module.exports = {
                     categoryId: result.rows[0].category_id
                 } : null;
             } finally {
-                client.release();
+                dbClient.release();
             }
         }
 
         if (!tournament) {
             return interaction.reply({
-                embeds: [createErrorEmbed('<:negative:1442668040465682643> Simulador não encontrado.')],
+                embeds: [createErrorEmbed('Simulador não encontrado.', interaction.client)],
                 ephemeral: true
             });
         }
 
-        // Verifica permissão (criador ou dono do bot)
         const OWNER_ID = process.env.OWNER_ID;
         if (interaction.user.id !== tournament.creatorId && interaction.user.id !== OWNER_ID) {
             return interaction.reply({
-                embeds: [createErrorEmbed('<:negative:1442668040465682643> Apenas o criador do simulador ou o dono do bot pode desbugá-lo.')],
+                embeds: [createErrorEmbed('Apenas o criador do simulador ou o dono do bot pode desbugá-lo.', interaction.client)],
                 ephemeral: true
             });
         }
@@ -56,7 +53,6 @@ module.exports = {
         await interaction.deferReply();
 
         try {
-            // Apaga categoria se existir
             if (tournament.categoryId) {
                 const category = interaction.guild.channels.cache.get(tournament.categoryId);
                 if (category) {
@@ -68,17 +64,16 @@ module.exports = {
                 }
             }
 
-            // Remove do banco
             await deleteTournament(tournament.id);
 
             await interaction.editReply({
-                embeds: [createSuccessEmbed('<:positive:1442668038691491943> Simulador desbugado com sucesso!')]
+                embeds: [createSuccessEmbed('Simulador desbugado com sucesso!', interaction.client)]
             });
 
         } catch (error) {
             console.error('Erro ao desbugar simulador:', error);
             await interaction.editReply({
-                embeds: [createErrorEmbed('<:negative:1442668040465682643> Erro ao desbugar simulador.')]
+                embeds: [createErrorEmbed('Erro ao desbugar simulador.', interaction.client)]
             });
         }
     }

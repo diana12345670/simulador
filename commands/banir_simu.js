@@ -15,35 +15,31 @@ module.exports = {
     
     async execute(interaction) {
         const user = interaction.options.getUser('usuario');
-        const client = await getPool().connect();
+        const dbClient = await getPool().connect();
 
         try {
-            // Verifica se já está banido
-            const checkResult = await client.query(
+            const checkResult = await dbClient.query(
                 'SELECT 1 FROM bans WHERE user_id = $1 AND guild_id = $2',
                 [user.id, interaction.guildId]
             );
 
             if (checkResult.rows.length > 0) {
                 return interaction.reply({
-                    embeds: [createErrorEmbed('<:negative:1442668040465682643> Este usuário já está banido de simuladores.')],
+                    embeds: [createErrorEmbed('Este usuário já está banido de simuladores.', interaction.client)],
                     ephemeral: true
                 });
             }
 
-            // Bane usuário
-            await client.query(
+            await dbClient.query(
                 'INSERT INTO bans (user_id, guild_id, reason) VALUES ($1, $2, $3)',
                 [user.id, interaction.guildId, 'Banido de simuladores localmente']
             );
 
             await interaction.reply({
-                embeds: [createSuccessEmbed(
-                    `<:positive:1442668038691491943> ${user} foi banido de participar de simuladores neste servidor.`
-                )]
+                embeds: [createSuccessEmbed(`${user} foi banido de participar de simuladores neste servidor.`, interaction.client)]
             });
         } finally {
-            client.release();
+            dbClient.release();
         }
     }
 };

@@ -57,11 +57,13 @@ function createRedEmbed(options = {}) {
 /**
  * Cria um embed de erro
  * @param {string} message - Mensagem de erro
+ * @param {Object} client - Cliente do Discord (opcional, para emojis dinâmicos)
  * @returns {EmbedBuilder}
  */
-function createErrorEmbed(message) {
+function createErrorEmbed(message, client = null) {
+    const emojis = client ? getEmojis(client) : { negative: '❌' };
     return createRedEmbed({
-        title: '<:negative:1442668040465682643> Erro',
+        title: `${emojis.negative} Erro`,
         description: message
     });
 }
@@ -69,11 +71,13 @@ function createErrorEmbed(message) {
 /**
  * Cria um embed de sucesso
  * @param {string} message - Mensagem de sucesso
+ * @param {Object} client - Cliente do Discord (opcional, para emojis dinâmicos)
  * @returns {EmbedBuilder}
  */
-function createSuccessEmbed(message) {
+function createSuccessEmbed(message, client = null) {
+    const emojis = client ? getEmojis(client) : { positive: '✅' };
     return createRedEmbed({
-        title: '<:positive:1442668038691491943> Sucesso',
+        title: `${emojis.positive} Sucesso`,
         description: message
     });
 }

@@ -1,6 +1,7 @@
 const { createRedEmbed, createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 const { getTournamentById, updateTournament, deleteTournament, incrementServerSimulators } = require('../utils/database');
 const { updateSimulatorPanel, startTournament } = require('../systems/tournament/manager');
+const { getEmojis } = require('../utils/emojis');
 const { MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 
 // Placeholder for timeouts, assuming it's managed elsewhere or should be integrated
@@ -37,9 +38,10 @@ async function handleButton(interaction) {
     } else if (customId.startsWith('wo_team2_')) {
         await handleWalkoverSelection(interaction, 2);
     } else if (customId.startsWith('wo_cancel_')) {
+        const emojis = getEmojis(interaction.client);
         await interaction.update({
             embeds: [createRedEmbed({
-                description: '❌ W.O. cancelado.',
+                description: `${emojis.negative} W.O. cancelado.`,
                 timestamp: true
             })],
             components: []
@@ -62,7 +64,7 @@ async function handleTeamSelect(interaction) {
 
     if (!simulator || simulator.state !== 'open') {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador não está mais aberto.')],
+            embeds: [createErrorEmbed('Este simulador não está mais aberto.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -75,7 +77,7 @@ async function handleTeamSelect(interaction) {
     const isNewPlayer = !currentPlayers.includes(playerId);
     if (isNewPlayer && currentPlayers.length >= simulator.maxPlayers) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador já está lotado!')],
+            embeds: [createErrorEmbed('Este simulador já está lotado!', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -90,7 +92,7 @@ async function handleTeamSelect(interaction) {
 
     if (currentTeam === `time${selectedTeamNumber}`) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Você já está neste time!')],
+            embeds: [createErrorEmbed('Você já está neste time!', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -98,7 +100,7 @@ async function handleTeamSelect(interaction) {
     const targetTeam = teamsData[`time${selectedTeamNumber}`] || [];
     if (targetTeam.length >= playersPerTeam) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este time já está cheio!')],
+            embeds: [createErrorEmbed('Este time já está cheio!', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -126,10 +128,11 @@ async function handleTeamSelect(interaction) {
         players: newPlayers 
     });
 
+    const emojis = getEmojis(interaction.client);
     const action = currentTeam ? `trocou para o Time ${selectedTeamNumber}` : `entrou no Time ${selectedTeamNumber}`;
     await interaction.reply({
         embeds: [createRedEmbed({
-            description: `✅ Você ${action}!`,
+            description: `${emojis.positive} Você ${action}!`,
             timestamp: true
         })],
         flags: MessageFlags.Ephemeral
@@ -147,7 +150,7 @@ async function handleTeamJoin(interaction) {
 
     if (!simulator || simulator.state !== 'open') {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador não está mais aberto.')],
+            embeds: [createErrorEmbed('Este simulador não está mais aberto.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -160,7 +163,7 @@ async function handleTeamJoin(interaction) {
     const isNewPlayer = !currentPlayers.includes(playerId);
     if (isNewPlayer && currentPlayers.length >= simulator.maxPlayers) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador já está lotado!')],
+            embeds: [createErrorEmbed('Este simulador já está lotado!', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -175,7 +178,7 @@ async function handleTeamJoin(interaction) {
 
     if (currentTeam === `time${teamNumber}`) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Você já está neste time!')],
+            embeds: [createErrorEmbed('Você já está neste time!', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -183,7 +186,7 @@ async function handleTeamJoin(interaction) {
     const targetTeam = teamsData[`time${teamNumber}`] || [];
     if (targetTeam.length >= playersPerTeam) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este time já está cheio!')],
+            embeds: [createErrorEmbed('Este time já está cheio!', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -211,10 +214,11 @@ async function handleTeamJoin(interaction) {
         players: newPlayers 
     });
 
+    const emojis = getEmojis(interaction.client);
     const action = currentTeam ? `trocou para o Time ${teamNumber}` : `entrou no Time ${teamNumber}`;
     await interaction.reply({
         embeds: [createRedEmbed({
-            description: `✅ Você ${action}!`,
+            description: `${emojis.positive} Você ${action}!`,
             timestamp: true
         })],
         flags: MessageFlags.Ephemeral
@@ -229,21 +233,21 @@ async function handleJoin(interaction) {
 
     if (!simulator || simulator.state !== 'open') {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador não está mais aberto.')],
+            embeds: [createErrorEmbed('Este simulador não está mais aberto.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
     if (simulator.players.includes(interaction.user.id)) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Você já está inscrito neste simulador.')],
+            embeds: [createErrorEmbed('Você já está inscrito neste simulador.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
     if (simulator.players.length >= simulator.maxPlayers) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador já está lotado.')],
+            embeds: [createErrorEmbed('Este simulador já está lotado.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -251,9 +255,10 @@ async function handleJoin(interaction) {
     const newPlayers = [...simulator.players, interaction.user.id];
     await updateTournament(simulatorId, { players: newPlayers });
 
+    const emojis = getEmojis(interaction.client);
     await interaction.reply({
         embeds: [createRedEmbed({
-            description: '✅ Você entrou no simulador!',
+            description: `${emojis.positive} Você entrou no simulador!`,
             timestamp: true
         })],
         flags: MessageFlags.Ephemeral
@@ -268,14 +273,14 @@ async function handleLeave(interaction) {
 
     if (!simulator || simulator.state !== 'open') {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador não está mais aberto.')],
+            embeds: [createErrorEmbed('Este simulador não está mais aberto.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
     if (!simulator.players.includes(interaction.user.id)) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Você não está inscrito neste simulador.')],
+            embeds: [createErrorEmbed('Você não está inscrito neste simulador.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -294,9 +299,10 @@ async function handleLeave(interaction) {
         teamsData: teamsData
     });
 
+    const emojis = getEmojis(interaction.client);
     await interaction.reply({
         embeds: [createRedEmbed({
-            description: '❌ Você saiu do simulador.',
+            description: `${emojis.negative} Você saiu do simulador.`,
             timestamp: true
         })],
         flags: MessageFlags.Ephemeral
@@ -306,12 +312,13 @@ async function handleLeave(interaction) {
 }
 
 async function handleCancel(interaction) {
+    const emojis = getEmojis(interaction.client);
     const simulatorId = interaction.customId.replace('simu_cancel_', '');
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Simulador não encontrado.')],
+            embeds: [createErrorEmbed('Simulador não encontrado.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -319,14 +326,14 @@ async function handleCancel(interaction) {
     const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
     if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Apenas o criador pode cancelar o simulador.')],
+            embeds: [createErrorEmbed('Apenas o criador pode cancelar o simulador.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
     await interaction.reply({
         embeds: [createRedEmbed({
-            description: '⏳ Cancelando simulador...',
+            description: `${emojis.alerta} Cancelando simulador...`,
             timestamp: true
         })],
         flags: MessageFlags.Ephemeral
@@ -339,9 +346,9 @@ async function handleCancel(interaction) {
                 const panelMessage = await mainChannel.messages.fetch(simulator.panelMessageId);
                 await panelMessage.edit({
                     embeds: [createRedEmbed({
-                        title: `🔥 Simulador ${simulator.mode} – ${simulator.jogo}`,
-                        description: `⚔️ **Jogo:** ${simulator.jogo}\n🔧 **Versão:** ${simulator.versao}\n🏆 **Modo:** ${simulator.mode}\n🎁 **Prêmio:** ${simulator.prize}\n\n❌ **Este simulador foi cancelado**`,
-                        footer: { text: '❌ Simulador cancelado' },
+                        title: `${emojis.fogo} Simulador ${simulator.mode} – ${simulator.jogo}`,
+                        description: `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.trofeupixel} **Modo:** ${simulator.mode}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n${emojis.negative} **Este simulador foi cancelado**`,
+                        footer: { text: `${emojis.negative} Simulador cancelado` },
                         timestamp: true
                     })],
                     components: []
@@ -372,25 +379,26 @@ async function handleCancel(interaction) {
 
         await interaction.editReply({
             embeds: [createRedEmbed({
-                description: '❌ Simulador cancelado com sucesso.',
+                description: `${emojis.negative} Simulador cancelado com sucesso.`,
                 timestamp: true
             })]
         });
     } catch (error) {
         console.error('Erro ao cancelar simulador:', error);
         await interaction.editReply({
-            embeds: [createErrorEmbed('Erro ao cancelar simulador.')]
+            embeds: [createErrorEmbed('Erro ao cancelar simulador.', interaction.client)]
         });
     }
 }
 
 async function handleStart(interaction) {
+    const emojis = getEmojis(interaction.client);
     const simulatorId = interaction.customId.replace('simu_start_', '');
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Simulador não encontrado.')],
+            embeds: [createErrorEmbed('Simulador não encontrado.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -398,28 +406,28 @@ async function handleStart(interaction) {
     const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
     if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Apenas o criador pode iniciar o simulador.')],
+            embeds: [createErrorEmbed('Apenas o criador pode iniciar o simulador.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
     if (simulator.state !== 'open') {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador não está mais aberto.')],
+            embeds: [createErrorEmbed('Este simulador não está mais aberto.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
     if (simulator.players.length < simulator.maxPlayers) {
         return interaction.reply({
-            embeds: [createErrorEmbed('O simulador ainda não está lotado.')],
+            embeds: [createErrorEmbed('O simulador ainda não está lotado.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
     await interaction.reply({
         embeds: [createRedEmbed({
-            description: '<:alerta:1442668042873081866> Iniciando simulador...',
+            description: `${emojis.alerta} Iniciando simulador...`,
             timestamp: true
         })],
         flags: MessageFlags.Ephemeral
@@ -429,6 +437,7 @@ async function handleStart(interaction) {
 }
 
 async function handleMatchWin(interaction, winnerTeamNum) {
+    const emojis = getEmojis(interaction.client);
     const parts = interaction.customId.split('_');
     const simulatorId = parts[2];
     const matchId = parts[3];
@@ -438,7 +447,7 @@ async function handleMatchWin(interaction, winnerTeamNum) {
 
     if (interaction.user.id !== simulator.creatorId) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Apenas o criador pode declarar vencedor.')],
+            embeds: [createErrorEmbed('Apenas o criador pode declarar vencedor.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -449,12 +458,12 @@ async function handleMatchWin(interaction, winnerTeamNum) {
     const winnerTeam = winnerTeamNum === 1 ? match.team1 : match.team2;
     const result = advanceWinner(simulator.bracketData, matchId, winnerTeam);
 
-    await updateTournament(simulator.id, { bracketData: result.bracketData }); // Use simulator.id
+    await updateTournament(simulator.id, { bracketData: result.bracketData });
 
     const winnerMentions = winnerTeam.map(id => `<@${id}>`).join(', ');
     await interaction.update({
         embeds: [createRedEmbed({
-            description: `✅ Vencedor: ${winnerMentions}`,
+            description: `${emojis.positive} Vencedor: ${winnerMentions}`,
             timestamp: true
         })],
         components: []
@@ -464,6 +473,7 @@ async function handleMatchWin(interaction, winnerTeamNum) {
 }
 
 async function handleWalkover(interaction) {
+    const emojis = getEmojis(interaction.client);
     const parts = interaction.customId.split('_');
     const simulatorId = parts[2];
     const matchId = parts[3];
@@ -473,7 +483,7 @@ async function handleWalkover(interaction) {
 
     if (interaction.user.id !== simulator.creatorId) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Apenas o criador pode declarar W.O.')],
+            embeds: [createErrorEmbed('Apenas o criador pode declarar W.O.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -500,7 +510,7 @@ async function handleWalkover(interaction) {
 
     await interaction.reply({
         embeds: [createRedEmbed({
-            title: '⚠️ Declarar W.O.',
+            title: `${emojis.alerta} Declarar W.O.`,
             description: `**Time 1:** ${team1Mentions}\n**Time 2:** ${team2Mentions}\n\n**Quem VENCEU pelo W.O.?**\n(O adversário sumiu/não compareceu)`,
             timestamp: true
         })],
@@ -510,6 +520,7 @@ async function handleWalkover(interaction) {
 }
 
 async function handleWalkoverSelection(interaction, winnerTeamNum) {
+    const emojis = getEmojis(interaction.client);
     const parts = interaction.customId.split('_');
     const simulatorId = parts[2];
     const matchId = parts[3];
@@ -527,11 +538,11 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
 
     const result = advanceWinner(simulator.bracketData, matchId, winnerTeam);
 
-    await updateTournament(simulator.id, { bracketData: result.bracketData }); // Use simulator.id
+    await updateTournament(simulator.id, { bracketData: result.bracketData });
 
     await interaction.update({
         embeds: [createRedEmbed({
-            title: '✅ W.O. Registrado',
+            title: `${emojis.positive} W.O. Registrado`,
             description: `**Vencedor:** ${winnerMentions}\n**Não compareceu:** ${loserMentions}`,
             timestamp: true
         })],

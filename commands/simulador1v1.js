@@ -3,6 +3,7 @@ const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { readConfig } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 const { createSimulator } = require('../systems/tournament/manager');
+const { getEmojis } = require('../utils/emojis');
 const path = require('path');
 
 // Quantidades válidas para 1v1
@@ -50,6 +51,7 @@ module.exports = {
                 .setRequired(false)),
     
     async execute(interaction) {
+        const emojis = getEmojis(interaction.client);
         const jogo = interaction.options.getString('jogo');
         const versao = interaction.options.getString('versao');
         const modo = interaction.options.getString('modo_mapa');
@@ -60,7 +62,7 @@ module.exports = {
         if (!VALID_QUANTITIES.includes(quantidade)) {
             return interaction.reply({
                 embeds: [createErrorEmbed(
-                    `<:negative:1442668040465682643> Quantidade inválida para 1v1!\n\nQuantidades aceitas: ${VALID_QUANTITIES.join(', ')}`
+                    `${emojis.negative} Quantidade inválida para 1v1!\n\nQuantidades aceitas: ${VALID_QUANTITIES.join(', ')}`
                 )],
                 flags: MessageFlags.Ephemeral
             });
@@ -72,7 +74,7 @@ module.exports = {
         if (!guildConfig || !guildConfig.simuCreatorRole) {
             return interaction.reply({
                 embeds: [createErrorEmbed(
-                    '<:negative:1442668040465682643> Este servidor ainda não configurou o cargo de criador de simuladores.\n\nUm administrador deve usar `/setup` primeiro.'
+                    `${emojis.negative} Este servidor ainda não configurou o cargo de criador de simuladores.\n\nUm administrador deve usar \`/setup\` primeiro.`
                 )],
                 flags: MessageFlags.Ephemeral
             });
@@ -81,7 +83,7 @@ module.exports = {
         const hasRole = interaction.member.roles.cache.has(guildConfig.simuCreatorRole);
         if (!hasRole && interaction.user.id !== process.env.OWNER_ID) {
             return interaction.reply({
-                embeds: [createErrorEmbed('<:negative:1442668040465682643> Você não tem permissão para criar simuladores.')],
+                embeds: [createErrorEmbed(`${emojis.negative} Você não tem permissão para criar simuladores.`)],
                 flags: MessageFlags.Ephemeral
             });
         }
@@ -89,7 +91,7 @@ module.exports = {
         await interaction.deferReply();
 
         try {
-            await createSimulator(interaction.guild, interaction.user, {
+            await createSimulator(interaction.client, interaction.guild, interaction.user, {
                 mode: '1v1',
                 jogo,
                 versao,
@@ -105,7 +107,7 @@ module.exports = {
         } catch (error) {
             console.error('Erro ao criar simulador:', error);
             await interaction.editReply({
-                embeds: [createErrorEmbed('<:negative:1442668040465682643> Erro ao criar simulador. Tente novamente.')]
+                embeds: [createErrorEmbed(`${emojis.negative} Erro ao criar simulador. Tente novamente.`)]
             });
         }
     }

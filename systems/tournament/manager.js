@@ -1,6 +1,7 @@
 // manager.js - Gerenciador principal de torneios (simuladores)
 const { readJSON, writeJSON } = require('../../utils/jsonDB');
 const { createRedEmbed } = require('../../utils/embeds');
+const { getEmojis } = require('../../utils/emojis');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder } = require('discord.js');
 const { generateBracket, advanceWinner, getRoundName } = require('./bracket');
 const path = require('path');
@@ -18,13 +19,16 @@ const RANK_LOCAL_DIR = path.join(__dirname, '../../data/rank_local');
 
 /**
  * Cria um novo simulador
+ * @param {Object} client - Cliente do Discord
  * @param {Object} guild - Guild do Discord
  * @param {Object} creator - Criador do simulador
  * @param {Object} options - Opções do simulador
  * @returns {Promise<Object>} Dados do simulador criado
  */
-async function createSimulator(guild, creator, options) {
+async function createSimulator(client, guild, creator, options) {
     const { mode, jogo, versao, modo, maxPlayers, teamSelection = 'aleatorio', startMode = 'automatico', prize = 'Nenhum', channel } = options;
+
+    const emojis = getEmojis(client);
 
     const simulatorId = `sim-${guild.id}-${Date.now()}`;
 
@@ -73,8 +77,8 @@ async function createSimulator(guild, creator, options) {
 
     // Monta descrição do painel
     const selectionText = teamSelection === 'manual' 
-        ? '<:joiapixel:1442668036090888274> **Escolha de Times:** Manual (escolha seu time)'
-        : '<:joiapixel:1442668036090888274> **Escolha de Times:** Aleatório';
+        ? `${emojis.joiapixel} **Escolha de Times:** Manual (escolha seu time)`
+        : `${emojis.joiapixel} **Escolha de Times:** Aleatório`;
 
     let panelDescription;
     if (teamSelection === 'manual') {
@@ -83,16 +87,16 @@ async function createSimulator(guild, creator, options) {
         for (let i = 1; i <= totalTeams; i++) {
             teamsText += `\n**Time ${i}** (0/${playersPerTeam}): Vazio`;
         }
-        panelDescription = `<:raiopixel:1442668029065564341> **Jogo:** ${jogo}\n<:pergaminhopixel:1442668033242959963> **Versão:** ${versao}\n<:joiapixel:1442668036090888274> **Modo/Mapa:** ${modo}\n${selectionText}\n<:presentepixel:1442667950313308332> **Prêmio:** ${prize}\n\n**Jogadores (0/${maxPlayers})**${teamsText}`;
+        panelDescription = `${emojis.raiopixel} **Jogo:** ${jogo}\n${emojis.pergaminhopixel} **Versão:** ${versao}\n${emojis.joiapixel} **Modo/Mapa:** ${modo}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${prize}\n\n**Jogadores (0/${maxPlayers})**${teamsText}`;
     } else {
-        panelDescription = `<:raiopixel:1442668029065564341> **Jogo:** ${jogo}\n<:pergaminhopixel:1442668033242959963> **Versão:** ${versao}\n<:joiapixel:1442668036090888274> **Modo/Mapa:** ${modo}\n${selectionText}\n<:presentepixel:1442667950313308332> **Prêmio:** ${prize}\n\n**Jogadores (0/${maxPlayers})**\nNenhum jogador ainda`;
+        panelDescription = `${emojis.raiopixel} **Jogo:** ${jogo}\n${emojis.pergaminhopixel} **Versão:** ${versao}\n${emojis.joiapixel} **Modo/Mapa:** ${modo}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${prize}\n\n**Jogadores (0/${maxPlayers})**\nNenhum jogador ainda`;
     }
 
     // Cria e envia painel de entrada
     const panelEmbed = createRedEmbed({
-        title: `<:fogo:1442667877332422847> Simulador ${mode} – ${jogo}`,
+        title: `${emojis.fogo} Simulador ${mode} – ${jogo}`,
         description: panelDescription,
-        footer: { text: '<:alerta:1442668042873081866> Aguardando jogadores...' },
+        footer: { text: `${emojis.alerta} Aguardando jogadores...` },
         timestamp: true
     });
 
@@ -245,6 +249,8 @@ async function cancelSimulatorIfNotFull(client, simulatorId) {
     // Verifica se já está cheio
     if (simulator.players.length >= simulator.maxPlayers) return;
 
+    const emojis = getEmojis(client);
+
     // Cancela o simulador
     await updateTournament(simulatorId, { state: 'cancelled' });
 
@@ -260,9 +266,9 @@ async function cancelSimulatorIfNotFull(client, simulatorId) {
                     const panelMessage = await channel.messages.fetch(simulator.panelMessageId);
 
                     const cancelledEmbed = createRedEmbed({
-                        title: `<:fogo:1442667877332422847> Simulador ${simulator.mode} – ${simulator.jogo}`,
-                        description: `<:raiopixel:1442668029065564341> **Jogo:** ${simulator.jogo}\n<:pergaminhopixel:1442668033242959963> **Versão:** ${simulator.versao}\n<:trofeupixel:1442668024891969588> **Modo:** ${simulator.mode}\n<:presentepixel:1442667950313308332> **Prêmio:** ${simulator.prize}\n\n<:negative:1442668040465682643> **Este simulador foi cancelado automaticamente**\n<:alerta:1442668042873081866> Timeout de 6 minutos por falta de jogadores`,
-                        footer: { text: '<:negative:1442668040465682643> Simulador cancelado por timeout' },
+                        title: `${emojis.fogo} Simulador ${simulator.mode} – ${simulator.jogo}`,
+                        description: `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.trofeupixel} **Modo:** ${simulator.mode}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n${emojis.negative} **Este simulador foi cancelado automaticamente**\n${emojis.alerta} Timeout de 6 minutos por falta de jogadores`,
+                        footer: { text: `${emojis.negative} Simulador cancelado por timeout` },
                         timestamp: true
                     });
 
@@ -280,7 +286,7 @@ async function cancelSimulatorIfNotFull(client, simulatorId) {
                 const creator = await client.users.fetch(simulator.creatorId);
                 await creator.send({
                     embeds: [createRedEmbed({
-                        title: ':negative: Simulador Cancelado',
+                        title: `${emojis.negative} Simulador Cancelado`,
                         description: `Seu simulador "${simulator.jogo} ${simulator.mode}" foi cancelado por falta de jogadores (timeout de 6 minutos).`,
                         timestamp: true
                     })]
@@ -317,6 +323,8 @@ async function updateSimulatorPanel(client, simulatorId) {
 
     if (!simulator) return;
 
+    const emojis = getEmojis(client);
+
     const guild = client.guilds.cache.get(simulator.guildId);
     if (!guild) return;
 
@@ -330,8 +338,8 @@ async function updateSimulatorPanel(client, simulatorId) {
 
         // Monta descrição dependendo do modo de seleção
         const selectionText = simulator.teamSelection === 'manual' 
-            ? '<:joiapixel:1442668036090888274> **Escolha de Times:** Manual (escolha seu time)'
-            : '<:joiapixel:1442668036090888274> **Escolha de Times:** Aleatório';
+            ? `${emojis.joiapixel} **Escolha de Times:** Manual (escolha seu time)`
+            : `${emojis.joiapixel} **Escolha de Times:** Aleatório`;
 
         let panelDescription;
         if (simulator.teamSelection === 'manual') {
@@ -349,18 +357,18 @@ async function updateSimulatorPanel(client, simulatorId) {
                 teamsText += `\n**Time ${i}** (${teamPlayers.length}/${playersPerTeam}): ${playerMentions}`;
             }
             const currentPlayers = simulator.players || [];
-            panelDescription = `<:raiopixel:1442668029065564341> **Jogo:** ${simulator.jogo}\n<:pergaminhopixel:1442668033242959963> **Versão:** ${simulator.versao}\n<:joiapixel:1442668036090888274> **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n<:presentepixel:1442667950313308332> **Prêmio:** ${simulator.prize}\n\n**Jogadores (${currentPlayers.length}/${simulator.maxPlayers})**${teamsText}`;
+            panelDescription = `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.joiapixel} **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n**Jogadores (${currentPlayers.length}/${simulator.maxPlayers})**${teamsText}`;
         } else {
             const playersList = simulator.players.length > 0
                 ? simulator.players.map(id => `<@${id}>`).join('\n')
                 : 'Nenhum jogador ainda';
-            panelDescription = `<:raiopixel:1442668029065564341> **Jogo:** ${simulator.jogo}\n<:pergaminhopixel:1442668033242959963> **Versão:** ${simulator.versao}\n<:joiapixel:1442668036090888274> **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n<:presentepixel:1442667950313308332> **Prêmio:** ${simulator.prize}\n\n**Jogadores (${simulator.players.length}/${simulator.maxPlayers})**\n${playersList}`;
+            panelDescription = `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.joiapixel} **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n**Jogadores (${simulator.players.length}/${simulator.maxPlayers})**\n${playersList}`;
         }
 
         const updatedEmbed = createRedEmbed({
-            title: `<:fogo:1442667877332422847> Simulador ${simulator.mode} – ${simulator.jogo}`,
+            title: `${emojis.fogo} Simulador ${simulator.mode} – ${simulator.jogo}`,
             description: panelDescription,
-            footer: { text: simulator.players.length >= simulator.maxPlayers ? '<:positive:1442668038691491943> Simulador lotado!' : '<:alerta:1442668042873081866> Aguardando jogadores...' },
+            footer: { text: simulator.players.length >= simulator.maxPlayers ? `${emojis.positive} Simulador lotado!` : `${emojis.alerta} Aguardando jogadores...` },
             timestamp: true
         });
 
@@ -496,6 +504,8 @@ async function updateSimulatorPanel(client, simulatorId) {
 async function startTournament(client, simulatorId) {
     const simulator = await getTournamentById(simulatorId);
 
+    const emojis = getEmojis(client);
+
     const guild = client.guilds.cache.get(simulator.guildId);
     const channel = guild.channels.cache.get(simulator.channelId);
 
@@ -519,7 +529,7 @@ async function startTournament(client, simulatorId) {
                 console.log(`❌ Time ${i} incompleto: ${teamPlayers.length}/${playersPerTeam}`);
                 await channel.send({
                     embeds: [createRedEmbed({
-                        title: '<:negative:1442668040465682643> Erro ao iniciar torneio',
+                        title: `${emojis.negative} Erro ao iniciar torneio`,
                         description: `O Time ${i} está incompleto! (${teamPlayers.length}/${playersPerTeam} jogadores)`,
                         timestamp: true
                     })]
