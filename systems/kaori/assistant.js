@@ -287,7 +287,7 @@ async function giveVictoryByKaori(channel, confirmationData) {
         if (!simulator || !simulator.bracketData) return;
 
         const match = simulator.bracketData.matches.find(m => m.id === confirmationData.matchId);
-        if (!match || match.state === 'finished') return;
+        if (!match || match.status === 'completed') return;
 
         const result = advanceWinner(simulator.bracketData, confirmationData.matchId, confirmationData.winnerTeam);
 

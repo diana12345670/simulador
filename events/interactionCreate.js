@@ -1,10 +1,13 @@
 // interactionCreate.js - Gerencia todas as interações (comandos e botões)
 const { handleButton } = require('../handlers/buttonHandler');
 const { MessageFlags } = require('discord.js');
+const { getEmojis } = require('../utils/emojis');
 
 module.exports = {
     name: 'interactionCreate',
     async execute(interaction) {
+        const emojis = getEmojis(interaction.client);
+        
         // Comandos slash
         if (interaction.isChatInputCommand()) {
             const command = interaction.client.commands.get(interaction.commandName);
@@ -20,7 +23,7 @@ module.exports = {
                 console.error(`Erro ao executar comando ${interaction.commandName}:`, error);
                 
                 const errorMessage = { 
-                    content: '<:negative:1442668040465682643> Ocorreu um erro ao executar este comando.', 
+                    content: `${emojis.negative} Ocorreu um erro ao executar este comando.`, 
                     flags: MessageFlags.Ephemeral 
                 };
 
@@ -41,7 +44,7 @@ module.exports = {
                 console.error(`❌ Erro ao processar ${type}:`, error);
                 
                 const errorMessage = { 
-                    content: '<:negative:1442668040465682643> Ocorreu um erro ao processar esta ação.', 
+                    content: `${emojis.negative} Ocorreu um erro ao processar esta ação.`, 
                     flags: MessageFlags.Ephemeral 
                 };
 

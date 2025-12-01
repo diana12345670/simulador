@@ -1,67 +1,92 @@
-// index.js - Arquivo principal do bot Discord de torneios
+// index.js - Arquivo principal do bot Discord de torneios (Multi-Bot)
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
 const express = require('express');
-const { initDatabase } = require('./utils/database'); // Importa a função de inicialização do banco de dados
+const { initDatabase } = require('./utils/database');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// IDs padrão configurados
-const DEFAULT_APPLICATION_ID = '1442258129491329105';
 const DEFAULT_OWNER_ID = '1339336477661724674';
 
-// Verifica variáveis de ambiente
-if (!process.env.BOT_TOKEN) {
-    console.error('❌ BOT_TOKEN não encontrado no arquivo .env');
-    process.exit(1);
-}
-
-// Usa IDs padrão se não estiverem nas variáveis de ambiente
 if (!process.env.OWNER_ID) {
     process.env.OWNER_ID = DEFAULT_OWNER_ID;
     console.log('✅ Usando OWNER_ID padrão:', DEFAULT_OWNER_ID);
 }
 
-if (!process.env.APPLICATION_ID) {
-    process.env.APPLICATION_ID = DEFAULT_APPLICATION_ID;
-    console.log('✅ Usando APPLICATION_ID padrão:', DEFAULT_APPLICATION_ID);
+const botConfigs = [];
+
+const token1 = process.env.BOT_TOKEN_1 || process.env.BOT_TOKEN;
+if (token1) {
+    botConfigs.push({
+        name: 'Bot 1',
+        token: token1,
+        applicationId: process.env.APPLICATION_ID_1 || process.env.APPLICATION_ID || null
+    });
+}
+if (process.env.BOT_TOKEN_2) {
+    botConfigs.push({
+        name: 'Bot 2',
+        token: process.env.BOT_TOKEN_2,
+        applicationId: process.env.APPLICATION_ID_2 || null
+    });
+}
+if (process.env.BOT_TOKEN_3) {
+    botConfigs.push({
+        name: 'Bot 3',
+        token: process.env.BOT_TOKEN_3,
+        applicationId: process.env.APPLICATION_ID_3 || null
+    });
 }
 
-// Cria cliente do Discord com intents necessários
-// IMPORTANTE: Você precisa habilitar "SERVER MEMBERS INTENT" no Discord Developer Portal
-// Vá em: https://discord.com/developers/applications > Sua Aplicação > Bot > Privileged Gateway Intents
-// Habilite: SERVER MEMBERS INTENT
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds
-    ]
-});
+if (botConfigs.length === 0) {
+    console.error('❌ Nenhum token de bot configurado!');
+    console.error('Configure pelo menos um: BOT_TOKEN ou BOT_TOKEN_1, BOT_TOKEN_2, BOT_TOKEN_3');
+    process.exit(1);
+}
 
-// Carrega comandos
-client.commands = new Collection();
-const { loadCommands } = require('./handlers/commandHandler');
-loadCommands(client);
+console.log(`📦 ${botConfigs.length} bot(s) configurado(s)`);
 
-// Carrega eventos
-const eventsPath = path.join(__dirname, 'events');
-const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+const clients = [];
 
-for (const file of eventFiles) {
-    const filePath = path.join(eventsPath, file);
-    const event = require(filePath);
+function createClient(config) {
+    const client = new Client({
+        intents: [
+            GatewayIntentBits.Guilds
+        ]
+    });
 
-    if (event.once) {
-        client.once(event.name, (...args) => event.execute(...args));
-    } else {
-        client.on(event.name, (...args) => event.execute(...args));
+    client.botConfig = config;
+    client.commands = new Collection();
+
+    const { loadCommands } = require('./handlers/commandHandler');
+    loadCommands(client);
+
+    const eventsPath = path.join(__dirname, 'events');
+    const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+
+    for (const file of eventFiles) {
+        const filePath = path.join(eventsPath, file);
+        delete require.cache[require.resolve(filePath)];
+        const event = require(filePath);
+
+        if (event.once) {
+            client.once(event.name, (...args) => event.execute(...args));
+        } else {
+            client.on(event.name, (...args) => event.execute(...args));
+        }
     }
 
-    console.log(`✅ Evento carregado: ${event.name}`);
+    return client;
 }
 
-// Tratamento de erros global
+for (const config of botConfigs) {
+    const client = createClient(config);
+    clients.push(client);
+    console.log(`✅ Cliente criado para: ${config.name}`);
+}
+
 process.on('unhandledRejection', error => {
     console.error('❌ Erro não tratado (Promise Rejection):', error);
 });
@@ -70,59 +95,63 @@ process.on('uncaughtException', error => {
     console.error('❌ Erro não capturado (Exception):', error);
 });
 
-// Configuração do servidor web Express
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// Endpoint de ping para Uptime Robot
 app.get('/ping', (req, res) => {
     res.status(200).send('pong');
 });
 
-// Endpoint de health check
 app.get('/health', (req, res) => {
+    const botsStatus = clients.map(client => ({
+        name: client.botConfig.name,
+        online: client.isReady(),
+        guilds: client.isReady() ? client.guilds.cache.size : 0,
+        users: client.isReady() ? client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0) : 0
+    }));
+
     const health = {
         status: 'healthy',
         timestamp: Date.now(),
         uptime: process.uptime(),
-        bot: {
-            online: client.isReady(),
-            guilds: client.guilds.cache.size,
-            users: client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)
-        }
+        bots: botsStatus,
+        totalBots: clients.length,
+        onlineBots: clients.filter(c => c.isReady()).length
     };
     res.status(200).json(health);
 });
 
-// Rota principal - Dashboard
 app.get('/', async (req, res) => {
-    if (!client.isReady()) {
+    const readyClients = clients.filter(c => c.isReady());
+    
+    if (readyClients.length === 0) {
         return res.render('dashboard', {
             bot: null,
             stats: null,
-            ready: false
+            ready: false,
+            bots: []
         });
     }
 
+    const primaryClient = readyClients[0];
+
     const { getRankGlobal, countActiveTournaments, getTopServers } = require('./utils/database');
 
-    // Conta simuladores ativos
     const activeSimulators = await countActiveTournaments();
-
     const topPlayers = await getRankGlobal(10);
 
-    // Busca nomes dos jogadores do Discord
     const rankGlobalWithNames = await Promise.all(topPlayers.map(async (player) => {
         let username = 'Jogador Desconhecido';
-        try {
-            const user = await client.users.fetch(player.user_id);
-            if (user) {
-                username = user.displayName || user.username;
-            }
-        } catch (err) {
-            console.log(`Não foi possível buscar usuário ${player.user_id}`);
+        for (const client of readyClients) {
+            try {
+                const user = await client.users.fetch(player.user_id);
+                if (user) {
+                    username = user.displayName || user.username;
+                    break;
+                }
+            } catch (err) {}
         }
         return {
             id: player.user_id,
@@ -132,88 +161,115 @@ app.get('/', async (req, res) => {
         };
     }));
 
-    // Busca top 3 servidores que mais criam simuladores
     const topServersData = await getTopServers(3);
     const topServers = await Promise.all(topServersData.map(async (server) => {
-        const guild = client.guilds.cache.get(server.guildId);
-        if (guild) {
-            let inviteUrl = null;
-            try {
-                const invites = await guild.invites.fetch();
-                const permanentInvite = invites.find(inv => inv.maxAge === 0) || invites.first();
-                if (permanentInvite) {
-                    inviteUrl = `https://discord.gg/${permanentInvite.code}`;
-                }
-            } catch (err) {
-                console.log(`Não foi possível buscar convites do servidor ${guild.name}`);
+        for (const client of readyClients) {
+            const guild = client.guilds.cache.get(server.guildId);
+            if (guild) {
+                let inviteUrl = null;
+                try {
+                    const invites = await guild.invites.fetch();
+                    const permanentInvite = invites.find(inv => inv.maxAge === 0) || invites.first();
+                    if (permanentInvite) {
+                        inviteUrl = `https://discord.gg/${permanentInvite.code}`;
+                    }
+                } catch (err) {}
+                return {
+                    name: guild.name,
+                    icon: guild.iconURL(),
+                    memberCount: guild.memberCount,
+                    simulatorsCreated: server.simulatorsCreated,
+                    inviteUrl: inviteUrl
+                };
             }
-            return {
-                name: guild.name,
-                icon: guild.iconURL(),
-                memberCount: guild.memberCount,
-                simulatorsCreated: server.simulatorsCreated,
-                inviteUrl: inviteUrl
-            };
         }
         return null;
     }));
 
+    let totalGuilds = 0;
+    let totalUsers = 0;
+    const allGuilds = [];
+
+    for (const client of readyClients) {
+        totalGuilds += client.guilds.cache.size;
+        totalUsers += client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0);
+        client.guilds.cache.forEach(g => {
+            allGuilds.push({
+                name: g.name,
+                memberCount: g.memberCount,
+                icon: g.iconURL()
+            });
+        });
+    }
+
     const stats = {
-        totalGuilds: client.guilds.cache.size,
-        totalUsers: client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0),
-        totalCommands: client.commands.size,
+        totalGuilds: totalGuilds,
+        totalUsers: totalUsers,
+        totalCommands: primaryClient.commands.size,
         totalPlayers: topPlayers.length,
         activeSimulators: activeSimulators,
-        uptime: formatUptime(process.uptime())
+        uptime: formatUptime(process.uptime()),
+        totalBots: clients.length,
+        onlineBots: readyClients.length
     };
+
+    const botsInfo = readyClients.map(client => ({
+        username: client.user.username,
+        avatar: client.user.displayAvatarURL(),
+        tag: client.user.tag,
+        guilds: client.guilds.cache.size
+    }));
 
     res.render('dashboard', {
         bot: {
-            username: client.user.username,
-            avatar: client.user.displayAvatarURL(),
-            tag: client.user.tag
+            username: primaryClient.user.username,
+            avatar: primaryClient.user.displayAvatarURL(),
+            tag: primaryClient.user.tag
         },
         stats: stats,
         ready: true,
         rankGlobal: rankGlobalWithNames,
         topServers: topServers.filter(s => s !== null),
-        guilds: client.guilds.cache.map(g => ({
-            name: g.name,
-            memberCount: g.memberCount,
-            icon: g.iconURL()
+        guilds: allGuilds,
+        bots: botsInfo
+    });
+});
+
+app.get('/api/stats', async (req, res) => {
+    const readyClients = clients.filter(c => c.isReady());
+    
+    if (readyClients.length === 0) {
+        return res.status(503).json({ error: 'Nenhum bot está pronto' });
+    }
+
+    const { getRankGlobal, countActiveTournaments } = require('./utils/database');
+    const activeSimulators = await countActiveTournaments();
+    const topPlayers = await getRankGlobal(5);
+
+    let totalGuilds = 0;
+    let totalUsers = 0;
+    for (const client of readyClients) {
+        totalGuilds += client.guilds.cache.size;
+        totalUsers += client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0);
+    }
+
+    res.json({
+        guilds: totalGuilds,
+        users: totalUsers,
+        commands: readyClients[0].commands.size,
+        players: topPlayers.length,
+        activeSimulators: activeSimulators,
+        uptime: process.uptime(),
+        totalBots: clients.length,
+        onlineBots: readyClients.length,
+        bots: readyClients.map(c => ({
+            name: c.botConfig.name,
+            tag: c.user.tag,
+            guilds: c.guilds.cache.size
         }))
     });
 });
 
-// API endpoint para estatísticas
-app.get('/api/stats', async (req, res) => {
-    if (!client.isReady()) {
-        return res.status(503).json({ error: 'Bot não está pronto' });
-    }
-
-    // Remove a chamada para readDB e usa as funções do PostgreSQL
-    // const { readDB, DB_KEYS } = require('./utils/database');
-    // const rankGlobal = await readDB(DB_KEYS.RANK_GLOBAL, {});
-    // const simuladores = await readDB(DB_KEYS.SIMULADORES, {});
-
-    const { getRankGlobal, countActiveTournaments } = require('./utils/database');
-
-    // Conta simuladores ativos
-    const activeSimulators = await countActiveTournaments();
-
-    const topPlayers = await getRankGlobal(5); // Obtém os 5 melhores jogadores
-
-    res.json({
-        guilds: client.guilds.cache.size,
-        users: client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0),
-        commands: client.commands.size,
-        players: topPlayers.length, // Usa o número de top players como total de jogadores
-        activeSimulators: activeSimulators,
-        uptime: process.uptime()
-    });
-});
-
-// Função auxiliar para formatar uptime
 function formatUptime(seconds) {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
@@ -229,31 +285,97 @@ function formatUptime(seconds) {
     return parts.join(' ');
 }
 
-// Inicializa database e depois inicia o bot e servidor
+async function registerCommands(client) {
+    const commands = [];
+    const commandsPath = path.join(__dirname, 'commands');
+    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+    for (const file of commandFiles) {
+        const filePath = path.join(commandsPath, file);
+        delete require.cache[require.resolve(filePath)];
+        const command = require(filePath);
+        if ('data' in command && 'execute' in command) {
+            commands.push(command.data.toJSON());
+        }
+    }
+
+    const applicationId = client.botConfig.applicationId || client.user.id;
+    const rest = new REST({ version: '10' }).setToken(client.botConfig.token);
+
+    try {
+        console.log(`🔄 [${client.botConfig.name}] Registrando ${commands.length} comandos slash...`);
+        await rest.put(
+            Routes.applicationCommands(applicationId),
+            { body: commands }
+        );
+        console.log(`✅ [${client.botConfig.name}] ${commands.length} comandos registrados com sucesso!`);
+    } catch (error) {
+        console.error(`❌ [${client.botConfig.name}] Erro ao registrar comandos:`, error);
+    }
+}
+
 async function start() {
     try {
-        // 1. Inicializa o banco de dados PRIMEIRO
         console.log('🔄 Inicializando banco de dados...');
         await initDatabase();
         console.log('✅ Banco de dados inicializado!');
 
-        // 2. Inicia o servidor web
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`🌐 Servidor web rodando na porta ${PORT}`);
             console.log(`📊 Dashboard: http://localhost:${PORT}`);
             console.log(`🏓 Ping endpoint: http://localhost:${PORT}/ping`);
         });
 
-        // 3. Faz login do bot
-        console.log('🔄 Fazendo login no Discord...');
-        await client.login(process.env.BOT_TOKEN);
-        console.log('✅ Bot online com sucesso!');
+        console.log('🔄 Fazendo login dos bots...');
+        
+        const loginPromises = clients.map(async (client) => {
+            try {
+                await client.login(client.botConfig.token);
+                console.log(`✅ [${client.botConfig.name}] Online como ${client.user.tag}`);
+                
+                await registerCommands(client);
+                
+                return { success: true, name: client.botConfig.name };
+            } catch (error) {
+                console.error(`❌ [${client.botConfig.name}] Erro ao fazer login:`, error.message);
+                return { success: false, name: client.botConfig.name, error: error.message };
+            }
+        });
+
+        const results = await Promise.all(loginPromises);
+        
+        const successCount = results.filter(r => r.success).length;
+        const failCount = results.filter(r => !r.success).length;
+        
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(`✅ ${successCount} bot(s) online`);
+        if (failCount > 0) {
+            console.log(`❌ ${failCount} bot(s) com erro`);
+        }
+        
+        let totalGuilds = 0;
+        let totalUsers = 0;
+        for (const client of clients) {
+            if (client.isReady()) {
+                totalGuilds += client.guilds.cache.size;
+                totalUsers += client.guilds.cache.reduce((acc, g) => acc + g.memberCount, 0);
+            }
+        }
+        console.log(`📊 Total de servidores: ${totalGuilds}`);
+        console.log(`👥 Total de usuários: ${totalUsers}`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+        if (successCount === 0) {
+            console.error('❌ Nenhum bot conseguiu fazer login!');
+            process.exit(1);
+        }
 
     } catch (error) {
-        console.error('❌ Erro ao iniciar o bot:', error);
+        console.error('❌ Erro ao iniciar:', error);
         process.exit(1);
     }
 }
 
-// Inicia tudo
+module.exports = { clients };
+
 start();

@@ -547,19 +547,26 @@ async function checkRoundComplete(interaction, simulator, result) {
         return;
     }
 
-    const updatedSimulator = await getTournamentById(simulator.id); // Use simulator.id
+    const updatedSimulator = await getTournamentById(simulator.id);
     if (!updatedSimulator) return;
 
     const bracketData = updatedSimulator.bracketData;
 
-    const currentRound = Math.min(...bracketData.matches
-        .filter(m => m.state !== 'finished')
-        .map(m => m.round));
+    // Filtra partidas pendentes (status !== 'completed')
+    const pendingMatches = bracketData.matches.filter(m => m.status !== 'completed');
+    
+    if (pendingMatches.length === 0) {
+        // Todas as partidas finalizadas
+        return;
+    }
+
+    const currentRound = Math.min(...pendingMatches.map(m => m.round));
 
     const currentRoundMatches = bracketData.matches.filter(m => m.round === currentRound);
-    const allFinished = currentRoundMatches.every(m => m.state === 'finished');
+    const allCompleted = currentRoundMatches.every(m => m.status === 'completed');
 
-    if (allFinished && result.isNewRound) {
+    // Se é nova rodada, deleta canais antigos e cria novos
+    if (result.isNewRound) {
         await deleteRoundChannels(interaction, simulator);
 
         if (result.nextMatch) {

@@ -1,5 +1,31 @@
-// embeds.js - Helper para criar embeds padronizados vermelhos
+// embeds.js - Utilitário para criar embeds padronizados
+const { getEmojis } = require('./emojis');
 const { EmbedBuilder } = require('discord.js');
+
+function createEmbed(title, description, color = 0xFF0000, client = null) {
+    const embed = {
+        color: color,
+        title: title,
+        description: description,
+        timestamp: new Date().toISOString()
+    };
+
+    // Armazena o client no embed para uso posterior
+    if (client) {
+        embed._client = client;
+    }
+
+    return embed;
+}
+
+function getEmbedEmojis(embed) {
+    return getEmojis(embed._client);
+}
+
+// Helper para obter emojis de uma interação
+function getInteractionEmojis(interaction) {
+    return getEmojis(interaction.client);
+}
 
 // Cor vermelha padrão para todos os embeds
 const RED_COLOR = 0xFF0000;
@@ -56,5 +82,8 @@ module.exports = {
     createRedEmbed,
     createErrorEmbed,
     createSuccessEmbed,
-    RED_COLOR
+    RED_COLOR,
+    createEmbed,
+    getEmbedEmojis,
+    getInteractionEmojis
 };

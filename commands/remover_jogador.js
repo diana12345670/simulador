@@ -92,7 +92,7 @@ module.exports = {
 
             if (simulator.state === 'running' && simulator.bracketData && simulator.bracketData.matches) {
                 for (const match of simulator.bracketData.matches) {
-                    if (match.state === 'finished') continue;
+                    if (match.status === 'completed') continue;
 
                     const indexTeam1 = match.team1.indexOf(jogadorRemover.id);
                     if (indexTeam1 !== -1) {

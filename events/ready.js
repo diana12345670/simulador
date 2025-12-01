@@ -1,48 +1,19 @@
 // ready.js - Evento disparado quando o bot está online
-const { REST, Routes } = require('discord.js');
-
 module.exports = {
     name: 'clientReady',
     once: true,
     async execute(client) {
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log(`✅ Bot online como ${client.user.tag}`);
-        console.log(`📊 Servidores: ${client.guilds.cache.size}`);
-        console.log(`👥 Usuários: ${client.users.cache.size}`);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        const botName = client.botConfig ? client.botConfig.name : 'Bot';
+        
+        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+        console.log(`✅ [${botName}] Online como ${client.user.tag}`);
+        console.log(`📊 [${botName}] Servidores: ${client.guilds.cache.size}`);
+        console.log(`👥 [${botName}] Usuários: ${client.users.cache.size}`);
+        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
-        // Define status do bot com "Não Perturbe"
-        // A nota customizada será definida pelo comando /adicionar-nota
-        // Por padrão, usa a atividade padrão
         client.user.setPresence({
             activities: [{ name: 'Torneios | /setup' }],
-            status: 'dnd' // dnd = Do Not Disturb (Não Perturbe)
+            status: 'dnd'
         });
-        
-        console.log('💡 Use /adicionar-nota para adicionar uma nota customizada no perfil do bot');
-
-        // Registra comandos automaticamente na API do Discord
-        try {
-            console.log('🔄 Registrando comandos slash no Discord...');
-            
-            const commands = [];
-            for (const [, command] of client.commands) {
-                commands.push(command.data.toJSON());
-            }
-
-            const rest = new REST().setToken(process.env.BOT_TOKEN);
-            
-            // Usa o ID da aplicação do próprio client (mais confiável)
-            const applicationId = client.user.id;
-            
-            await rest.put(
-                Routes.applicationCommands(applicationId),
-                { body: commands }
-            );
-
-            console.log(`✅ ${commands.length} comandos registrados com sucesso!`);
-        } catch (error) {
-            console.error('❌ Erro ao registrar comandos:', error);
-        }
     }
 };

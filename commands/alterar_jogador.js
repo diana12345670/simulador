@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, MessageFlags, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { getTournamentById, updateTournament, getRunningTournamentByGuild } = require('../utils/database');
 const { createErrorEmbed, createRedEmbed, createSuccessEmbed } = require('../utils/embeds');
+const { getEmojis } = require('../utils/emojis');
 const { updateSimulatorPanel } = require('../systems/tournament/manager');
 
 module.exports = {
