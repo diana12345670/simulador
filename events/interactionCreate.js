@@ -22,15 +22,21 @@ module.exports = {
             } catch (error) {
                 console.error(`Erro ao executar comando ${interaction.commandName}:`, error);
                 
-                const errorMessage = { 
-                    content: `${emojis.negative} Ocorreu um erro ao executar este comando.`, 
-                    flags: MessageFlags.Ephemeral 
-                };
+                // Só tenta responder se a interação ainda é válida
+                try {
+                    const errorMessage = { 
+                        content: `${emojis.negative} Ocorreu um erro ao executar este comando.`, 
+                        flags: MessageFlags.Ephemeral 
+                    };
 
-                if (interaction.replied || interaction.deferred) {
-                    await interaction.followUp(errorMessage);
-                } else {
-                    await interaction.reply(errorMessage);
+                    if (interaction.replied || interaction.deferred) {
+                        await interaction.followUp(errorMessage);
+                    } else {
+                        await interaction.reply(errorMessage);
+                    }
+                } catch (replyError) {
+                    // Interação expirou ou já foi respondida, apenas loga
+                    console.error('Não foi possível responder ao erro:', replyError.message);
                 }
             }
         }
@@ -43,15 +49,21 @@ module.exports = {
             } catch (error) {
                 console.error(`❌ Erro ao processar ${type}:`, error);
                 
-                const errorMessage = { 
-                    content: `${emojis.negative} Ocorreu um erro ao processar esta ação.`, 
-                    flags: MessageFlags.Ephemeral 
-                };
+                // Só tenta responder se a interação ainda é válida
+                try {
+                    const errorMessage = { 
+                        content: `${emojis.negative} Ocorreu um erro ao processar esta ação.`, 
+                        flags: MessageFlags.Ephemeral 
+                    };
 
-                if (interaction.replied || interaction.deferred) {
-                    await interaction.followUp(errorMessage);
-                } else {
-                    await interaction.reply(errorMessage);
+                    if (interaction.replied || interaction.deferred) {
+                        await interaction.followUp(errorMessage);
+                    } else {
+                        await interaction.reply(errorMessage);
+                    }
+                } catch (replyError) {
+                    // Interação expirou ou já foi respondida, apenas loga
+                    console.error('Não foi possível responder ao erro:', replyError.message);
                 }
             }
         }
