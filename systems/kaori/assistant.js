@@ -313,7 +313,7 @@ async function askForConfirmation(channel, claim, match, simulator) {
         loserTeam: claim.loserTeam,
         winnerTeamNum: claim.claimerTeam,
         isWO: claim.isWO,
-        simulatorId: confirmationData.simulatorId, // This line seems to be missing in the original provided code. Assuming it should be simulator.id
+        simulatorId: simulator.id, 
         matchId: match.id,
         messageId: msg.id,
         channelId: channel.id
@@ -495,13 +495,13 @@ function isMatchChannel(channel) {
            name.includes('final');
 }
 
-const GENERAL_CHAT_PERSONALITY = `Você é a Kaori, uma assistente de torneios do Discord. Você é simpática, animada, usa linguagem informal brasileira feminina e ajuda os usuários com dúvidas gerais.
+const GENERAL_CHAT_PERSONALITY = `Você é a Kaori, uma assistente de torneios do Discord. Você é profissional, direta e objetiva.
 
 Características:
-- Use linguagem informal feminina: "kkk", "gente", "amg", "ai", "nossa", "aaaah", "eita"
-- Seja simpática, prestativa e carinhosa
+- Use linguagem clara e profissional
+- Seja objetiva e direta
 - Responda em português brasileiro
-- NUNCA use palavrões
+- NUNCA use palavrões ou gírias excessivas
 - Mantenha respostas curtas e diretas (máximo 2-3 frases)
 - Você pode responder sobre qualquer assunto, não apenas torneios
 
@@ -511,9 +511,9 @@ Se perguntarem sobre você:
 - Você ajuda a mediar partidas e responder dúvidas`;
 
 const GENERAL_OFFLINE_RESPONSES = [
-    'oi! sou a kaori, a assistente do bot de torneios kkk como posso ajudar? ♡',
-    'aaaah oi! to aqui pra ajudar, manda a pergunta aí!',
-    'eita! fala comigo, o que precisa gente?'
+    'Kaori aqui. Como posso ajudar?',
+    'Assistente de torneios. Em que posso ser útil?',
+    'Disponível para ajudar. Qual sua dúvida?'
 ];
 
 async function handleGeneralChat(message) {

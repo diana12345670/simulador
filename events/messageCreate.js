@@ -16,6 +16,9 @@ module.exports = {
         if (message.author.bot) return;
         if (!message.guild) return;
 
+        // Ignora se for apenas @everyone ou @here
+        if (message.mentions.everyone) return;
+        
         const mentionsBot = message.mentions.has(message.client.user);
         const lowerContent = message.content.toLowerCase();
         const mentionsKaori = lowerContent.includes('kaori');
