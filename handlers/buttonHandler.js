@@ -452,10 +452,32 @@ async function handleMatchWin(interaction, winnerTeamNum) {
         });
     }
 
+    if (!simulator.bracketData || !simulator.bracketData.matches) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
     const { advanceWinner } = require('../systems/tournament/bracket');
     const match = simulator.bracketData.matches.find(m => m.id === matchId);
 
+    if (!match) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Partida não encontrada.', interaction.client)],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
     const winnerTeam = winnerTeamNum === 1 ? match.team1 : match.team2;
+    
+    if (!winnerTeam || !Array.isArray(winnerTeam)) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Time inválido.', interaction.client)],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
     const result = advanceWinner(simulator.bracketData, matchId, winnerTeam);
 
     await updateTournament(simulator.id, { bracketData: result.bracketData });
@@ -488,7 +510,22 @@ async function handleWalkover(interaction) {
         });
     }
 
+    if (!simulator.bracketData || !simulator.bracketData.matches) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
     const match = simulator.bracketData.matches.find(m => m.id === matchId);
+    
+    if (!match || !match.team1 || !match.team2) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Partida não encontrada ou times inválidos.', interaction.client)],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
     const team1Mentions = match.team1.map(id => `<@${id}>`).join(', ');
     const team2Mentions = match.team2.map(id => `<@${id}>`).join(', ');
 
@@ -528,11 +565,33 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
     const simulator = await getTournamentById(simulatorId);
     if (!simulator) return;
 
+    if (!simulator.bracketData || !simulator.bracketData.matches) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
     const { advanceWinner } = require('../systems/tournament/bracket');
     const match = simulator.bracketData.matches.find(m => m.id === matchId);
 
+    if (!match || !match.team1 || !match.team2) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Partida não encontrada ou times inválidos.', interaction.client)],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
     const winnerTeam = winnerTeamNum === 1 ? match.team1 : match.team2;
     const loserTeam = winnerTeamNum === 1 ? match.team2 : match.team1;
+    
+    if (!winnerTeam || !loserTeam || !Array.isArray(winnerTeam) || !Array.isArray(loserTeam)) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Time inválido.', interaction.client)],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
     const loserMentions = loserTeam.map(id => `<@${id}>`).join(', ');
     const winnerMentions = winnerTeam.map(id => `<@${id}>`).join(', ');
 
@@ -672,9 +731,18 @@ async function createNextRoundChannels(interaction, simulator, round, bracketDat
     const { getRoundName } = require('../systems/tournament/bracket');
 
     const category = interaction.guild.channels.cache.get(simulator.categoryId);
-    const newMatches = bracketData.matches.filter(m => m.round === round);
+    if (!category) {
+        console.error('❌ Categoria do torneio não encontrada');
+        return;
+    }
+    
+    const newMatches = bracketData.matches.filter(m => m.round === round && !m.isBye && m.status === 'pending');
 
     for (const match of newMatches) {
+        if (!match.team1 || !match.team2 || !Array.isArray(match.team1) || !Array.isArray(match.team2)) {
+            console.log(`⚠️ Pulando partida ${match.id} - times inválidos`);
+            continue;
+        }
         const roundName = getRoundName(match.round, bracketData.totalRounds);
         const matchNumber = match.id.split('match')[1];
         await createMatchChannel(interaction.guild, category, simulator, match, `${roundName}-${matchNumber}`);

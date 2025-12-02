@@ -1,14 +1,6 @@
 const { Events } = require('discord.js');
 const { getTournamentById, getAllTournaments } = require('../utils/database');
-const { 
-    handleKaoriMention, 
-    startInactivityTimer, 
-    resetInactivityTimer, 
-    clearInactivityTimer,
-    isMatchChannel,
-    detectVictoryClaim,
-    handleGeneralChat
-} = require('../systems/kaori/assistant');
+const kaoriAssistant = require('../systems/kaori/assistant');
 
 module.exports = {
     name: Events.MessageCreate,
@@ -16,20 +8,18 @@ module.exports = {
         if (message.author.bot) return;
         if (!message.guild) return;
 
-        // Ignora se for apenas @everyone ou @here
         if (message.mentions.everyone) return;
         
         const mentionsBot = message.mentions.has(message.client.user);
         const lowerContent = message.content.toLowerCase();
         const mentionsKaori = lowerContent.includes('kaori');
 
-        // Responde em canais não-partida se mencionar o bot ou escrever "kaori"
-        if ((mentionsBot || mentionsKaori) && !isMatchChannel(message.channel)) {
-            await handleGeneralChat(message);
+        if ((mentionsBot || mentionsKaori) && !kaoriAssistant.isMatchChannel(message.channel)) {
+            await kaoriAssistant.handleGeneralChat(message);
             return;
         }
 
-        if (!isMatchChannel(message.channel)) return;
+        if (!kaoriAssistant.isMatchChannel(message.channel)) return;
 
         try {
             const tournaments = await getAllTournaments();
@@ -52,8 +42,29 @@ module.exports = {
             if (!matchingTournament || !matchingMatch) return;
 
             const creatorId = matchingTournament.creatorId;
+            if (!creatorId) return;
+            
+            if (kaoriAssistant.detectMatchInProgress(lowerContent)) {
+                kaoriAssistant.pauseKaoriForChannel(message.channel.id, 5 * 60 * 1000);
+                await message.reply('ok, ainda jogando. avisa quando acabar');
+                return;
+            }
+            
+            const pending = kaoriAssistant.pendingConfirmations.get(message.channel.id);
+            if (pending) {
+                const autoConfirmation = kaoriAssistant.checkMessageForAutoConfirmation(message, message.channel.id);
+                if (autoConfirmation === 'confirmed') {
+                    await kaoriAssistant.giveVictoryByKaori(message.channel, pending);
+                    return;
+                } else if (autoConfirmation === 'denied') {
+                    await message.reply('Resultado contestado. O criador do torneio precisará decidir o vencedor.');
+                    kaoriAssistant.pendingConfirmations.delete(message.channel.id);
+                    return;
+                }
+            }
+            
             const isCreator = message.author.id === creatorId;
-            const mentionsCreator = message.mentions.users.has(creatorId);
+            const mentionsCreator = creatorId ? message.mentions.users.has(creatorId) : false;
             const mentionsKaoriInMatch = lowerContent.includes('kaori') || lowerContent.includes('@kaori') || mentionsBot;
 
             const victoryPhrases = [
@@ -66,15 +77,15 @@ module.exports = {
             const hasVictoryPhrase = victoryPhrases.some(phrase => lowerContent.includes(phrase));
 
             if (isCreator) {
-                resetInactivityTimer(message.channel.id, message.channel, matchingMatch, creatorId);
+                kaoriAssistant.resetInactivityTimer(message.channel.id, message.channel, matchingMatch, creatorId);
             }
 
             if (mentionsCreator || mentionsKaoriInMatch || hasVictoryPhrase) {
-                await handleKaoriMention(message, matchingTournament, matchingMatch);
+                await kaoriAssistant.handleKaoriMention(message, matchingTournament, matchingMatch);
             }
 
             if (!isCreator) {
-                startInactivityTimer(message.channel.id, message.channel, matchingMatch, creatorId);
+                kaoriAssistant.startInactivityTimer(message.channel.id, message.channel, matchingMatch, creatorId);
             }
 
         } catch (error) {

@@ -572,11 +572,21 @@ async function startTournament(client, simulatorId) {
         })]
     });
 
-    // Cria canais para primeira rodada
-    const firstRoundMatches = simulator.bracketData.matches.filter(m => m.round === 1);
+    // Cria canais para primeira rodada (ignora partidas BYE)
+    const firstRoundMatches = simulator.bracketData.matches.filter(m => m.round === 1 && !m.isBye && m.status === 'pending');
     for (const match of firstRoundMatches) {
+        if (!match.team1 || !match.team2) {
+            console.log(`⚠️ Pulando partida ${match.id} - time incompleto`);
+            continue;
+        }
         const matchNumber = match.id.split('match')[1];
         await createMatchChannel(guild, category, simulator, match, `rodada-1-${matchNumber}`);
+    }
+    
+    // Verifica se há BYEs e já processa a próxima rodada se necessário
+    const byeMatches = simulator.bracketData.matches.filter(m => m.isBye);
+    if (byeMatches.length > 0) {
+        console.log(`✅ ${byeMatches.length} partida(s) BYE processada(s) automaticamente`);
     }
 
     await channel.send({
@@ -594,27 +604,44 @@ async function startTournament(client, simulatorId) {
 async function createMatchChannel(guild, category, simulator, match, channelName) {
     const { startInactivityTimer } = require('../kaori/assistant');
 
+    if (!match.team1 || !match.team2 || !Array.isArray(match.team1) || !Array.isArray(match.team2)) {
+        console.error(`❌ Erro ao criar canal - times inválidos para partida ${match.id}`);
+        return null;
+    }
+
     const team1Mentions = match.team1.map(id => `<@${id}>`).join(', ');
     const team2Mentions = match.team2.map(id => `<@${id}>`).join(', ');
+
+    const permissionOverwrites = [
+        {
+            id: guild.id,
+            deny: [PermissionFlagsBits.ViewChannel]
+        }
+    ];
+    
+    for (const playerId of match.team1) {
+        if (playerId) {
+            permissionOverwrites.push({
+                id: playerId,
+                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+            });
+        }
+    }
+    
+    for (const playerId of match.team2) {
+        if (playerId) {
+            permissionOverwrites.push({
+                id: playerId,
+                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+            });
+        }
+    }
 
     const matchChannel = await guild.channels.create({
         name: channelName.substring(0, 100),
         type: ChannelType.GuildText,
         parent: category.id,
-        permissionOverwrites: [
-            {
-                id: guild.id,
-                deny: [PermissionFlagsBits.ViewChannel]
-            },
-            ...match.team1.map(playerId => ({
-                id: playerId,
-                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
-            })),
-            ...match.team2.map(playerId => ({
-                id: playerId,
-                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
-            }))
-        ]
+        permissionOverwrites: permissionOverwrites
     });
 
     match.channelId = matchChannel.id;
