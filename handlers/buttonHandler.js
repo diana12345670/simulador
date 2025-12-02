@@ -1,10 +1,9 @@
 const { createRedEmbed, createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 const { getTournamentById, updateTournament, deleteTournament, incrementServerSimulators } = require('../utils/database');
-const { updateSimulatorPanel, startTournament } = require('../systems/tournament/manager');
+const { updateSimulatorPanel, startTournament, cancelSimulatorTimeout } = require('../systems/tournament/manager');
 const { getEmojis } = require('../utils/emojis');
 const { MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 
-// Placeholder for timeouts, assuming it's managed elsewhere or should be integrated
 const timeouts = new Map(); 
 
 async function handleButton(interaction) {
@@ -330,6 +329,8 @@ async function handleCancel(interaction) {
             flags: MessageFlags.Ephemeral
         });
     }
+
+    cancelSimulatorTimeout(simulatorId);
 
     await interaction.reply({
         embeds: [createRedEmbed({
@@ -674,11 +675,13 @@ async function deleteRoundChannels(interaction, simulator) {
 }
 
 async function handleChampion(interaction, simulator, championTeam, bracketData) {
-    const { updateRankGlobal, updateRankLocal } = require('../utils/database');
+    const { updateRankGlobal, updateRankLocal, recordMatchResult } = require('../utils/database');
     const championMentions = championTeam.map(id => `<@${id}>`).join(', ');
 
     const totalParticipants = simulator.players ? simulator.players.length : 0;
     const minParticipantsForPoints = 3;
+
+    const loserIds = (simulator.players || []).filter(id => !championTeam.includes(id));
 
     const championEmbed = createRedEmbed({
         title: 'CAMPEÃO DO SIMULADOR',
@@ -695,8 +698,17 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
         for (const playerId of championTeam) {
             await updateRankGlobal(playerId, { wins: 1, points: 1 });
             await updateRankLocal(interaction.guildId, playerId, { wins: 1, points: 1 });
+            
+            await recordMatchResult(
+                simulator.id,
+                interaction.guildId,
+                playerId,
+                loserIds,
+                simulator.mode,
+                simulator.jogo
+            );
         }
-        console.log(`✅ Rankings atualizados para ${championTeam.length} jogadores`);
+        console.log(`✅ Rankings e histórico atualizados para ${championTeam.length} jogadores`);
     } else {
         console.log(`⚠️ Simulador com apenas ${totalParticipants} participantes - pontos não contabilizados`);
     }

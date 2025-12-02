@@ -11,7 +11,7 @@
 </head>
 <body>
     <div class="hero-background"></div>
-    
+
     <nav class="nav-bar">
         <div class="nav-container">
             <div class="nav-logo">
@@ -24,6 +24,7 @@
             </div>
             <div class="nav-links">
                 <a href="#stats" class="nav-link">Estatísticas</a>
+                <a href="/loja" class="nav-link">Loja</a>
                 <a href="#faq" class="nav-link">FAQ</a>
                 <a href="https://discord.com/api/oauth2/authorize?client_id=<%= process.env.APPLICATION_ID || '1442258129491329105' %>&permissions=8&scope=bot%20applications.commands" target="_blank" class="nav-btn">
                     <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
@@ -39,6 +40,16 @@
         <div class="hero-content">
             <h1 class="hero-title">Sistema de Torneios Discord</h1>
             <p class="hero-subtitle">Organize torneios competitivos com chaveamento automático, rankings e gerenciamento de partidas</p>
+            <div class="hero-shop-button" style="margin-bottom: 2rem;">
+                <a href="/loja" class="shop-cta-btn">
+                    <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"/>
+                        <circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                    Loja do Bot
+                </a>
+            </div>
             <div class="hero-features">
                 <div class="feature-badge">
                     <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -368,6 +379,7 @@
         <footer class="footer">
             <div class="footer-content">
                 <div class="footer-links">
+                    <a href="/loja" class="footer-link">Loja</a>
                     <a href="/health" target="_blank" class="footer-link">API Health</a>
                     <a href="/ping" target="_blank" class="footer-link">Ping</a>
                     <a href="https://discord.com/api/oauth2/authorize?client_id=<%= process.env.APPLICATION_ID || '1442258129491329105' %>&permissions=8&scope=bot%20applications.commands" target="_blank" class="footer-link">Adicionar Bot</a>

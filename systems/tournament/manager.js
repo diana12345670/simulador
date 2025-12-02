@@ -17,6 +17,9 @@ const {
 
 const RANK_LOCAL_DIR = path.join(__dirname, '../../data/rank_local');
 
+const simulatorTimeouts = new Map();
+const TIMEOUT_DURATION = 6 * 60 * 1000;
+
 /**
  * Cria um novo simulador
  * @param {Object} client - Cliente do Discord
@@ -219,7 +222,12 @@ async function createSimulator(client, guild, creator, options) {
 
     console.log(`✅ Simulador ${mode} criado: ${simulatorId}`);
 
-    // Retorna com nomes de campos consistentes
+    const timeoutId = setTimeout(() => {
+        cancelSimulatorIfNotFull(client, simulatorId);
+    }, TIMEOUT_DURATION);
+    simulatorTimeouts.set(simulatorId, timeoutId);
+    console.log(`⏱️ Timer de ${TIMEOUT_DURATION / 60000} minutos iniciado para: ${simulatorId}`);
+
     return {
         id: simulatorId,
         guildId: guild.id,
@@ -242,6 +250,11 @@ async function createSimulator(client, guild, creator, options) {
  * Cancela simulador se não estiver cheio
  */
 async function cancelSimulatorIfNotFull(client, simulatorId) {
+    if (simulatorTimeouts.has(simulatorId)) {
+        clearTimeout(simulatorTimeouts.get(simulatorId));
+        simulatorTimeouts.delete(simulatorId);
+    }
+
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator || simulator.state !== 'open') return;
@@ -249,6 +262,7 @@ async function cancelSimulatorIfNotFull(client, simulatorId) {
     // Verifica se já está cheio
     if (simulator.players.length >= simulator.maxPlayers) return;
 
+    console.log(`⏱️ Cancelando simulador por timeout: ${simulatorId}`);
     const emojis = getEmojis(client);
 
     // Cancela o simulador
@@ -502,6 +516,12 @@ async function updateSimulatorPanel(client, simulatorId) {
  * Inicia o torneio
  */
 async function startTournament(client, simulatorId) {
+    if (simulatorTimeouts.has(simulatorId)) {
+        clearTimeout(simulatorTimeouts.get(simulatorId));
+        simulatorTimeouts.delete(simulatorId);
+        console.log(`⏱️ Timer cancelado para simulador iniciado: ${simulatorId}`);
+    }
+
     const simulator = await getTournamentById(simulatorId);
 
     const emojis = getEmojis(client);
@@ -699,6 +719,19 @@ async function updateRankings(guildId, memberCount, playerId, points) {
     });
 }
 
+/**
+ * Cancela o timer de timeout de um simulador
+ */
+function cancelSimulatorTimeout(simulatorId) {
+    if (simulatorTimeouts.has(simulatorId)) {
+        clearTimeout(simulatorTimeouts.get(simulatorId));
+        simulatorTimeouts.delete(simulatorId);
+        console.log(`⏱️ Timer cancelado manualmente para: ${simulatorId}`);
+        return true;
+    }
+    return false;
+}
+
 module.exports = {
     createSimulator,
     updateSimulatorPanel,
@@ -706,5 +739,6 @@ module.exports = {
     createMatchChannel,
     updateRankings,
     advanceWinner,
-    getRoundName
+    getRoundName,
+    cancelSimulatorTimeout
 };

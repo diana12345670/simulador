@@ -14,7 +14,10 @@ const JSON_FILES = {
     servers_banidos: path.join(DATA_DIR, 'servers_banidos.json'),
     rank_global: path.join(DATA_DIR, 'rank_global.json'),
     rank_local_dir: path.join(DATA_DIR, 'rank_local'),
-    tournaments: path.join(DATA_DIR, 'tournaments.json')
+    tournaments: path.join(DATA_DIR, 'tournaments.json'),
+    players: path.join(DATA_DIR, 'players.json'),
+    match_history: path.join(DATA_DIR, 'match_history.json'),
+    shop_catalog: path.join(DATA_DIR, 'shop_catalog.json')
 };
 
 async function tryConnectPostgres() {
@@ -185,6 +188,42 @@ async function initDatabase() {
                 )
             `);
 
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS players (
+                    user_id VARCHAR(50) PRIMARY KEY,
+                    coins INTEGER DEFAULT 0,
+                    total_wins INTEGER DEFAULT 0,
+                    total_losses INTEGER DEFAULT 0,
+                    current_streak INTEGER DEFAULT 0,
+                    best_streak INTEGER DEFAULT 0,
+                    wins_vs_top10 INTEGER DEFAULT 0,
+                    titles_owned JSONB DEFAULT '[]'::jsonb,
+                    banners_owned JSONB DEFAULT '[]'::jsonb,
+                    roles_owned JSONB DEFAULT '[]'::jsonb,
+                    equipped_title VARCHAR(100),
+                    equipped_banner VARCHAR(100),
+                    achievements JSONB DEFAULT '[]'::jsonb,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS match_history (
+                    id SERIAL PRIMARY KEY,
+                    simulator_id VARCHAR(100) NOT NULL,
+                    guild_id VARCHAR(50) NOT NULL,
+                    winner_id VARCHAR(50) NOT NULL,
+                    loser_ids JSONB NOT NULL,
+                    mode VARCHAR(20) NOT NULL,
+                    jogo VARCHAR(100),
+                    was_vs_top10 BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            await client.query('CREATE INDEX IF NOT EXISTS idx_players_coins ON players(coins DESC)');
+            await client.query('CREATE INDEX IF NOT EXISTS idx_match_history_winner ON match_history(winner_id)');
             await client.query('CREATE INDEX IF NOT EXISTS idx_rank_global_points ON rank_global(points DESC)');
             await client.query('CREATE INDEX IF NOT EXISTS idx_rank_local_guild_points ON rank_local(guild_id, points DESC)');
             await client.query('CREATE INDEX IF NOT EXISTS idx_tournaments_guild ON tournaments(guild_id)');
@@ -228,6 +267,8 @@ function initJsonDatabase() {
     readJSON(JSON_FILES.servers_banidos, []);
     readJSON(JSON_FILES.rank_global, {});
     readJSON(JSON_FILES.tournaments, {});
+    readJSON(JSON_FILES.players, {});
+    readJSON(JSON_FILES.match_history, []);
     
     console.log('✅ Banco de dados JSON inicializado');
 }
@@ -1123,6 +1164,289 @@ async function getAllTournaments() {
     }
 }
 
+const DEFAULT_PLAYER = {
+    coins: 0,
+    totalWins: 0,
+    totalLosses: 0,
+    currentStreak: 0,
+    bestStreak: 0,
+    winsVsTop10: 0,
+    titlesOwned: [],
+    bannersOwned: [],
+    rolesOwned: [],
+    equippedTitle: null,
+    equippedBanner: null,
+    achievements: []
+};
+
+async function getPlayer(userId) {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            const result = await client.query('SELECT * FROM players WHERE user_id = $1', [userId]);
+            if (result.rows.length === 0) {
+                return { ...DEFAULT_PLAYER, userId };
+            }
+            const row = result.rows[0];
+            return {
+                userId: row.user_id,
+                coins: row.coins || 0,
+                totalWins: row.total_wins || 0,
+                totalLosses: row.total_losses || 0,
+                currentStreak: row.current_streak || 0,
+                bestStreak: row.best_streak || 0,
+                winsVsTop10: row.wins_vs_top10 || 0,
+                titlesOwned: row.titles_owned || [],
+                bannersOwned: row.banners_owned || [],
+                rolesOwned: row.roles_owned || [],
+                equippedTitle: row.equipped_title,
+                equippedBanner: row.equipped_banner,
+                achievements: row.achievements || []
+            };
+        } catch (error) {
+            console.error(`Erro ao buscar jogador ${userId}:`, error.message);
+            return { ...DEFAULT_PLAYER, userId };
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const players = readJSON(JSON_FILES.players, {});
+        return players[userId] || { ...DEFAULT_PLAYER, userId };
+    }
+}
+
+async function updatePlayer(userId, data) {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            const existing = await client.query('SELECT user_id FROM players WHERE user_id = $1', [userId]);
+            
+            if (existing.rows.length === 0) {
+                await client.query(`
+                    INSERT INTO players (user_id, coins, total_wins, total_losses, current_streak, best_streak, 
+                        wins_vs_top10, titles_owned, banners_owned, roles_owned, equipped_title, equipped_banner, achievements)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                `, [
+                    userId,
+                    data.coins || 0,
+                    data.totalWins || 0,
+                    data.totalLosses || 0,
+                    data.currentStreak || 0,
+                    data.bestStreak || 0,
+                    data.winsVsTop10 || 0,
+                    JSON.stringify(data.titlesOwned || []),
+                    JSON.stringify(data.bannersOwned || []),
+                    JSON.stringify(data.rolesOwned || []),
+                    data.equippedTitle || null,
+                    data.equippedBanner || null,
+                    JSON.stringify(data.achievements || [])
+                ]);
+            } else {
+                const updates = [];
+                const values = [userId];
+                let idx = 2;
+                
+                if (data.coins !== undefined) { updates.push(`coins = $${idx++}`); values.push(data.coins); }
+                if (data.totalWins !== undefined) { updates.push(`total_wins = $${idx++}`); values.push(data.totalWins); }
+                if (data.totalLosses !== undefined) { updates.push(`total_losses = $${idx++}`); values.push(data.totalLosses); }
+                if (data.currentStreak !== undefined) { updates.push(`current_streak = $${idx++}`); values.push(data.currentStreak); }
+                if (data.bestStreak !== undefined) { updates.push(`best_streak = $${idx++}`); values.push(data.bestStreak); }
+                if (data.winsVsTop10 !== undefined) { updates.push(`wins_vs_top10 = $${idx++}`); values.push(data.winsVsTop10); }
+                if (data.titlesOwned !== undefined) { updates.push(`titles_owned = $${idx++}`); values.push(JSON.stringify(data.titlesOwned)); }
+                if (data.bannersOwned !== undefined) { updates.push(`banners_owned = $${idx++}`); values.push(JSON.stringify(data.bannersOwned)); }
+                if (data.rolesOwned !== undefined) { updates.push(`roles_owned = $${idx++}`); values.push(JSON.stringify(data.rolesOwned)); }
+                if (data.equippedTitle !== undefined) { updates.push(`equipped_title = $${idx++}`); values.push(data.equippedTitle); }
+                if (data.equippedBanner !== undefined) { updates.push(`equipped_banner = $${idx++}`); values.push(data.equippedBanner); }
+                if (data.achievements !== undefined) { updates.push(`achievements = $${idx++}`); values.push(JSON.stringify(data.achievements)); }
+                
+                updates.push('updated_at = CURRENT_TIMESTAMP');
+                
+                if (updates.length > 1) {
+                    await client.query(`UPDATE players SET ${updates.join(', ')} WHERE user_id = $1`, values);
+                }
+            }
+        } catch (error) {
+            console.error(`Erro ao atualizar jogador ${userId}:`, error.message);
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const players = readJSON(JSON_FILES.players, {});
+        players[userId] = { ...(players[userId] || DEFAULT_PLAYER), ...data, userId };
+        writeJSON(JSON_FILES.players, players);
+    }
+}
+
+async function addCoins(userId, amount) {
+    const player = await getPlayer(userId);
+    const newCoins = (player.coins || 0) + amount;
+    await updatePlayer(userId, { coins: newCoins });
+    return newCoins;
+}
+
+async function removeCoins(userId, amount) {
+    const player = await getPlayer(userId);
+    const currentCoins = player.coins || 0;
+    if (currentCoins < amount) return false;
+    await updatePlayer(userId, { coins: currentCoins - amount });
+    return true;
+}
+
+async function addItemToInventory(userId, itemType, itemId) {
+    const player = await getPlayer(userId);
+    let field;
+    if (itemType === 'banner') field = 'bannersOwned';
+    else if (itemType === 'title') field = 'titlesOwned';
+    else if (itemType === 'role') field = 'rolesOwned';
+    else return false;
+    
+    const owned = player[field] || [];
+    if (!owned.includes(itemId)) {
+        owned.push(itemId);
+        await updatePlayer(userId, { [field]: owned });
+    }
+    return true;
+}
+
+async function equipItem(userId, itemType, itemId) {
+    const player = await getPlayer(userId);
+    let ownedField, equippedField;
+    
+    if (itemType === 'banner') {
+        ownedField = 'bannersOwned';
+        equippedField = 'equippedBanner';
+    } else if (itemType === 'title') {
+        ownedField = 'titlesOwned';
+        equippedField = 'equippedTitle';
+    } else {
+        return false;
+    }
+    
+    const owned = player[ownedField] || [];
+    if (!owned.includes(itemId)) return false;
+    
+    await updatePlayer(userId, { [equippedField]: itemId });
+    return true;
+}
+
+async function recordMatchResult(simulatorId, guildId, winnerId, loserIds, mode, jogo) {
+    const top10 = await getRankGlobal(10);
+    const top10Ids = top10.map(p => p.user_id);
+    const wasVsTop10 = loserIds.some(id => top10Ids.includes(id));
+    
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            await client.query(`
+                INSERT INTO match_history (simulator_id, guild_id, winner_id, loser_ids, mode, jogo, was_vs_top10)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+            `, [simulatorId, guildId, winnerId, JSON.stringify(loserIds), mode, jogo, wasVsTop10]);
+        } catch (error) {
+            console.error('Erro ao registrar partida:', error.message);
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const history = readJSON(JSON_FILES.match_history, []);
+        history.push({
+            simulatorId,
+            guildId,
+            winnerId,
+            loserIds,
+            mode,
+            jogo,
+            wasVsTop10,
+            createdAt: new Date().toISOString()
+        });
+        writeJSON(JSON_FILES.match_history, history);
+    }
+    
+    const winner = await getPlayer(winnerId);
+    const newStreak = (winner.currentStreak || 0) + 1;
+    const newBestStreak = Math.max(newStreak, winner.bestStreak || 0);
+    const newWins = (winner.totalWins || 0) + 1;
+    const newWinsVsTop10 = (winner.winsVsTop10 || 0) + (wasVsTop10 ? 1 : 0);
+    
+    await updatePlayer(winnerId, {
+        totalWins: newWins,
+        currentStreak: newStreak,
+        bestStreak: newBestStreak,
+        winsVsTop10: newWinsVsTop10,
+        coins: (winner.coins || 0) + 50
+    });
+    
+    for (const loserId of loserIds) {
+        const loser = await getPlayer(loserId);
+        await updatePlayer(loserId, {
+            totalLosses: (loser.totalLosses || 0) + 1,
+            currentStreak: 0,
+            coins: (loser.coins || 0) + 10
+        });
+    }
+    
+    return { wasVsTop10, coinsEarned: 50 };
+}
+
+async function getPlayerMatchHistory(userId, limit = 10) {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            const result = await client.query(`
+                SELECT * FROM match_history 
+                WHERE winner_id = $1 OR $1 = ANY(SELECT jsonb_array_elements_text(loser_ids))
+                ORDER BY created_at DESC LIMIT $2
+            `, [userId, limit]);
+            return result.rows;
+        } catch (error) {
+            console.error('Erro ao buscar histórico:', error.message);
+            return [];
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const history = readJSON(JSON_FILES.match_history, []);
+        return history
+            .filter(m => m.winnerId === userId || m.loserIds.includes(userId))
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, limit);
+    }
+}
+
+function getShopCatalog() {
+    return readJSON(JSON_FILES.shop_catalog, { banners: [], titles: [], roles: [] });
+}
+
+async function getTopPlayersByCoins(limit = 10) {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            const result = await client.query('SELECT * FROM players ORDER BY coins DESC LIMIT $1', [limit]);
+            return result.rows.map(row => ({
+                userId: row.user_id,
+                coins: row.coins,
+                totalWins: row.total_wins,
+                bestStreak: row.best_streak
+            }));
+        } catch (error) {
+            console.error('Erro ao buscar top jogadores:', error.message);
+            return [];
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const players = readJSON(JSON_FILES.players, {});
+        return Object.entries(players)
+            .map(([id, data]) => ({ userId: id, ...data }))
+            .sort((a, b) => (b.coins || 0) - (a.coins || 0))
+            .slice(0, limit);
+    }
+}
+
 module.exports = {
     initDatabase,
     getPool,
@@ -1155,5 +1479,15 @@ module.exports = {
     getAllLiveRankPanels,
     countLiveRankPanelsByGuild,
     incrementServerSimulators,
-    getTopServers
+    getTopServers,
+    getPlayer,
+    updatePlayer,
+    addCoins,
+    removeCoins,
+    addItemToInventory,
+    equipItem,
+    recordMatchResult,
+    getPlayerMatchHistory,
+    getShopCatalog,
+    getTopPlayersByCoins
 };

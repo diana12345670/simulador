@@ -4,9 +4,32 @@ const fs = require('fs');
 const path = require('path');
 const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
 const express = require('express');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const { initDatabase } = require('./utils/database');
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || process.env.APPLICATION_ID;
+const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+
+// Construir a URL de redirect do OAuth2
+let DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI;
+if (!DISCORD_REDIRECT_URI) {
+    const replId = process.env.REPL_ID;
+    const renderUrl = process.env.RENDER_EXTERNAL_URL;
+    
+    if (replId) {
+        // Replit - usa o formato correto com REPL_ID
+        DISCORD_REDIRECT_URI = `https://${replId}.id.repl.co/auth/discord/callback`;
+    } else if (renderUrl) {
+        // Render
+        DISCORD_REDIRECT_URI = `${renderUrl}/auth/discord/callback`;
+    } else {
+        // Localhost
+        DISCORD_REDIRECT_URI = 'http://localhost:5000/auth/discord/callback';
+    }
+}
 
 const DEFAULT_OWNER_ID = '1339336477661724674';
 
@@ -101,6 +124,183 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
+app.use(cookieParser());
+app.set('trust proxy', 1);
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'simulator-bot-secret-key-2024',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    }
+}));
+
+const crypto = require('crypto');
+
+app.get('/auth/discord', (req, res) => {
+    if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
+        return res.redirect('/loja?error=oauth_not_configured');
+    }
+    
+    const state = crypto.randomBytes(16).toString('hex');
+    req.session.oauthState = state;
+    
+    const params = new URLSearchParams({
+        client_id: DISCORD_CLIENT_ID,
+        redirect_uri: DISCORD_REDIRECT_URI,
+        response_type: 'code',
+        scope: 'identify',
+        state: state
+    });
+    res.redirect(`https://discord.com/api/oauth2/authorize?${params}`);
+});
+
+app.get('/auth/discord/callback', async (req, res) => {
+    const { code, state, error: oauthError } = req.query;
+    
+    if (oauthError) {
+        console.error('OAuth error from Discord:', oauthError);
+        return res.redirect('/loja?error=discord_denied');
+    }
+    
+    if (!state || state !== req.session.oauthState) {
+        console.error('OAuth state mismatch - possible CSRF attack');
+        return res.redirect('/loja?error=invalid_state');
+    }
+    
+    delete req.session.oauthState;
+    
+    if (!code) {
+        return res.redirect('/loja?error=no_code');
+    }
+
+    try {
+        const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                client_id: DISCORD_CLIENT_ID,
+                client_secret: DISCORD_CLIENT_SECRET,
+                grant_type: 'authorization_code',
+                code: code,
+                redirect_uri: DISCORD_REDIRECT_URI
+            })
+        });
+
+        const tokenData = await tokenResponse.json();
+        if (!tokenData.access_token) {
+            console.error('OAuth error:', tokenData);
+            return res.redirect('/loja?error=token_failed');
+        }
+
+        const userResponse = await fetch('https://discord.com/api/users/@me', {
+            headers: {
+                Authorization: `Bearer ${tokenData.access_token}`
+            }
+        });
+
+        const userData = await userResponse.json();
+        if (!userData.id) {
+            return res.redirect('/loja?error=user_failed');
+        }
+
+        const { getPlayer } = require('./utils/database');
+        const playerData = await getPlayer(userData.id);
+
+        req.session.user = {
+            id: userData.id,
+            username: userData.username,
+            discriminator: userData.discriminator,
+            avatar: userData.avatar 
+                ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`
+                : `https://cdn.discordapp.com/embed/avatars/${parseInt(userData.discriminator || '0') % 5}.png`,
+            coins: playerData?.coins || 0
+        };
+
+        console.log('✅ Login bem-sucedido:', userData.username);
+        res.redirect('/loja?login=success');
+    } catch (error) {
+        console.error('OAuth callback error:', error);
+        res.redirect('/loja?error=callback_failed');
+    }
+});
+
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/loja');
+});
+
+app.post('/api/purchase', async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ success: false, error: 'Voce precisa estar logado' });
+    }
+
+    const { itemId, itemType } = req.body;
+    if (!itemId || !itemType) {
+        return res.status(400).json({ success: false, error: 'Item invalido' });
+    }
+
+    try {
+        const { getPlayer, updatePlayer, getShopCatalog } = require('./utils/database');
+        const catalog = getShopCatalog();
+        
+        let item = null;
+        if (itemType === 'banner') {
+            item = catalog.banners.find(b => b.id === itemId);
+        } else if (itemType === 'title') {
+            item = catalog.titles.find(t => t.id === itemId);
+        } else if (itemType === 'role') {
+            item = catalog.roles.find(r => r.id === itemId);
+        }
+
+        if (!item) {
+            return res.status(404).json({ success: false, error: 'Item nao encontrado' });
+        }
+
+        const player = await getPlayer(req.session.user.id);
+        if (!player) {
+            return res.status(404).json({ success: false, error: 'Jogador nao encontrado. Participe de um simulador primeiro!' });
+        }
+
+        const isOwner = req.session.user.id === process.env.OWNER_ID;
+
+        if (!isOwner && (player.coins || 0) < item.price) {
+            return res.status(400).json({ success: false, error: `Moedas insuficientes. Voce tem ${player.coins || 0} moedas, precisa de ${item.price}` });
+        }
+
+        const inventoryKey = itemType === 'banner' ? 'bannersOwned' : itemType === 'title' ? 'titlesOwned' : 'rolesOwned';
+        const currentItems = player[inventoryKey] || [];
+        
+        if (currentItems.includes(itemId)) {
+            return res.status(400).json({ success: false, error: 'Voce ja possui este item!' });
+        }
+
+        const newItems = [...currentItems, itemId];
+
+        const newCoins = isOwner ? (player.coins || 0) : (player.coins || 0) - item.price;
+        
+        await updatePlayer(req.session.user.id, {
+            coins: newCoins,
+            [inventoryKey]: newItems
+        });
+
+        req.session.user.coins = newCoins;
+
+        res.json({ 
+            success: true, 
+            message: `Voce comprou ${item.name}!`,
+            newBalance: req.session.user.coins
+        });
+    } catch (error) {
+        console.error('Purchase error:', error);
+        res.status(500).json({ success: false, error: 'Erro ao processar compra' });
+    }
+});
 
 app.get('/ping', (req, res) => {
     res.status(200).send('pong');
@@ -235,6 +435,43 @@ app.get('/', async (req, res) => {
         guilds: allGuilds,
         bots: botsInfo
     });
+});
+
+app.get('/loja', async (req, res) => {
+    const { getShopCatalog, getTopPlayersByCoins, getPlayer } = require('./utils/database');
+    const catalog = getShopCatalog();
+    const topBuyers = await getTopPlayersByCoins(5);
+    
+    const readyClients = clients.filter(c => c.isReady());
+    const primaryClient = readyClients.length > 0 ? readyClients[0] : null;
+
+    let user = null;
+    if (req.session.user) {
+        const playerData = await getPlayer(req.session.user.id);
+        user = {
+            ...req.session.user,
+            coins: playerData?.coins || 0
+        };
+        req.session.user.coins = user.coins;
+    }
+    
+    res.render('loja', {
+        catalog,
+        topBuyers,
+        user,
+        bot: primaryClient ? {
+            username: primaryClient.user.username,
+            avatar: primaryClient.user.displayAvatarURL(),
+            tag: primaryClient.user.tag
+        } : null,
+        ready: readyClients.length > 0
+    });
+});
+
+app.get('/api/shop', (req, res) => {
+    const { getShopCatalog } = require('./utils/database');
+    const catalog = getShopCatalog();
+    res.json(catalog);
 });
 
 app.get('/api/stats', async (req, res) => {

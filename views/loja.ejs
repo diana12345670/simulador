@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= ready && bot ? bot.username : 'Simulator Storm' %> - Loja</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        .shop-hero {
+            padding: 4rem 2rem 2rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .shop-hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .shop-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .shop-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.8s ease 0.2s backwards;
+        }
+
+        .user-wallet {
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            background: var(--bg-card);
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            border: 2px solid var(--accent-gold);
+            animation: fadeInUp 0.8s ease 0.3s backwards;
+        }
+
+        .user-wallet img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-gold);
+        }
+
+        .user-wallet .wallet-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .user-wallet .username {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .user-wallet .coins {
+            color: var(--accent-gold);
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+
+        .login-prompt {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--gradient-primary);
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.8s ease 0.3s backwards;
+        }
+
+        .login-prompt:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(88, 101, 242, 0.5);
+        }
+
+        .discord-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .filters-container {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 3rem;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .filter-divider {
+            width: 2px;
+            background: var(--border-color);
+            margin: 0 0.5rem;
+        }
+
+        .filter-btn {
+            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--border-color);
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .filter-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+            transform: translateY(-2px);
+        }
+
+        .filter-btn.active {
+            border-color: var(--accent-primary);
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .filter-btn[data-rarity="comum"].active { background: #9E9E9E; border-color: #9E9E9E; }
+        .filter-btn[data-rarity="raro"].active { background: #2196F3; border-color: #2196F3; }
+        .filter-btn[data-rarity="epico"].active { background: #9C27B0; border-color: #9C27B0; }
+        .filter-btn[data-rarity="lendario"].active { background: linear-gradient(135deg, #FF9800, #FFD700); border-color: #FF9800; }
+
+        .category-section {
+            margin-bottom: 4rem;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .category-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 16px;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .category-icon svg {
+            width: 28px;
+            height: 28px;
+            color: white;
+        }
+
+        .category-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .category-count {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .item-card {
+            background: var(--bg-card);
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            transition: all 0.4s ease;
+            position: relative;
+        }
+
+        .item-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .item-card.comum { border-left: 4px solid #9E9E9E; }
+        .item-card.raro { border-left: 4px solid #2196F3; }
+        .item-card.epico { border-left: 4px solid #9C27B0; }
+        .item-card.lendario { border-left: 4px solid #FF9800; }
+
+        .item-card.lendario::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.1), rgba(255, 215, 0, 0.05));
+            pointer-events: none;
+        }
+
+        .item-preview {
+            width: 100%;
+            height: 180px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .item-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+
+        .item-card:hover .item-preview img {
+            transform: scale(1.1);
+        }
+
+        .item-preview-gradient {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60%;
+            background: linear-gradient(to top, var(--bg-card), transparent);
+        }
+
+        .item-preview-title {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 900;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .item-preview-role {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .role-badge {
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            font-weight: 800;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .rarity-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            z-index: 10;
+        }
+
+        .rarity-badge.comum { background: #9E9E9E; color: #000; }
+        .rarity-badge.raro { background: #2196F3; color: #fff; }
+        .rarity-badge.epico { background: #9C27B0; color: #fff; }
+        .rarity-badge.lendario { background: linear-gradient(135deg, #FF9800, #FFD700); color: #000; }
+
+        .item-content {
+            padding: 1.5rem;
+        }
+
+        .item-name {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .item-description {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+            min-height: 45px;
+        }
+
+        .item-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .item-price {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .item-price svg {
+            width: 24px;
+            height: 24px;
+            color: var(--accent-gold);
+        }
+
+        .price-value {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--accent-gold);
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .buy-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .buy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(88, 101, 242, 0.5);
+        }
+
+        .buy-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .buy-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .item-id {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-family: 'Courier New', monospace;
+            margin-top: 0.5rem;
+        }
+
+        .how-to-section {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 3rem;
+            border: 1px solid var(--border-color);
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .how-to-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .how-to-description {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        .command-box {
+            display: inline-block;
+            background: var(--bg-darker);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            border: 2px solid var(--accent-primary);
+        }
+
+        .command-box code {
+            font-size: 1.2rem;
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .tip-text {
+            margin-top: 1.5rem;
+            color: var(--accent-gold);
+            font-weight: 600;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 2rem;
+            max-width: 450px;
+            width: 90%;
+            border: 1px solid var(--border-color);
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            text-align: center;
+        }
+
+        .modal-item-preview {
+            width: 100%;
+            height: 120px;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .modal-item-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .modal-item-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-price {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--accent-gold);
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .modal-btn {
+            padding: 0.75rem 2rem;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .modal-btn.confirm {
+            background: var(--accent-success);
+            color: white;
+        }
+
+        .modal-btn.cancel {
+            background: var(--bg-darker);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 3000;
+            animation: toastIn 0.3s ease;
+            display: none;
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        .toast.success {
+            background: var(--accent-success);
+        }
+
+        .toast.error {
+            background: #ed4245;
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .shop-title {
+                font-size: 2.2rem;
+            }
+
+            .items-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-container {
+                flex-direction: column;
+            }
+
+            .filter-divider {
+                width: 100%;
+                height: 2px;
+                margin: 0.5rem 0;
+            }
+
+            .how-to-section {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero-background"></div>
+    
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <% if (ready && bot) { %>
+                    <img src="<%= bot.avatar %>" alt="Logo" class="nav-logo-img">
+                    <span><%= bot.username %></span>
+                <% } else { %>
+                    <span>Simulator Storm</span>
+                <% } %>
+            </div>
+            <div class="nav-links">
+                <a href="/" class="nav-link">Dashboard</a>
+                <a href="/loja" class="nav-link" style="color: var(--accent-gold);">Loja</a>
+                <% if (user) { %>
+                    <a href="/logout" class="nav-link">Sair</a>
+                <% } else { %>
+                    <a href="/auth/discord" class="nav-btn">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                        </svg>
+                        Entrar com Discord
+                    </a>
+                <% } %>
+            </div>
+        </div>
+    </nav>
+
+    <section class="shop-hero">
+        <div class="shop-hero-content">
+            <h1 class="shop-title">Loja Simulador</h1>
+            <p class="shop-subtitle">Personalize seu perfil com banners exclusivos, titulos epicos e muito mais!</p>
+            
+            <% if (user) { %>
+                <div class="user-wallet">
+                    <img src="<%= user.avatar %>" alt="Avatar">
+                    <div class="wallet-info">
+                        <span class="username"><%= user.username %></span>
+                        <span class="coins">
+                            <svg style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="12" r="10" fill="#FFD700"/>
+                                <text x="12" y="16" text-anchor="middle" font-size="10" fill="#000" font-weight="bold">$</text>
+                            </svg>
+                            <%= user.coins ? user.coins.toLocaleString('pt-BR') : 0 %> moedas
+                        </span>
+                    </div>
+                </div>
+            <% } else { %>
+                <a href="/auth/discord" class="login-prompt">
+                    <svg class="discord-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                    </svg>
+                    Entre com Discord para comprar
+                </a>
+            <% } %>
+        </div>
+    </section>
+
+    <div class="container">
+        <div class="filters-container">
+            <div class="filter-group">
+                <button class="filter-btn active" data-type="all" onclick="filterByType('all')">Todos</button>
+                <button class="filter-btn" data-type="banners" onclick="filterByType('banners')">Banners</button>
+                <button class="filter-btn" data-type="titles" onclick="filterByType('titles')">Titulos</button>
+                <button class="filter-btn" data-type="roles" onclick="filterByType('roles')">Cargos</button>
+            </div>
+            <div class="filter-divider"></div>
+            <div class="filter-group">
+                <button class="filter-btn" data-rarity="comum" onclick="filterByRarity('comum')">Comum</button>
+                <button class="filter-btn" data-rarity="raro" onclick="filterByRarity('raro')">Raro</button>
+                <button class="filter-btn" data-rarity="epico" onclick="filterByRarity('epico')">Epico</button>
+                <button class="filter-btn" data-rarity="lendario" onclick="filterByRarity('lendario')">Lendario</button>
+            </div>
+        </div>
+
+        <section class="category-section" id="banners-section">
+            <div class="category-header">
+                <div class="category-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="M21 15l-5-5L5 21"/>
+                    </svg>
+                </div>
+                <h2 class="category-title">Banners</h2>
+                <span class="category-count"><%= catalog.banners.length %> itens</span>
+            </div>
+            <div class="items-grid">
+                <% catalog.banners.forEach(banner => { %>
+                    <div class="item-card <%= banner.rarity %>" data-type="banners" data-rarity="<%= banner.rarity %>" data-id="<%= banner.id %>" data-price="<%= banner.price %>" data-name="<%= banner.name %>">
+                        <span class="rarity-badge <%= banner.rarity %>"><%= banner.rarity %></span>
+                        <div class="item-preview">
+                            <% if (banner.assetUrl) { %>
+                                <img src="<%= banner.assetUrl %>" alt="<%= banner.name %>" onerror="this.style.display='none'; this.parentElement.style.background='linear-gradient(135deg, <%= banner.color %>, <%= banner.color %>99)';">
+                            <% } else { %>
+                                <div style="width: 100%; height: 100%; background: linear-gradient(135deg, <%= banner.color %>, <%= banner.color %>99);"></div>
+                            <% } %>
+                            <div class="item-preview-gradient"></div>
+                        </div>
+                        <div class="item-content">
+                            <h3 class="item-name"><%= banner.name %></h3>
+                            <p class="item-description"><%= banner.description %></p>
+                            <div class="item-footer">
+                                <div class="item-price">
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <text x="12" y="16" text-anchor="middle" font-size="10" fill="#000" font-weight="bold">$</text>
+                                    </svg>
+                                    <span class="price-value"><%= banner.price.toLocaleString('pt-BR') %></span>
+                                </div>
+                                <% if (user) { %>
+                                    <button class="buy-btn" onclick="buyItem('<%= banner.id %>', '<%= banner.name %>', <%= banner.price %>, 'banner')">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="9" cy="21" r="1"/>
+                                            <circle cx="20" cy="21" r="1"/>
+                                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                                        </svg>
+                                        Comprar
+                                    </button>
+                                <% } %>
+                            </div>
+                            <span class="item-id"><%= banner.id %></span>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        </section>
+
+        <section class="category-section" id="titles-section">
+            <div class="category-header">
+                <div class="category-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                    </svg>
+                </div>
+                <h2 class="category-title">Titulos</h2>
+                <span class="category-count"><%= catalog.titles.length %> itens</span>
+            </div>
+            <div class="items-grid">
+                <% catalog.titles.forEach(title => { %>
+                    <div class="item-card <%= title.rarity %>" data-type="titles" data-rarity="<%= title.rarity %>" data-id="<%= title.id %>" data-price="<%= title.price %>" data-name="<%= title.name %>">
+                        <span class="rarity-badge <%= title.rarity %>"><%= title.rarity %></span>
+                        <div class="item-preview" style="background: linear-gradient(135deg, var(--bg-darker), var(--bg-card));">
+                            <span class="item-preview-title"><%= title.display %></span>
+                        </div>
+                        <div class="item-content">
+                            <h3 class="item-name"><%= title.name %></h3>
+                            <p class="item-description"><%= title.description %></p>
+                            <div class="item-footer">
+                                <div class="item-price">
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <text x="12" y="16" text-anchor="middle" font-size="10" fill="#000" font-weight="bold">$</text>
+                                    </svg>
+                                    <span class="price-value"><%= title.price.toLocaleString('pt-BR') %></span>
+                                </div>
+                                <% if (user) { %>
+                                    <button class="buy-btn" onclick="buyItem('<%= title.id %>', '<%= title.name %>', <%= title.price %>, 'title')">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="9" cy="21" r="1"/>
+                                            <circle cx="20" cy="21" r="1"/>
+                                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                                        </svg>
+                                        Comprar
+                                    </button>
+                                <% } %>
+                            </div>
+                            <span class="item-id"><%= title.id %></span>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        </section>
+
+        <section class="category-section" id="roles-section">
+            <div class="category-header">
+                <div class="category-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="8.5" cy="7" r="4"/>
+                        <path d="M20 8v6"/>
+                        <path d="M23 11h-6"/>
+                    </svg>
+                </div>
+                <h2 class="category-title">Cargos</h2>
+                <span class="category-count"><%= catalog.roles.length %> itens</span>
+            </div>
+            <div class="items-grid">
+                <% catalog.roles.forEach(role => { %>
+                    <div class="item-card <%= role.rarity %>" data-type="roles" data-rarity="<%= role.rarity %>" data-id="<%= role.id %>" data-price="<%= role.price %>" data-name="<%= role.name %>">
+                        <span class="rarity-badge <%= role.rarity %>"><%= role.rarity %></span>
+                        <div class="item-preview" style="background: linear-gradient(135deg, var(--bg-darker), var(--bg-card));">
+                            <div class="item-preview-role">
+                                <span class="role-badge" style="background: <%= role.color %>; color: <%= role.color === '#FFD700' || role.color === '#B9F2FF' ? '#000' : '#fff' %>;"><%= role.name %></span>
+                            </div>
+                        </div>
+                        <div class="item-content">
+                            <h3 class="item-name"><%= role.name %></h3>
+                            <p class="item-description"><%= role.description %></p>
+                            <div class="item-footer">
+                                <div class="item-price">
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <text x="12" y="16" text-anchor="middle" font-size="10" fill="#000" font-weight="bold">$</text>
+                                    </svg>
+                                    <span class="price-value"><%= role.price.toLocaleString('pt-BR') %></span>
+                                </div>
+                                <% if (user) { %>
+                                    <button class="buy-btn" onclick="buyItem('<%= role.id %>', '<%= role.name %>', <%= role.price %>, 'role')">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="9" cy="21" r="1"/>
+                                            <circle cx="20" cy="21" r="1"/>
+                                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                                        </svg>
+                                        Comprar
+                                    </button>
+                                <% } %>
+                            </div>
+                            <span class="item-id"><%= role.id %></span>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        </section>
+
+        <div class="how-to-section">
+            <h2 class="how-to-title">Como Conseguir Moedas?</h2>
+            <p class="how-to-description">Ganhe moedas vencendo simuladores no Discord! Quanto mais voce vencer, mais moedas acumula.</p>
+            <div class="command-box">
+                <code>/simulador1v1</code> ou <code>/simulador2v2</code>
+            </div>
+            <p class="tip-text">Dica: Vitorias em torneios maiores dao mais moedas!</p>
+        </div>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-links">
+                    <a href="/" class="footer-link">Dashboard</a>
+                    <a href="/loja" class="footer-link">Loja</a>
+                    <a href="/health" target="_blank" class="footer-link">API Health</a>
+                </div>
+                <p class="footer-copyright">Loja do Bot de Torneios Discord | Desenvolvido com dedicacao</p>
+            </div>
+        </footer>
+    </div>
+
+    <div class="modal-overlay" id="purchaseModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirmar Compra</h3>
+            </div>
+            <div class="modal-body">
+                <div class="modal-item-preview" id="modalPreview"></div>
+                <p class="modal-item-name" id="modalItemName"></p>
+                <div class="modal-price">
+                    <svg viewBox="0 0 24 24" fill="currentColor" style="width: 24px; height: 24px;">
+                        <circle cx="12" cy="12" r="10"/>
+                    </svg>
+                    <span id="modalPrice"></span> moedas
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-btn cancel" onclick="closeModal()">Cancelar</button>
+                    <button class="modal-btn confirm" id="confirmPurchase">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Verificar se houve login bem-sucedido
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('login') === 'success') {
+            showToast('Login realizado com sucesso! Bem-vindo(a)!', 'success');
+            // Remover parâmetro da URL sem recarregar
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        if (urlParams.get('error')) {
+            const errorMap = {
+                'discord_denied': 'Você cancelou a autorização no Discord',
+                'invalid_state': 'Erro de segurança (state inválido)',
+                'no_code': 'Erro ao obter código de autorização',
+                'token_failed': 'Erro ao obter token de acesso',
+                'user_failed': 'Erro ao obter dados do usuário',
+                'callback_failed': 'Erro ao processar callback',
+                'oauth_not_configured': 'OAuth2 não configurado no servidor'
+            };
+            const errorMsg = errorMap[urlParams.get('error')] || 'Erro ao fazer login';
+            showToast(errorMsg, 'error');
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        let currentType = 'all';
+        let currentRarity = null;
+
+        function filterByType(type) {
+            currentType = type;
+            document.querySelectorAll('.filter-btn[data-type]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.filter-btn[data-type="${type}"]`).classList.add('active');
+            applyFilters();
+        }
+
+        function filterByRarity(rarity) {
+            if (currentRarity === rarity) {
+                currentRarity = null;
+                document.querySelectorAll('.filter-btn[data-rarity]').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+            } else {
+                currentRarity = rarity;
+                document.querySelectorAll('.filter-btn[data-rarity]').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`.filter-btn[data-rarity="${rarity}"]`).classList.add('active');
+            }
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const sections = document.querySelectorAll('.category-section');
+            const cards = document.querySelectorAll('.item-card');
+
+            sections.forEach(section => {
+                const sectionType = section.id.replace('-section', '');
+                if (currentType === 'all' || sectionType === currentType) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+
+            cards.forEach(card => {
+                const cardType = card.dataset.type;
+                const cardRarity = card.dataset.rarity;
+                const typeMatch = currentType === 'all' || cardType === currentType;
+                const rarityMatch = !currentRarity || cardRarity === currentRarity;
+
+                if (typeMatch && rarityMatch) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        let pendingPurchase = null;
+
+        function buyItem(id, name, price, type) {
+            pendingPurchase = { id, name, price, type };
+            document.getElementById('modalItemName').textContent = name;
+            document.getElementById('modalPrice').textContent = price.toLocaleString('pt-BR');
+            document.getElementById('purchaseModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('purchaseModal').classList.remove('active');
+            pendingPurchase = null;
+        }
+
+        document.getElementById('confirmPurchase').addEventListener('click', async () => {
+            if (!pendingPurchase) return;
+
+            try {
+                const response = await fetch('/api/purchase', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        itemId: pendingPurchase.id,
+                        itemType: pendingPurchase.type
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Compra realizada com sucesso!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(data.error || 'Erro ao realizar compra', 'error');
+                }
+            } catch (error) {
+                showToast('Erro ao processar compra', 'error');
+            }
+
+            closeModal();
+        });
+
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        document.getElementById('purchaseModal').addEventListener('click', (e) => {
+            if (e.target.id === 'purchaseModal') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

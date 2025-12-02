@@ -197,6 +197,40 @@ body {
     animation: fadeInUp 0.8s ease 0.2s backwards;
 }
 
+.hero-shop-button {
+    display: flex;
+    justify-content: center;
+    animation: fadeInUp 0.8s ease 0.35s backwards;
+}
+
+.shop-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2.5rem;
+    background: var(--gradient-primary);
+    color: white;
+    text-decoration: none;
+    border-radius: 50px;
+    font-weight: 800;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 20px rgba(88, 101, 242, 0.4);
+    font-family: 'Poppins', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.shop-cta-btn:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 10px 30px rgba(88, 101, 242, 0.6);
+    background: linear-gradient(135deg, #6b76ff 0%, #8e4bff 100%);
+}
+
+.shop-cta-btn svg {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
 .hero-features {
     display: flex;
     justify-content: center;
