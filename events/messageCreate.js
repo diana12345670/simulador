@@ -6,7 +6,8 @@ const {
     resetInactivityTimer, 
     clearInactivityTimer,
     isMatchChannel,
-    detectVictoryClaim 
+    detectVictoryClaim,
+    handleGeneralChat
 } = require('../systems/kaori/assistant');
 
 module.exports = {
@@ -14,6 +15,16 @@ module.exports = {
     async execute(message) {
         if (message.author.bot) return;
         if (!message.guild) return;
+
+        const mentionsBot = message.mentions.has(message.client.user);
+        const lowerContent = message.content.toLowerCase();
+        const mentionsKaori = lowerContent.includes('kaori');
+
+        // Responde em canais não-partida se mencionar o bot ou escrever "kaori"
+        if ((mentionsBot || mentionsKaori) && !isMatchChannel(message.channel)) {
+            await handleGeneralChat(message);
+            return;
+        }
 
         if (!isMatchChannel(message.channel)) return;
 
@@ -40,9 +51,8 @@ module.exports = {
             const creatorId = matchingTournament.creatorId;
             const isCreator = message.author.id === creatorId;
             const mentionsCreator = message.mentions.users.has(creatorId);
-            const lowerContent = message.content.toLowerCase();
-            const mentionsKaori = lowerContent.includes('kaori') || lowerContent.includes('@kaori');
-            
+            const mentionsKaoriInMatch = lowerContent.includes('kaori') || lowerContent.includes('@kaori') || mentionsBot;
+
             const victoryPhrases = [
                 'da a vitoria', 'dá a vitória', 'da a vitória', 'dá a vitoria',
                 'da vitoria', 'dá vitória', 'da vitória', 'dá vitoria',
@@ -56,7 +66,7 @@ module.exports = {
                 resetInactivityTimer(message.channel.id, message.channel, matchingMatch, creatorId);
             }
 
-            if (mentionsCreator || mentionsKaori || hasVictoryPhrase) {
+            if (mentionsCreator || mentionsKaoriInMatch || hasVictoryPhrase) {
                 await handleKaoriMention(message, matchingTournament, matchingMatch);
             }
 

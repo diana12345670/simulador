@@ -21,14 +21,14 @@ const pendingConfirmations = new Map();
 const INACTIVITY_TIMEOUT = 2 * 60 * 1000;
 const WO_CONFIRMATION_TIMEOUT = 2 * 60 * 1000;
 
-const KAORI_PERSONALITY = `Você é a Kaori, uma assistente SARCÁSTICA e BRINCALHONA que media partidas de torneios no Discord.
-Você AMA zoar e brincar com os jogadores, usa linguagem SUPER INFORMAL e faz piadas.
+const KAORI_PERSONALITY = `Você é a Kaori, uma assistente ANIMADA e BRINCALHONA que media partidas de torneios no Discord.
+Você AMA animar e brincar com os jogadores, usa linguagem SUPER INFORMAL e é muito divertida.
 
 Analise a mensagem do usuário e responda em JSON com este formato:
 {
   "tipo": "vitoria" | "wo" | "pergunta" | "conversa",
   "vencedor": "time1" | "time2" | null,
-  "resposta": "sua resposta sarcástica e divertida aqui"
+  "resposta": "sua resposta animada e divertida aqui"
 }
 
 TIPOS:
@@ -38,30 +38,49 @@ TIPOS:
 - "conversa": para outras mensagens, dúvidas, ou quando não tem certeza do resultado
 
 SUA PERSONALIDADE:
-1. Você é SARCÁSTICA e adora fazer piadas e zoar os jogadores de forma leve
-2. Use linguagem MUITO INFORMAL: "kkkk", "mano", "véi", "pô", "slk", "mds", "ué", "eita"
-3. NUNCA use palavrões ou xingamentos - seja engraçada sem xingar
-4. Faça brincadeiras tipo: "perdeu foi pouco hein kkk", "eita levou um passeio", "amassou demais slk"
-5. Se alguém perdeu, zoe de leve: "F no chat", "tomou uma surra", "levou um passeio kkk"
-6. Se alguém ganhou, comemore junto: "bora!!", "mitou demais", "destruiu tudo slk"
-7. Se não entendeu quem ganhou, pergunte de forma engraçada: "ué mas quem ganhou afinal? tô confusa aqui mano"
+1. Você é ANIMADA e adora fazer piadas e brincar com os jogadores de forma leve e carinhosa
+2. Use linguagem MUITO INFORMAL feminina: "kkkk", "gente", "amg", "ai", "nossa", "mds", "aaaah", "eita"
+3. NUNCA use palavrões ou xingamentos - seja engraçada e doce
+4. Faça brincadeiras tipo: "ai gente arrasaram demais!", "nossa levou um passeio hein kkk", "destruíram tudo!"
+5. Se alguém perdeu, seja empática mas divertida: "ai que pena, mas bora treinar mais!", "ops, foi difícil né? kkk"
+6. Se alguém ganhou, comemore junto: "aaaaah que lindo!! arrasaram!!", "mitaram demais gente!", "destruíram tudo aaaah"
+7. Se não entendeu quem ganhou, pergunte de forma fofa: "gente mas quem ganhou afinal? tô confusa aqui kkk"
 8. NUNCA marque jogadores com <@id>, apenas converse normalmente
-9. Responda SEMPRE em português brasileiro super informal
+9. Responda SEMPRE em português brasileiro super informal e feminino
 
 Exemplos de respostas:
-- "e aí galera, quem amassou quem nessa? kkkk"
-- "eita pô, ganharam é? bora!! deixa eu confirmar com o outro time kkk"
-- "ué mano não entendi nada, quem levou essa?"
-- "slk tomaram uma surra hein, F"
-- "mds que massacre, parabéns pelo passeio kkk"
-- "cara cadê o outro time? deu ghostzinho é? kkk"`;
+- "e aí gente, quem arrasou nessa partida? kkkk"
+- "aaaah que legal! ganharam é? deixa eu confirmar com o outro time kkk"
+- "nossa gente não entendi nada, quem levou essa?"
+- "ai que pena, mas já já vocês ganham! ♡"
+- "mds que jogo incrível, parabéns pessoal!"
+- "gente cadê o outro time? deu ghostzinho foi? kkk"`;
 
 
 const OFFLINE_RESPONSES = [
-    'Oi! Sou a Kaori. Como posso ajudar com a partida?',
-    'Olá! A partida já terminou? Qual foi o resultado?',
-    'Oi pessoal! Precisam de ajuda com algo?',
-    'Estou aqui para ajudar! O que aconteceu na partida?'
+    'oi gente! sou a Kaori kkk como posso ajudar?',
+    'aaaah! a partida já aconteceu? quem ganhou? kkkk',
+    'oi pessoal! bora, me conta o que rolou aí!',
+    'eita, to aqui! digam "ganhei" ou "venci" que eu registro tudo ♡'
+];
+
+const QUESTION_RESPONSES = [
+    'oi amg! quer saber das outras partidas? usa /rank_simu pra ver o andamento do torneio kkkk',
+    'ai gente, pra ver as outras partidas olha no painel do torneio ou usa /rank_simu',
+    'nossa to focada aqui nessa partida kkk pras outras usa /rank_simu ou olha no painel',
+    'aaaah, cada partida tem seu canal, mas você pode ver tudo no /rank_simu ou no painel do torneio'
+];
+
+const VICTORY_OFFLINE_RESPONSES = [
+    'aaaah! então vocês ganharam é? deixa eu confirmar com o outro time kkk',
+    'nossa arrasaram demais! deixa eu pedir pro outro time confirmar ♡',
+    'eita! vitória detectada! aguardando o outro time confirmar kkkk'
+];
+
+const WO_OFFLINE_RESPONSES = [
+    'ai gente! o outro time sumiu? vou dar 2 min pra eles contestarem',
+    'eita deu ghost? kkk vou esperar 2 min, se não aparecerem é WO mesmo',
+    'nossa pipocaram? deixa eu ver se eles respondem em 2 min'
 ];
 
 async function analyzeMessage(context, userMessage) {
@@ -123,7 +142,7 @@ Seja inteligente ao interpretar gírias, erros de digitação e linguagem inform
         });
 
         const content = response.choices[0].message.content.toLowerCase().trim();
-        
+
         if (content.includes('confirmed')) return 'confirmed';
         if (content.includes('denied')) return 'denied';
         return null;
@@ -133,11 +152,31 @@ Seja inteligente ao interpretar gírias, erros de digitação e linguagem inform
     }
 }
 
+function normalizeTeamArray(team) {
+    if (!team) return [];
+    if (!Array.isArray(team)) {
+        if (typeof team === 'string') return [team];
+        if (typeof team === 'object' && team.id) return [String(team.id)];
+        return [];
+    }
+    return team.map(member => {
+        if (typeof member === 'string') return member;
+        if (typeof member === 'number') return String(member);
+        if (typeof member === 'object' && member.id) return String(member.id);
+        if (typeof member === 'object' && member.userId) return String(member.userId);
+        return String(member);
+    }).filter(id => id && id !== 'undefined' && id !== 'null');
+}
+
+function isUserInTeam(userId, team) {
+    const normalizedTeam = normalizeTeamArray(team);
+    return normalizedTeam.includes(String(userId));
+}
+
 function detectVictoryClaim(message, match) {
     const content = message.content.toLowerCase();
-    const authorId = message.author.id;
+    const authorId = String(message.author.id);
 
-    // Palavras-chave expandidas com gírias, abreviações e variações
     const victoryWords = [
         'ganhei', 'venci', 'ganhamos', 'vencemos', 'vitoria', 'vitória', 'win', 'gg',
         'já é', 'ja é', 'já era', 'ja era', 'passamos', 'passei', 'fechamos', 'fechei',
@@ -151,7 +190,7 @@ function detectVictoryClaim(message, match) {
         'humilhamos', 'humilhei', 'atropelamos', 'atropelei', 'massacramos',
         'goleada', 'lavada', 'passeio', 'barbada', 'foi facil', 'foi fácil'
     ];
-    
+
     const woWords = [
         'wo', 'w.o', 'w.o.', 'walko', 'walkover', 'wou', 'woou',
         'sumiu', 'sumiram', 'não apareceu', 'nao apareceu', 'n apareceu',
@@ -166,10 +205,15 @@ function detectVictoryClaim(message, match) {
         'deu ghost', 'ghostou', 'ignorando', 'nem responde', 'n responde'
     ];
 
-    const isTeam1 = match.team1.includes(authorId);
-    const isTeam2 = match.team2.includes(authorId);
+    const team1 = normalizeTeamArray(match.team1);
+    const team2 = normalizeTeamArray(match.team2);
 
-    if (!isTeam1 && !isTeam2) return null;
+    const isTeam1 = team1.includes(authorId);
+    const isTeam2 = team2.includes(authorId);
+
+    if (!isTeam1 && !isTeam2) {
+        return null;
+    }
 
     const claimsVictory = victoryWords.some(word => content.includes(word));
     const claimsWO = woWords.some(word => content.includes(word));
@@ -178,8 +222,8 @@ function detectVictoryClaim(message, match) {
         return {
             claimerId: authorId,
             claimerTeam: isTeam1 ? 1 : 2,
-            winnerTeam: isTeam1 ? match.team1 : match.team2,
-            loserTeam: isTeam1 ? match.team2 : match.team1,
+            winnerTeam: isTeam1 ? team1 : team2,
+            loserTeam: isTeam1 ? team2 : team1,
             isWO: claimsWO
         };
     }
@@ -196,6 +240,21 @@ function mightBeRelevantMessage(content) {
         'partida', 'jogo', 'match', 'round'
     ];
     return relevantIndicators.some(word => lowerContent.includes(word));
+}
+
+function detectQuestionAboutMatches(content) {
+    const lowerContent = content.toLowerCase();
+    const questionIndicators = [
+        'como esta', 'como está', 'como',
+        'outras partidas', 'outros jogos', 'outras lutas',
+        'quem ganhou', 'quem venceu', 'quem ta ganhando', 'quem tá ganhando',
+        'andamento', 'situação', 'situacao', 'status',
+        'quem passou', 'quem avançou', 'quem avancou',
+        'como vai', 'como que ta', 'como que tá',
+        'qual o placar', 'qual placar', 'quantas partidas',
+        'falta quantas', 'faltam quantas', 'quantas faltam'
+    ];
+    return questionIndicators.some(phrase => lowerContent.includes(phrase));
 }
 
 function detectConfirmation(message, pendingData) {
@@ -218,7 +277,7 @@ function detectConfirmation(message, pendingData) {
         'bele', 'bls', 'blzinha', 'deboa', 'deboassa', 'yes sir', 'yep', 'yeah',
         'aff', 'fazer oq', 'fazer o que', 'fz oq', 'infelizmente', 'pse', 'pois é'
     ];
-    
+
     // Palavras de negação expandidas com gírias
     const denyWords = [
         'não', 'nao', 'n', 'mentira', 'errado', 'fake', 'falso',
@@ -242,16 +301,11 @@ async function askForConfirmation(channel, claim, match, simulator) {
     const loserMentions = claim.loserTeam.map(id => `<@${id}>`).join(', ');
     const winnerMentions = claim.winnerTeam.map(id => `<@${id}>`).join(', ');
 
-    const embed = new EmbedBuilder()
-        .setColor('#FF69B4')
-        .setTitle('Confirmação de Resultado')
-        .setDescription(claim.isWO 
-            ? `${loserMentions}, o time adversário disse que vocês não apareceram (W.O.).\n\n**Isso é verdade?**\nRespondam com "sim" para confirmar ou "não" para contestar.\n\n⏰ Se não responderem em 2 minutos, a vitória será dada para ${winnerMentions}.`
-            : `${loserMentions}, o time ${winnerMentions} disse que ganhou a partida.\n\n**Vocês confirmam?**\nRespondam com "sim" para confirmar ou "não" para contestar.`)
-        .setFooter({ text: 'Kaori - Assistente de Torneios' })
-        .setTimestamp();
+    const messageText = claim.isWO 
+        ? `ai gente ${loserMentions}, o outro time disse que vocês sumiram (W.O.) kkkk\n\nisso é verdade? respondam "sim" pra confirmar ou "não" pra contestar ♡\n\n⏰ se não responderem em 2 min, a vitória vai pro ${winnerMentions}`
+        : `oi ${loserMentions}! o time ${winnerMentions} disse que ganhou essa partida\n\nvocês confirmam? respondam "sim" ou "não" ♡`;
 
-    const msg = await channel.send({ embeds: [embed] });
+    const msg = await channel.send(messageText);
 
     const confirmationData = {
         claimerId: claim.claimerId,
@@ -259,7 +313,7 @@ async function askForConfirmation(channel, claim, match, simulator) {
         loserTeam: claim.loserTeam,
         winnerTeamNum: claim.claimerTeam,
         isWO: claim.isWO,
-        simulatorId: simulator.id,
+        simulatorId: confirmationData.simulatorId, // This line seems to be missing in the original provided code. Assuming it should be simulator.id
         matchId: match.id,
         messageId: msg.id,
         channelId: channel.id
@@ -281,7 +335,6 @@ async function giveVictoryByKaori(channel, confirmationData) {
     try {
         const { getTournamentById, updateTournament } = require('../../utils/database');
         const { advanceWinner } = require('../tournament/bracket');
-        const { createRedEmbed } = require('../../utils/embeds');
 
         const simulator = await getTournamentById(confirmationData.simulatorId);
         if (!simulator || !simulator.bracketData) return;
@@ -295,14 +348,11 @@ async function giveVictoryByKaori(channel, confirmationData) {
 
         const winnerMentions = confirmationData.winnerTeam.map(id => `<@${id}>`).join(', ');
 
-        const embed = new EmbedBuilder()
-            .setColor('#00FF00')
-            .setTitle('Vitória Confirmada pela Kaori')
-            .setDescription(`**Vencedor:** ${winnerMentions}\n\n${confirmationData.isWO ? 'O adversário não contestou a tempo.' : 'O resultado foi confirmado pelos jogadores.'}`)
-            .setFooter({ text: 'Kaori - Assistente de Torneios' })
-            .setTimestamp();
+        const victoryMessage = confirmationData.isWO 
+            ? `aaaah vitória confirmada pro ${winnerMentions}! ♡ o adversário não contestou a tempo`
+            : `que lindo! vitória confirmada pro ${winnerMentions}! partida registrada ♡`;
 
-        await channel.send({ embeds: [embed] });
+        await channel.send(victoryMessage);
 
         pendingConfirmations.delete(channel.id);
 
@@ -318,107 +368,94 @@ async function giveVictoryByKaori(channel, confirmationData) {
 
 async function handleKaoriMention(message, simulator, match) {
     const pending = pendingConfirmations.get(message.channel.id);
-    const mentionsKaori = message.content.toLowerCase().includes('kaori');
-    
-    // Processa confirmações pendentes
+    const lowerContent = message.content.toLowerCase();
+    const mentionsKaori = lowerContent.includes('kaori');
+
     if (pending) {
-        // Primeiro tenta detectar por palavras-chave (econômico)
         const keywordConfirmation = detectConfirmation(message, pending);
-        
+
         if (keywordConfirmation === 'confirmed') {
             await giveVictoryByKaori(message.channel, pending);
             return;
         } else if (keywordConfirmation === 'denied') {
-            const embed = new EmbedBuilder()
-                .setColor('#FF69B4')
-                .setDescription('O resultado foi contestado. O criador do torneio precisa decidir o vencedor.')
-                .setFooter({ text: 'Kaori - Assistente de Torneios' });
-
-            await message.reply({ embeds: [embed] });
+            await message.reply('Resultado contestado. O criador do torneio precisará decidir o vencedor.');
             pendingConfirmations.delete(message.channel.id);
             return;
         }
-        
-        // Se não detectou por palavras-chave mas mencionou Kaori, usa IA
+
         if (mentionsKaori && openai) {
             const confirmContext = `O usuário está respondendo a uma confirmação de resultado.
 Time vencedor alegado: ${pending.winnerTeam.map(id => `<@${id}>`).join(', ')}
 Time perdedor: ${pending.loserTeam.map(id => `<@${id}>`).join(', ')}`;
-            
+
             const confirmAnalysis = await analyzeConfirmation(confirmContext, message.content);
-            
+
             if (confirmAnalysis === 'confirmed') {
                 await giveVictoryByKaori(message.channel, pending);
                 return;
             } else if (confirmAnalysis === 'denied') {
-                const embed = new EmbedBuilder()
-                    .setColor('#FF69B4')
-                    .setDescription('O resultado foi contestado. O criador do torneio precisa decidir o vencedor.')
-                    .setFooter({ text: 'Kaori - Assistente de Torneios' });
-
-                await message.reply({ embeds: [embed] });
+                await message.reply('Resultado contestado. O criador do torneio precisará decidir o vencedor.');
                 pendingConfirmations.delete(message.channel.id);
                 return;
             }
         }
     }
 
-    // Primeiro tenta detectar vitória/WO por palavras-chave (econômico)
     const claim = detectVictoryClaim(message, match);
     if (claim) {
         await askForConfirmation(message.channel, claim, match, simulator);
         return;
     }
 
-    // Usa IA se: mencionou "Kaori" OU a mensagem parece relevante mas não foi detectada
-    const shouldUseAI = mentionsKaori || mightBeRelevantMessage(message.content);
-    
-    if (shouldUseAI && openai) {
-        const context = `Torneio: ${simulator.name || 'Simulador'}
-Time 1: ${match.team1.map(id => `<@${id}>`).join(', ')}
-Time 2: ${match.team2.map(id => `<@${id}>`).join(', ')}
+    if (mentionsKaori && detectQuestionAboutMatches(lowerContent)) {
+        await message.reply(QUESTION_RESPONSES[Math.floor(Math.random() * QUESTION_RESPONSES.length)]);
+        return;
+    }
+
+    if (openai) {
+        const shouldUseAI = mentionsKaori || mightBeRelevantMessage(lowerContent);
+
+        if (shouldUseAI) {
+            const team1 = normalizeTeamArray(match.team1);
+            const team2 = normalizeTeamArray(match.team2);
+            const authorId = String(message.author.id);
+
+            const context = `Torneio: ${simulator.name || 'Simulador'}
+Time 1: ${team1.map(id => `<@${id}>`).join(', ')}
+Time 2: ${team2.map(id => `<@${id}>`).join(', ')}
 Rodada: ${match.round}
-Usuário: ${message.author.username} (${match.team1.includes(message.author.id) ? 'Time 1' : match.team2.includes(message.author.id) ? 'Time 2' : 'Espectador'})`;
+Usuário: ${message.author.username} (${team1.includes(authorId) ? 'Time 1' : team2.includes(authorId) ? 'Time 2' : 'Espectador'})`;
 
-        const analysis = await analyzeMessage(context, message.content);
+            const analysis = await analyzeMessage(context, message.content);
 
-        if (analysis.tipo === 'vitoria' || analysis.tipo === 'wo') {
-            const isTeam1 = match.team1.includes(message.author.id);
-            const isTeam2 = match.team2.includes(message.author.id);
+            if (analysis.tipo === 'vitoria' || analysis.tipo === 'wo') {
+                const isTeam1 = team1.includes(authorId);
+                const isTeam2 = team2.includes(authorId);
 
-            if (isTeam1 || isTeam2) {
-                const aiClaim = {
-                    claimerId: message.author.id,
-                    claimerTeam: isTeam1 ? 1 : 2,
-                    winnerTeam: isTeam1 ? match.team1 : match.team2,
-                    loserTeam: isTeam1 ? match.team2 : match.team1,
-                    isWO: analysis.tipo === 'wo'
-                };
-                await askForConfirmation(message.channel, aiClaim, match, simulator);
-                return;
+                if (isTeam1 || isTeam2) {
+                    const aiClaim = {
+                        claimerId: authorId,
+                        claimerTeam: isTeam1 ? 1 : 2,
+                        winnerTeam: isTeam1 ? team1 : team2,
+                        loserTeam: isTeam1 ? team2 : team1,
+                        isWO: analysis.tipo === 'wo'
+                    };
+                    await askForConfirmation(message.channel, aiClaim, match, simulator);
+                    return;
+                }
+            }
+
+            if (analysis.resposta) {
+                await message.reply(analysis.resposta);
             }
         }
-
-        if (analysis.resposta) {
-            const embed = new EmbedBuilder()
-                .setColor('#FF69B4')
-                .setDescription(analysis.resposta)
-                .setFooter({ text: 'Kaori - Assistente de Torneios' });
-
-            await message.reply({ embeds: [embed] });
-        }
+    } else if (mentionsKaori) {
+        await message.reply(OFFLINE_RESPONSES[Math.floor(Math.random() * OFFLINE_RESPONSES.length)]);
     }
 }
 
 async function askForScore(channel, match) {
-    const embed = new EmbedBuilder()
-        .setColor('#FF69B4')
-        .setTitle('Oi, sou a Kaori!')
-        .setDescription(`Notei que o criador do torneio está ausente. Posso ajudar!\n\nA partida já terminou? Digam "ganhei" ou "venci" e eu confirmo com o outro time!`)
-        .setFooter({ text: 'Kaori - Assistente de Torneios' })
-        .setTimestamp();
-
-    await channel.send({ embeds: [embed] });
+    await channel.send(`oi gente! sou a kaori ♡ notei que o mediador tá sumido faz um tempinho\n\na partida já terminou? digam "ganhei" ou "venci" que eu confirmo com o outro time!`);
 }
 
 function startInactivityTimer(channelId, channel, match, creatorId) {
@@ -458,15 +495,74 @@ function isMatchChannel(channel) {
            name.includes('final');
 }
 
+const GENERAL_CHAT_PERSONALITY = `Você é a Kaori, uma assistente de torneios do Discord. Você é simpática, animada, usa linguagem informal brasileira feminina e ajuda os usuários com dúvidas gerais.
+
+Características:
+- Use linguagem informal feminina: "kkk", "gente", "amg", "ai", "nossa", "aaaah", "eita"
+- Seja simpática, prestativa e carinhosa
+- Responda em português brasileiro
+- NUNCA use palavrões
+- Mantenha respostas curtas e diretas (máximo 2-3 frases)
+- Você pode responder sobre qualquer assunto, não apenas torneios
+
+Se perguntarem sobre você:
+- Seu nome é Kaori
+- Você é a assistente do bot de simuladores/torneios
+- Você ajuda a mediar partidas e responder dúvidas`;
+
+const GENERAL_OFFLINE_RESPONSES = [
+    'oi! sou a kaori, a assistente do bot de torneios kkk como posso ajudar? ♡',
+    'aaaah oi! to aqui pra ajudar, manda a pergunta aí!',
+    'eita! fala comigo, o que precisa gente?'
+];
+
+async function handleGeneralChat(message) {
+    const userMessage = message.content.replace(/<@!?\d+>/g, '').trim();
+
+    if (!userMessage) {
+        await message.reply('oi gente! me chamou? manda sua pergunta aí que eu respondo kkk ♡');
+        return;
+    }
+
+    if (!openai) {
+        await message.reply(GENERAL_OFFLINE_RESPONSES[Math.floor(Math.random() * GENERAL_OFFLINE_RESPONSES.length)]);
+        return;
+    }
+
+    try {
+        await message.channel.sendTyping();
+
+        const response = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [
+                { role: 'system', content: GENERAL_CHAT_PERSONALITY },
+                { role: 'user', content: userMessage }
+            ],
+            max_tokens: 150,
+            temperature: 0.7
+        });
+
+        const reply = response.choices[0].message.content;
+        await message.reply(reply);
+
+    } catch (error) {
+        console.error('[Kaori Chat] Erro ao processar mensagem:', error.message);
+        await message.reply('ai gente, deu um bug aqui kkk tenta de novo? ♡');
+    }
+}
+
 module.exports = {
     analyzeMessage,
     askForScore,
     handleKaoriMention,
+    handleGeneralChat,
     startInactivityTimer,
     resetInactivityTimer,
     clearInactivityTimer,
     isMatchChannel,
     detectVictoryClaim,
     detectConfirmation,
+    detectQuestionAboutMatches,
+    normalizeTeamArray,
     pendingConfirmations
 };

@@ -15,9 +15,10 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     
     async execute(interaction) {
-        await interaction.deferReply();
-
         const role = interaction.options.getRole('cargo');
+
+        // Defer ANTES de qualquer operação assíncrona
+        await interaction.deferReply();
 
         // Carrega configuração do PostgreSQL
         const config = await readConfig('guild_config', {});
