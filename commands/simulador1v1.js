@@ -49,7 +49,7 @@ module.exports = {
             option.setName('premio')
                 .setDescription('Prêmio do torneio (opcional)')
                 .setRequired(false)),
-    
+
     async execute(interaction) {
         const emojis = getEmojis(interaction.client);
         const jogo = interaction.options.getString('jogo');
@@ -68,8 +68,16 @@ module.exports = {
             });
         }
 
-        const config = await readConfig('guild_config', {});
-        const guildConfig = config[interaction.guildId];
+        // Busca configuração sempre com a chave 'guild_config'
+        let config = await readConfig('guild_config', {});
+        if (!config || typeof config !== 'object') {
+            config = {};
+        }
+        const guildConfig = config[interaction.guildId] || {};
+        const simuCreatorRole = guildConfig.simuCreatorRole;
+
+        console.log(`🔍 Verificando cargo para guild ${interaction.guildId}: ${simuCreatorRole || 'não configurado'}`);
+
 
         if (!guildConfig || !guildConfig.simuCreatorRole) {
             return interaction.reply({

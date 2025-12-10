@@ -20,8 +20,13 @@ module.exports = {
         // Defer ANTES de qualquer operação assíncrona
         await interaction.deferReply();
 
-        // Carrega configuração do PostgreSQL
-        const config = await readConfig('guild_config', {});
+        // Carrega configuração sempre com a chave 'guild_config'
+        let config = await readConfig('guild_config', {});
+        
+        // Garante que config é um objeto
+        if (!config || typeof config !== 'object') {
+            config = {};
+        }
 
         // Define cargo para esta guild
         if (!config[interaction.guildId]) {
@@ -30,8 +35,10 @@ module.exports = {
 
         config[interaction.guildId].simuCreatorRole = role.id;
 
-        // Salva configuração no PostgreSQL
+        // Salva configuração no PostgreSQL com a chave 'guild_config'
         await writeConfig('guild_config', config);
+        
+        console.log(`✅ Cargo configurado para ${interaction.guildId}: ${role.id}`);
 
         await interaction.editReply({
             embeds: [createSuccessEmbed(

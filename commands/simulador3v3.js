@@ -55,7 +55,7 @@ module.exports = {
             option.setName('premio')
                 .setDescription('Prêmio do torneio (opcional)')
                 .setRequired(false)),
-    
+
     async execute(interaction) {
         const jogo = interaction.options.getString('jogo');
         const versao = interaction.options.getString('versao');
@@ -76,10 +76,17 @@ module.exports = {
             });
         }
 
-        const config = await readConfig('guild_config', {});
-        const guildConfig = config[interaction.guildId];
+        // Busca configuração sempre com a chave 'guild_config'
+        let config = await readConfig('guild_config', {});
+        if (!config || typeof config !== 'object') {
+            config = {};
+        }
+        const guildConfig = config[interaction.guildId] || {};
+        const simuCreatorRole = guildConfig.simuCreatorRole;
 
-        if (!guildConfig || !guildConfig.simuCreatorRole) {
+        console.log(`🔍 Verificando cargo para guild ${interaction.guildId}: ${simuCreatorRole || 'não configurado'}`);
+
+        if (!guildConfig || !simuCreatorRole) {
             return interaction.reply({
                 embeds: [createErrorEmbed(
                     `${emojis.negative} Este servidor ainda não configurou o cargo de criador.\n\nUse \`/setup\` primeiro.`
@@ -88,7 +95,7 @@ module.exports = {
             });
         }
 
-        const hasRole = interaction.member.roles.cache.has(guildConfig.simuCreatorRole);
+        const hasRole = interaction.member.roles.cache.has(simuCreatorRole);
         if (!hasRole && interaction.user.id !== process.env.OWNER_ID) {
             return interaction.reply({
                 embeds: [createErrorEmbed(`${emojis.negative} Você não tem permissão.`)],
