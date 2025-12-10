@@ -295,19 +295,6 @@ async function cancelSimulatorIfNotFull(client, simulatorId) {
                 }
             }
 
-            // Tenta notificar criador
-            try {
-                const creator = await client.users.fetch(simulator.creatorId);
-                await creator.send({
-                    embeds: [createRedEmbed({
-                        title: `${emojis.negative} Simulador Cancelado`,
-                        description: `Seu simulador "${simulator.jogo} ${simulator.mode}" foi cancelado por falta de jogadores (timeout de 6 minutos).`,
-                        timestamp: true
-                    })]
-                });
-            } catch (error) {
-                console.log('Não foi possível enviar DM para o criador');
-            }
         }
 
         // Apaga categoria se existir
@@ -602,7 +589,7 @@ async function startTournament(client, simulatorId) {
         const matchNumber = match.id.split('match')[1];
         await createMatchChannel(guild, category, simulator, match, `rodada-1-${matchNumber}`);
     }
-    
+
     // Verifica se há BYEs e já processa a próxima rodada se necessário
     const byeMatches = simulator.bracketData.matches.filter(m => m.isBye);
     if (byeMatches.length > 0) {
@@ -638,7 +625,15 @@ async function createMatchChannel(guild, category, simulator, match, channelName
             deny: [PermissionFlagsBits.ViewChannel]
         }
     ];
-    
+
+    // Adiciona o criador do simulador a todos os canais de partida
+    if (simulator.creatorId) {
+        permissionOverwrites.push({
+            id: simulator.creatorId,
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+        });
+    }
+
     for (const playerId of match.team1) {
         if (playerId) {
             permissionOverwrites.push({
@@ -647,7 +642,7 @@ async function createMatchChannel(guild, category, simulator, match, channelName
             });
         }
     }
-    
+
     for (const playerId of match.team2) {
         if (playerId) {
             permissionOverwrites.push({
