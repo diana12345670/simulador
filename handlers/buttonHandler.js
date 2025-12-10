@@ -312,32 +312,33 @@ async function handleLeave(interaction) {
 
 async function handleCancel(interaction) {
     const emojis = getEmojis(interaction.client);
+    
+    // Defer IMEDIATAMENTE para evitar timeout/duplicação
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    
     const simulatorId = interaction.customId.replace('simu_cancel_', '');
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator) {
-        return interaction.reply({
-            embeds: [createErrorEmbed('Simulador não encontrado.', interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed('Simulador não encontrado.', interaction.client)]
         });
     }
 
     const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
     if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
-        return interaction.reply({
-            embeds: [createErrorEmbed('Apenas o criador pode cancelar o simulador.', interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed('Apenas o criador pode cancelar o simulador.', interaction.client)]
         });
     }
 
     cancelSimulatorTimeout(simulatorId);
 
-    await interaction.reply({
+    await interaction.editReply({
         embeds: [createRedEmbed({
             description: `${emojis.alerta} Cancelando simulador...`,
             timestamp: true
-        })],
-        flags: MessageFlags.Ephemeral
+        })]
     });
 
     try {
