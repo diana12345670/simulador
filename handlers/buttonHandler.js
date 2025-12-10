@@ -359,6 +359,42 @@ async function handleCancel(interaction) {
             }
         }
 
+        // Notifica todos os jogadores inscritos por DM (antes de deletar)
+        // Evita notificar o criador duas vezes
+        const notifiedPlayers = new Set();
+        if (simulator.players && simulator.players.length > 0) {
+            for (const playerId of simulator.players) {
+                if (playerId === simulator.creatorId) continue; // Criador recebe mensagem específica
+                notifiedPlayers.add(playerId);
+                try {
+                    const player = await interaction.client.users.fetch(playerId);
+                    await player.send({
+                        embeds: [createRedEmbed({
+                            title: `${emojis.negative} Simulador Cancelado`,
+                            description: `O simulador **${simulator.jogo} ${simulator.mode}** no servidor **${interaction.guild.name}** foi cancelado.`,
+                            timestamp: true
+                        })]
+                    });
+                } catch (dmError) {
+                    console.log(`Não foi possível enviar DM para ${playerId}`);
+                }
+            }
+        }
+
+        // Notifica o criador com mensagem específica
+        try {
+            const creator = await interaction.client.users.fetch(simulator.creatorId);
+            await creator.send({
+                embeds: [createRedEmbed({
+                    title: `${emojis.negative} Simulador Cancelado`,
+                    description: `Seu simulador **${simulator.jogo} ${simulator.mode}** no servidor **${interaction.guild.name}** foi cancelado.`,
+                    timestamp: true
+                })]
+            });
+        } catch (dmError) {
+            console.log(`Não foi possível enviar DM para o criador`);
+        }
+
         await deleteTournament(simulatorId);
 
         setTimeout(async () => {
@@ -446,7 +482,8 @@ async function handleMatchWin(interaction, winnerTeamNum) {
     const simulator = await getTournamentById(simulatorId);
     if (!simulator) return;
 
-    if (interaction.user.id !== simulator.creatorId) {
+    const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
+    if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
         return interaction.reply({
             embeds: [createErrorEmbed('Apenas o criador pode declarar vencedor.', interaction.client)],
             flags: MessageFlags.Ephemeral
@@ -504,7 +541,8 @@ async function handleWalkover(interaction) {
     const simulator = await getTournamentById(simulatorId);
     if (!simulator) return;
 
-    if (interaction.user.id !== simulator.creatorId) {
+    const OWNER_ID_WO = process.env.OWNER_ID || '1339336477661724674';
+    if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID_WO) {
         return interaction.reply({
             embeds: [createErrorEmbed('Apenas o criador pode declarar W.O.', interaction.client)],
             flags: MessageFlags.Ephemeral
