@@ -3,6 +3,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { readConfig, writeConfig } = require('../utils/database');
 const { createRedEmbed, createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
+const { getEmojis } = require('../utils/emojis');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -15,6 +16,7 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     
     async execute(interaction) {
+        const emojis = getEmojis(interaction.client);
         const role = interaction.options.getRole('cargo');
 
         // Defer ANTES de qualquer operação assíncrona
@@ -42,7 +44,7 @@ module.exports = {
 
         await interaction.editReply({
             embeds: [createSuccessEmbed(
-                `<:positive:1442668038691491943> Cargo configurado!\n\nApenas membros com o cargo ${role} poderão criar simuladores.`
+                `${emojis.positive} Cargo configurado!\n\nApenas membros com o cargo ${role} poderão criar simuladores.`
             )]
         });
     }

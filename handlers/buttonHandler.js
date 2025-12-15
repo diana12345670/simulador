@@ -350,7 +350,7 @@ async function handleCancel(interaction) {
                     embeds: [createRedEmbed({
                         title: `${emojis.fogo} Simulador ${simulator.mode} – ${simulator.jogo}`,
                         description: `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.trofeupixel} **Modo:** ${simulator.mode}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n${emojis.negative} **Este simulador foi cancelado**`,
-                        footer: { text: `${emojis.negative} Simulador cancelado` },
+                        footer: { text: 'Simulador cancelado' },
                         timestamp: true
                     })],
                     components: []
@@ -810,9 +810,10 @@ async function updateLiveRankPanels(client) {
                     continue;
                 }
 
+                const emojis = getEmojis(client);
                 const rankDescription = rankData.map((player, index) => {
-                    const medal = index === 0 ? '<:coroapixel:1442668026813087836>' : index === 1 ? '<:trofeupixel:1442668024891969588>' : index === 2 ? '<:fogo:1442667877332422847>' : '<:raiopixel:1442668029065564341>';
-                    return `${medal} **#${index + 1}** <@${player.user_id}>\n<:moedapixel:1442668030932029461> Pontos: ${player.points || 0} | <:positive:1442668038691491943> Vitórias: ${player.wins || 0} | <:negative:1442668040465682643> Derrotas: ${player.losses || 0}`;
+                    const medal = index === 0 ? emojis.coroapixel : index === 1 ? emojis.trofeupixel : index === 2 ? emojis.fogo : emojis.raiopixel;
+                    return `${medal} **#${index + 1}** <@${player.user_id}>\n${emojis.moedapixel} Pontos: ${player.points || 0} | ${emojis.positive} Vitórias: ${player.wins || 0} | ${emojis.negative} Derrotas: ${player.losses || 0}`;
                 }).join('\n\n');
 
                 const rankEmbed = createRedEmbed({

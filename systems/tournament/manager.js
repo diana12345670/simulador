@@ -99,7 +99,7 @@ async function createSimulator(client, guild, creator, options) {
     const panelEmbed = createRedEmbed({
         title: `${emojis.fogo} Simulador ${mode} – ${jogo}`,
         description: panelDescription,
-        footer: { text: `${emojis.alerta} Aguardando jogadores...` },
+        footer: { text: 'Aguardando jogadores...' },
         timestamp: true
     });
 
@@ -282,7 +282,7 @@ async function cancelSimulatorIfNotFull(client, simulatorId) {
                     const cancelledEmbed = createRedEmbed({
                         title: `${emojis.fogo} Simulador ${simulator.mode} – ${simulator.jogo}`,
                         description: `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.trofeupixel} **Modo:** ${simulator.mode}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n${emojis.negative} **Este simulador foi cancelado automaticamente**\n${emojis.alerta} Timeout de 6 minutos por falta de jogadores`,
-                        footer: { text: `${emojis.negative} Simulador cancelado por timeout` },
+                        footer: { text: 'Simulador cancelado por timeout' },
                         timestamp: true
                     });
 
@@ -369,7 +369,7 @@ async function updateSimulatorPanel(client, simulatorId) {
         const updatedEmbed = createRedEmbed({
             title: `${emojis.fogo} Simulador ${simulator.mode} – ${simulator.jogo}`,
             description: panelDescription,
-            footer: { text: simulator.players.length >= simulator.maxPlayers ? `${emojis.positive} Simulador lotado!` : `${emojis.alerta} Aguardando jogadores...` },
+            footer: { text: simulator.players.length >= simulator.maxPlayers ? 'Simulador lotado!' : 'Aguardando jogadores...' },
             timestamp: true
         });
 
@@ -587,9 +587,10 @@ async function startTournament(client, simulatorId) {
     simulator.bracketData = bracketData;
     simulator.categoryId = category.id;
 
+    const emojis = getEmojis(client);
     await channel.send({
         embeds: [createRedEmbed({
-            title: '<:fogo:1442667877332422847> TORNEIO INICIADO!',
+            title: `${emojis.fogo} TORNEIO INICIADO!`,
             description: 'O chaveamento foi gerado! Preparando canais...',
             timestamp: true
         })]
@@ -614,7 +615,7 @@ async function startTournament(client, simulatorId) {
 
     await channel.send({
         embeds: [createRedEmbed({
-            title: '<:positive:1442668038691491943> Canais criados!',
+            title: `${emojis.positive} Canais criados!`,
             description: 'As partidas da primeira rodada foram criadas. Boa sorte!',
             timestamp: true
         })]
@@ -678,11 +679,12 @@ async function createMatchChannel(guild, category, simulator, match, channelName
     match.channelId = matchChannel.id;
     await updateTournament(simulator.id, { bracketData: simulator.bracketData });
 
+    const matchEmojis = getEmojis(guild.client);
     const matchEmbed = createRedEmbed({
-        title: '<:raiopixel:1442668029065564341> Partida',
+        title: `${matchEmojis.raiopixel} Partida`,
         fields: [
             { name: 'Time 1', value: team1Mentions, inline: true },
-            { name: 'VS', value: '<:raiopixel:1442668029065564341>', inline: true },
+            { name: 'VS', value: matchEmojis.raiopixel, inline: true },
             { name: 'Time 2', value: team2Mentions, inline: true }
         ],
         description: 'Boa sorte! O criador do simulador declarará o vencedor.\n\n*Mencione o criador ou digite "Kaori" se precisar de ajuda!*',

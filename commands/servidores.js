@@ -1,6 +1,7 @@
 // servidores.js - Comando para o dono listar servidores
 const { SlashCommandBuilder } = require('discord.js');
 const { createRedEmbed, createErrorEmbed } = require('../utils/embeds');
+const { getEmojis } = require('../utils/emojis');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -8,10 +9,12 @@ module.exports = {
         .setDescription('[DONO] Lista todos os servidores do bot'),
     
     async execute(interaction) {
+        const emojis = getEmojis(interaction.client);
+        
         // Verifica se é o dono do bot
         if (interaction.user.id !== process.env.OWNER_ID) {
             return interaction.reply({
-                embeds: [createErrorEmbed('<:negative:1442668040465682643> Apenas o dono do bot pode usar este comando.')],
+                embeds: [createErrorEmbed(`${emojis.negative} Apenas o dono do bot pode usar este comando.`)],
                 ephemeral: true
             });
         }
@@ -22,7 +25,7 @@ module.exports = {
 
         if (guilds.size === 0) {
             return interaction.editReply({
-                embeds: [createErrorEmbed('<:negative:1442668040465682643> O bot não está em nenhum servidor.')]
+                embeds: [createErrorEmbed(`${emojis.negative} O bot não está em nenhum servidor.`)]
             });
         }
 
@@ -65,12 +68,12 @@ module.exports = {
         const firstChunk = chunks[0];
         const fields = firstChunk.map(g => ({
             name: `${g.name} (${g.memberCount} membros)`,
-            value: `<:pergaminhopixel:1442668033242959963> ID: \`${g.id}\`\n<:presentepixel:1442667950313308332> [Convite](${g.invite})`,
+            value: `${emojis.pergaminhopixel} ID: \`${g.id}\`\n${emojis.presentepixel} [Convite](${g.invite})`,
             inline: false
         }));
 
         const firstEmbed = createRedEmbed({
-            title: `<:trofeupixel:1442668024891969588> Servidores do Bot (${guilds.size} total)`,
+            title: `${emojis.trofeupixel} Servidores do Bot (${guilds.size} total)`,
             description: `Página 1 de ${chunks.length}`,
             fields: fields,
             timestamp: true
@@ -81,15 +84,15 @@ module.exports = {
         // Envia demais embeds se houver
         for (let i = 1; i < chunks.length; i++) {
             const chunk = chunks[i];
-            const fields = chunk.map(g => ({
+            const chunkFields = chunk.map(g => ({
                 name: `${g.name} (${g.memberCount} membros)`,
-                value: `<:pergaminhopixel:1442668033242959963> ID: \`${g.id}\`\n<:presentepixel:1442667950313308332> [Convite](${g.invite})`,
+                value: `${emojis.pergaminhopixel} ID: \`${g.id}\`\n${emojis.presentepixel} [Convite](${g.invite})`,
                 inline: false
             }));
 
             const embed = createRedEmbed({
                 description: `Página ${i + 1} de ${chunks.length}`,
-                fields: fields,
+                fields: chunkFields,
                 timestamp: true
             });
 

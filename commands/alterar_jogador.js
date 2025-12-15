@@ -22,13 +22,14 @@ module.exports = {
                 .setRequired(false)),
     
     async execute(interaction) {
+        const emojis = getEmojis(interaction.client);
         const jogadorSair = interaction.options.getUser('jogador_sair');
         const jogadorEntrar = interaction.options.getUser('jogador_entrar');
         const torneioId = interaction.options.getString('torneio_id');
 
         if (jogadorSair.id === jogadorEntrar.id) {
             return interaction.reply({
-                embeds: [createErrorEmbed('<:negative:1442668040465682643> Os jogadores devem ser diferentes!')],
+                embeds: [createErrorEmbed(`${emojis.negative} Os jogadores devem ser diferentes!`)],
                 flags: MessageFlags.Ephemeral
             });
         }
@@ -46,33 +47,33 @@ module.exports = {
 
             if (!simulator) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed('<:negative:1442668040465682643> Nenhum torneio em andamento encontrado neste servidor.')]
+                    embeds: [createErrorEmbed(`${emojis.negative} Nenhum torneio em andamento encontrado neste servidor.`)]
                 });
             }
 
             const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
             if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed('<:negative:1442668040465682643> Apenas o criador do torneio pode alterar jogadores.')]
+                    embeds: [createErrorEmbed(`${emojis.negative} Apenas o criador do torneio pode alterar jogadores.`)]
                 });
             }
 
             if (!simulator.players.includes(jogadorSair.id)) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`<:negative:1442668040465682643> ${jogadorSair} não está participando deste torneio.`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${jogadorSair} não está participando deste torneio.`)]
                 });
             }
 
             if (simulator.players.includes(jogadorEntrar.id)) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`<:negative:1442668040465682643> ${jogadorEntrar} já está participando deste torneio.`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${jogadorEntrar} já está participando deste torneio.`)]
                 });
             }
 
             const bracketData = simulator.bracketData;
             if (!bracketData || !bracketData.matches) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed('<:negative:1442668040465682643> Este torneio ainda não tem um bracket gerado.')]
+                    embeds: [createErrorEmbed(`${emojis.negative} Este torneio ainda não tem um bracket gerado.`)]
                 });
             }
 
@@ -104,7 +105,7 @@ module.exports = {
 
             if (!substituicaoFeita) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`<:negative:1442668040465682643> ${jogadorSair} não foi encontrado em nenhuma partida pendente.\n\nPossíveis motivos:\n• O jogador já foi eliminado\n• Todas as partidas do jogador já foram concluídas`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${jogadorSair} não foi encontrado em nenhuma partida pendente.\n\nPossíveis motivos:\n• O jogador já foi eliminado\n• Todas as partidas do jogador já foram concluídas`)]
                 });
             }
 
@@ -139,7 +140,7 @@ module.exports = {
 
                         await matchChannel.send({
                             embeds: [createRedEmbed({
-                                title: '<:alerta:1442668042873081866> Substituição de Jogador',
+                                title: `${emojis.alerta} Substituição de Jogador`,
                                 description: `${jogadorSair} foi substituído por ${jogadorEntrar}`,
                                 timestamp: true
                             })]
@@ -159,10 +160,10 @@ module.exports = {
                             const team2Mentions = matchEncontrada.team2.map(id => `<@${id}>`).join(', ');
 
                             const updatedMatchEmbed = createRedEmbed({
-                                title: '<:raiopixel:1442668029065564341> Partida',
+                                title: `${emojis.raiopixel} Partida`,
                                 fields: [
                                     { name: 'Time 1', value: team1Mentions, inline: true },
-                                    { name: 'VS', value: '<:raiopixel:1442668029065564341>', inline: true },
+                                    { name: 'VS', value: emojis.raiopixel, inline: true },
                                     { name: 'Time 2', value: team2Mentions, inline: true }
                                 ],
                                 description: 'Boa sorte! O criador do simulador declarará o vencedor.\n\n*Mencione o criador ou digite "Kaori" se precisar de ajuda!*',
@@ -187,7 +188,7 @@ module.exports = {
 
             await interaction.editReply({
                 embeds: [createRedEmbed({
-                    title: '<:positive:1442668038691491943> Jogador Substituído',
+                    title: `${emojis.positive} Jogador Substituído`,
                     description: `**Saiu:** ${jogadorSair}\n**Entrou:** ${jogadorEntrar}\n\n**Partida:** ${roundName} - ${matchEncontrada.id}\n**Posição:** ${timeEncontrado}`,
                     footer: { text: `Torneio: ${simulator.jogo} ${simulator.mode}` },
                     timestamp: true
@@ -197,7 +198,7 @@ module.exports = {
         } catch (error) {
             console.error('Erro ao alterar jogador:', error);
             await interaction.editReply({
-                embeds: [createErrorEmbed('<:negative:1442668040465682643> Erro ao substituir jogador. Tente novamente.')]
+                embeds: [createErrorEmbed(`${emojis.negative} Erro ao substituir jogador. Tente novamente.`)]
             });
         }
     }

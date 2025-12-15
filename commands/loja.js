@@ -224,7 +224,14 @@ async function handleShopView(interaction, emojis) {
 async function handlePurchase(interaction, emojis) {
     const itemId = interaction.options.getString('item_id');
     const catalog = getShopCatalog();
-    const player = await getPlayer(interaction.user.id);
+    let player = await getPlayer(interaction.user.id);
+    
+    const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
+    const isOwner = interaction.user.id === OWNER_ID;
+    
+    if (!player) {
+        player = { coins: 0, bannersOwned: [], titlesOwned: [], rolesOwned: [] };
+    }
     
     let item = null;
     let itemType = null;
@@ -256,19 +263,21 @@ async function handlePurchase(interaction, emojis) {
         });
     }
     
-    if ((player.coins || 0) < item.price) {
+    if (!isOwner && (player.coins || 0) < item.price) {
         return interaction.reply({
             embeds: [createErrorEmbed(`${emojis.negative} Moedas insuficientes! Você tem 🪙 ${player.coins || 0} mas precisa de 🪙 ${item.price}.`, interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
     
-    const success = await removeCoins(interaction.user.id, item.price);
-    if (!success) {
-        return interaction.reply({
-            embeds: [createErrorEmbed(`${emojis.negative} Erro ao processar compra. Tente novamente.`, interaction.client)],
-            flags: MessageFlags.Ephemeral
-        });
+    if (!isOwner) {
+        const success = await removeCoins(interaction.user.id, item.price);
+        if (!success) {
+            return interaction.reply({
+                embeds: [createErrorEmbed(`${emojis.negative} Erro ao processar compra. Tente novamente.`, interaction.client)],
+                flags: MessageFlags.Ephemeral
+            });
+        }
     }
     
     await addItemToInventory(interaction.user.id, itemType, itemId);

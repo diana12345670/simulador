@@ -1,11 +1,14 @@
 
 // guildCreate.js - Evento quando o bot entra em um servidor
 const { isGuildBanned } = require('../utils/database');
+const { getEmojis } = require('../utils/emojis');
 
 module.exports = {
     name: 'guildCreate',
     async execute(guild) {
         console.log(`➕ Bot adicionado ao servidor: ${guild.name} (ID: ${guild.id})`);
+
+        const emojis = getEmojis(guild.client);
 
         // Verifica se o servidor está banido
         const isBanned = await isGuildBanned(guild.id);
@@ -15,7 +18,7 @@ module.exports = {
             
             try {
                 const owner = await guild.fetchOwner();
-                await owner.send('<:negative:1442668040465682643> Este servidor está banido de usar este bot.');
+                await owner.send(`${emojis.negative} Este servidor está banido de usar este bot.`);
             } catch (error) {
                 console.log('Não foi possível enviar mensagem ao dono do servidor');
             }
@@ -34,8 +37,8 @@ module.exports = {
                 await channel.send({
                     embeds: [{
                         color: 0xFF0000,
-                        title: '<:fogo:1442667877332422847> Bot de Torneios Ativado!',
-                        description: 'Obrigado por me adicionar!\n\n<:pergaminhopixel:1442668033242959963> Use `/setup` para configurar o cargo que pode criar torneios.\n<:trofeupixel:1442668024891969588> Use `/simulador1v1`, `/simulador2v2`, etc para criar torneios.',
+                        title: `${emojis.fogo} Bot de Torneios Ativado!`,
+                        description: `Obrigado por me adicionar!\n\n${emojis.pergaminhopixel} Use \`/setup\` para configurar o cargo que pode criar torneios.\n${emojis.trofeupixel} Use \`/simulador1v1\`, \`/simulador2v2\`, etc para criar torneios.`,
                         timestamp: new Date()
                     }]
                 });

@@ -3,6 +3,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { getRankGlobal, getRankLocal, addLiveRankPanel, countLiveRankPanelsByGuild } = require('../utils/database');
 const { createRedEmbed, createErrorEmbed } = require('../utils/embeds');
+const { getEmojis } = require('../utils/emojis');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -26,13 +27,14 @@ module.exports = {
                 )),
     
     async execute(interaction) {
+        const emojis = getEmojis(interaction.client);
         const tipo = interaction.options.getString('tipo');
         const atualizacao = interaction.options.getString('atualizacao') || 'atual';
 
         if (atualizacao === 'ao_vivo') {
             if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
                 return interaction.reply({
-                    embeds: [createErrorEmbed('<:negative:1442668040465682643> Apenas administradores podem criar painéis de rank ao vivo.')],
+                    embeds: [createErrorEmbed(`${emojis.negative} Apenas administradores podem criar painéis de rank ao vivo.`)],
                     ephemeral: true
                 });
             }
@@ -40,7 +42,7 @@ module.exports = {
             const panelCount = await countLiveRankPanelsByGuild(interaction.guildId);
             if (panelCount >= 2) {
                 return interaction.reply({
-                    embeds: [createErrorEmbed('<:negative:1442668040465682643> Este servidor já possui 2 painéis de rank ao vivo. Apague uma mensagem de rank existente para criar outra.')],
+                    embeds: [createErrorEmbed(`${emojis.negative} Este servidor já possui 2 painéis de rank ao vivo. Apague uma mensagem de rank existente para criar outra.`)],
                     ephemeral: true
                 });
             }
@@ -59,19 +61,19 @@ module.exports = {
 
         if (!rankData || rankData.length === 0) {
             return interaction.reply({
-                embeds: [createErrorEmbed('<:negative:1442668040465682643> Ainda não há dados de ranking.')],
+                embeds: [createErrorEmbed(`${emojis.negative} Ainda não há dados de ranking.`)],
                 ephemeral: true
             });
         }
 
         const rankDescription = rankData.map((player, index) => {
-            const medal = index === 0 ? '<:coroapixel:1442668026813087836>' : index === 1 ? '<:trofeupixel:1442668024891969588>' : index === 2 ? '<:fogo:1442667877332422847>' : '<:raiopixel:1442668029065564341>';
-            return `${medal} **#${index + 1}** <@${player.user_id}>\n<:moedapixel:1442668030932029461> Pontos: ${player.points || 0} | <:positive:1442668038691491943> Vitórias: ${player.wins || 0} | <:negative:1442668040465682643> Derrotas: ${player.losses || 0}`;
+            const medal = index === 0 ? emojis.coroapixel : index === 1 ? emojis.trofeupixel : index === 2 ? emojis.fogo : emojis.raiopixel;
+            return `${medal} **#${index + 1}** <@${player.user_id}>\n${emojis.moedapixel} Pontos: ${player.points || 0} | ${emojis.positive} Vitórias: ${player.wins || 0} | ${emojis.negative} Derrotas: ${player.losses || 0}`;
         }).join('\n\n');
 
         const footerText = atualizacao === 'ao_vivo' 
             ? '🔴 AO VIVO - Atualiza automaticamente quando jogadores vencem'
-            : '<:moedapixel:1442668030932029461> Pontos: +1 por torneio vencido';
+            : `${emojis.moedapixel} Pontos: +1 por torneio vencido`;
 
         const rankEmbed = createRedEmbed({
             title: rankTitle + (atualizacao === 'ao_vivo' ? ' 🔴' : ''),

@@ -630,7 +630,10 @@ function isMatchChannel(channel) {
     return name.includes('rodada') || 
            name.includes('quartas') || 
            name.includes('semifinal') || 
-           name.includes('final');
+           name.includes('final') ||
+           name.includes('oitavas') ||
+           name.includes('match') ||
+           name.includes('partida');
 }
 
 const GENERAL_CHAT_PERSONALITY = `Você é a Kaori, uma assistente de torneios do Discord. Você é IRÔNICA, SARCÁSTICA e DIRETA.

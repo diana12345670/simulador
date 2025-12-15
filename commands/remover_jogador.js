@@ -2,6 +2,7 @@ const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { getTournamentById, updateTournament, getOpenTournamentByChannel, getRunningTournamentByGuild } = require('../utils/database');
 const { createErrorEmbed, createRedEmbed } = require('../utils/embeds');
 const { updateSimulatorPanel } = require('../systems/tournament/manager');
+const { getEmojis } = require('../utils/emojis');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -17,12 +18,13 @@ module.exports = {
                 .setRequired(false)),
     
     async execute(interaction) {
+        const emojis = getEmojis(interaction.client);
         const jogadorRemover = interaction.options.getUser('jogador');
         const jogadorSubstituto = interaction.options.getUser('substituir_por');
 
         if (jogadorSubstituto && jogadorRemover.id === jogadorSubstituto.id) {
             return interaction.reply({
-                embeds: [createErrorEmbed('<:negative:1442668040465682643> Os jogadores devem ser diferentes!')],
+                embeds: [createErrorEmbed(`${emojis.negative} Os jogadores devem ser diferentes!`)],
                 flags: MessageFlags.Ephemeral
             });
         }
@@ -38,26 +40,26 @@ module.exports = {
 
             if (!simulator) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed('<:negative:1442668040465682643> Nenhum simulador encontrado neste canal.')]
+                    embeds: [createErrorEmbed(`${emojis.negative} Nenhum simulador encontrado neste canal.`)]
                 });
             }
 
             const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
             if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed('<:negative:1442668040465682643> Apenas o criador do simulador pode remover jogadores.')]
+                    embeds: [createErrorEmbed(`${emojis.negative} Apenas o criador do simulador pode remover jogadores.`)]
                 });
             }
 
             if (!simulator.players.includes(jogadorRemover.id)) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`<:negative:1442668040465682643> ${jogadorRemover} não está participando deste simulador.`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${jogadorRemover} não está participando deste simulador.`)]
                 });
             }
 
             if (jogadorSubstituto && simulator.players.includes(jogadorSubstituto.id)) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`<:negative:1442668040465682643> ${jogadorSubstituto} já está participando deste simulador.`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${jogadorSubstituto} já está participando deste simulador.`)]
                 });
             }
 
@@ -147,7 +149,7 @@ module.exports = {
 
             await interaction.editReply({
                 embeds: [createRedEmbed({
-                    title: '<:positive:1442668038691491943> Jogador Removido',
+                    title: `${emojis.positive} Jogador Removido`,
                     description: description,
                     footer: { text: `Simulador: ${simulator.jogo} ${simulator.mode}` },
                     timestamp: true
@@ -157,7 +159,7 @@ module.exports = {
         } catch (error) {
             console.error('Erro ao remover jogador:', error);
             await interaction.editReply({
-                embeds: [createErrorEmbed('<:negative:1442668040465682643> Erro ao remover jogador. Tente novamente.')]
+                embeds: [createErrorEmbed(`${emojis.negative} Erro ao remover jogador. Tente novamente.`)]
             });
         }
     }
