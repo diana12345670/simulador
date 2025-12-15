@@ -7,6 +7,11 @@ module.exports = {
     async execute(client) {
         const botName = client.botConfig ? client.botConfig.name : 'Bot';
         
+        if (client.application && client.application.id) {
+            global.DISCORD_CLIENT_ID = client.application.id;
+            console.log(`✅ [${botName}] Application ID obtido: ${client.application.id}`);
+        }
+        
         console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
         console.log(`✅ [${botName}] Online como ${client.user.tag}`);
         console.log(`📊 [${botName}] Servidores: ${client.guilds.cache.size}`);

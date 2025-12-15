@@ -172,14 +172,15 @@ async function handleShopView(interaction, emojis) {
         components.push(row);
     }
     
-    const reply = await interaction.reply({
+    const response = await interaction.reply({
         embeds: [embed],
         components,
         flags: MessageFlags.Ephemeral,
-        fetchReply: true
+        withResponse: true
     });
+    const reply = response.resource?.message;
     
-    if (pages.length > 1) {
+    if (pages.length > 1 && reply) {
         let currentPage = 0;
         const collector = reply.createMessageComponentCollector({ time: 120000 });
         

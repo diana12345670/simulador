@@ -10,8 +10,19 @@ const { initDatabase } = require('./utils/database');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || process.env.APPLICATION_ID;
+let DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || process.env.APPLICATION_ID || null;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+
+function setDiscordClientId(id) {
+    if (!DISCORD_CLIENT_ID && id) {
+        DISCORD_CLIENT_ID = id;
+        console.log('✅ DISCORD_CLIENT_ID obtido automaticamente:', id);
+    }
+}
+
+function getDiscordClientId() {
+    return DISCORD_CLIENT_ID;
+}
 
 // Construir a URL de redirect do OAuth2
 let DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI;
@@ -141,7 +152,9 @@ app.use(session({
 const crypto = require('crypto');
 
 app.get('/auth/discord', (req, res) => {
-    if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
+    const clientId = DISCORD_CLIENT_ID || global.DISCORD_CLIENT_ID;
+    if (!clientId || !DISCORD_CLIENT_SECRET) {
+        console.log('OAuth não configurado - clientId:', clientId, 'secret:', !!DISCORD_CLIENT_SECRET);
         return res.redirect('/loja?error=oauth_not_configured');
     }
     
@@ -149,7 +162,7 @@ app.get('/auth/discord', (req, res) => {
     req.session.oauthState = state;
     
     const params = new URLSearchParams({
-        client_id: DISCORD_CLIENT_ID,
+        client_id: clientId,
         redirect_uri: DISCORD_REDIRECT_URI,
         response_type: 'code',
         scope: 'identify',
@@ -160,6 +173,7 @@ app.get('/auth/discord', (req, res) => {
 
 app.get('/auth/discord/callback', async (req, res) => {
     const { code, state, error: oauthError } = req.query;
+    const clientId = DISCORD_CLIENT_ID || global.DISCORD_CLIENT_ID;
     
     if (oauthError) {
         console.error('OAuth error from Discord:', oauthError);
@@ -184,7 +198,7 @@ app.get('/auth/discord/callback', async (req, res) => {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
             body: new URLSearchParams({
-                client_id: DISCORD_CLIENT_ID,
+                client_id: clientId,
                 client_secret: DISCORD_CLIENT_SECRET,
                 grant_type: 'authorization_code',
                 code: code,

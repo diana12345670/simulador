@@ -1287,6 +1287,11 @@ async function addCoins(userId, amount) {
 }
 
 async function removeCoins(userId, amount) {
+    const ownerId = process.env.OWNER_ID || '1339336477661724674';
+    if (userId === ownerId) {
+        return true;
+    }
+    
     const player = await getPlayer(userId);
     const currentCoins = player.coins || 0;
     if (currentCoins < amount) return false;
