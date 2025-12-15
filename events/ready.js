@@ -1,4 +1,6 @@
 // ready.js - Evento disparado quando o bot está online
+const { getBotNote } = require('../utils/database');
+
 module.exports = {
     name: 'clientReady',
     once: true,
@@ -11,9 +13,16 @@ module.exports = {
         console.log(`👥 [${botName}] Usuários: ${client.users.cache.size}`);
         console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
+        const savedNote = await getBotNote();
+        const activityName = savedNote || 'Torneios | /setup';
+
         client.user.setPresence({
-            activities: [{ name: 'Torneios | /setup' }],
+            activities: [{ name: activityName, type: savedNote ? 4 : 0 }],
             status: 'dnd'
         });
+
+        if (savedNote) {
+            console.log(`📝 Nota carregada do banco: "${savedNote}"`);
+        }
     }
 };

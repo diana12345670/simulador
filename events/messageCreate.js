@@ -9,8 +9,11 @@ module.exports = {
         if (!message.guild) return;
 
         if (message.mentions.everyone) return;
+        if (message.mentions.roles.size > 0) return;
         
-        const mentionsBot = message.mentions.has(message.client.user);
+        const botMention = `<@${message.client.user.id}>`;
+        const botMentionNick = `<@!${message.client.user.id}>`;
+        const mentionsBot = message.content.includes(botMention) || message.content.includes(botMentionNick);
         const lowerContent = message.content.toLowerCase();
         const mentionsKaori = lowerContent.includes('kaori');
 

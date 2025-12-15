@@ -553,10 +553,26 @@ async function startTournament(client, simulatorId) {
     };
     const bracketData = generateBracket(simulator.players, simulator.mode, bracketOptions);
 
-    // Cria categoria para partidas
+    // Cria categoria para partidas com permissão para o criador
+    const categoryPermissions = [
+        {
+            id: guild.id,
+            deny: [PermissionFlagsBits.ViewChannel]
+        }
+    ];
+    
+    // Adiciona o criador à categoria para poder ver todos os canais
+    if (simulator.creatorId) {
+        categoryPermissions.push({
+            id: simulator.creatorId,
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+        });
+    }
+    
     const category = await guild.channels.create({
         name: `Torneio ${simulator.jogo}`.substring(0, 100),
-        type: ChannelType.GuildCategory
+        type: ChannelType.GuildCategory,
+        permissionOverwrites: categoryPermissions
     });
 
     // Atualiza simulador com estado running, bracket e categoria

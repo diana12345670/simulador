@@ -110,11 +110,8 @@ module.exports = {
                 channel: interaction.channel
             });
 
-            // Confirma a criação do simulador
-            const emojis = getEmojis(interaction.client);
-            await interaction.editReply({
-                embeds: [createSuccessEmbed(`${emojis.positive} Simulador criado com sucesso!`, interaction.client)]
-            });
+            // Remove a resposta do defer já que o painel é a confirmação
+            await interaction.deleteReply();
         } catch (error) {
             console.error('Erro ao criar simulador:', error);
             await interaction.editReply({

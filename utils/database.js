@@ -1417,7 +1417,50 @@ async function getPlayerMatchHistory(userId, limit = 10) {
 }
 
 function getShopCatalog() {
-    return readJSON(JSON_FILES.shop_catalog, { banners: [], titles: [], roles: [] });
+    const catalogFromFile = readJSON(JSON_FILES.shop_catalog, null);
+    if (catalogFromFile && catalogFromFile.banners && catalogFromFile.banners.length > 0) {
+        return catalogFromFile;
+    }
+    
+    // Catálogo embutido como fallback para ambientes onde o arquivo não existe
+    return {
+        "banners": [
+            { "id": "banner_ocean", "name": "Ondas do Oceano", "description": "Banner sereno com ondas azuis cristalinas", "price": 500, "rarity": "comum", "assetUrl": "/banners/ocean_waves_gaming_banner.png", "color": "#1E90FF" },
+            { "id": "banner_brazil", "name": "Brasil Gaming", "description": "Banner com as cores vibrantes do Brasil", "price": 750, "rarity": "comum", "assetUrl": "/banners/brazilian_gaming_banner.png", "color": "#00BF63" },
+            { "id": "banner_stumble", "name": "Stumble Party", "description": "Banner colorido estilo festa de obstáculos", "price": 800, "rarity": "comum", "assetUrl": "/banners/stumble_guys_style_banner.png", "color": "#FF69B4" },
+            { "id": "banner_galaxy", "name": "Galáxia Espiral", "description": "Um banner cósmico com estrelas e nebulosas", "price": 1500, "rarity": "raro", "assetUrl": "/banners/galaxy_space_gaming_banner.png", "color": "#9400D3" },
+            { "id": "banner_neon", "name": "Neon City", "description": "Banner cyberpunk com luzes neon brilhantes", "price": 1500, "rarity": "raro", "assetUrl": "/banners/neon_city_gaming_banner.png", "color": "#FF1493" },
+            { "id": "banner_tropical", "name": "Brasil Tropical", "description": "Banner tropical com visual de pôr do sol brasileiro", "price": 1800, "rarity": "raro", "assetUrl": "/banners/brazil_tropical_gaming_banner.png", "color": "#FF6B35" },
+            { "id": "banner_synthwave", "name": "Synthwave Retrô", "description": "Banner nostálgico estilo anos 80", "price": 2000, "rarity": "raro", "assetUrl": "/banners/synthwave_retro_gaming_banner.png", "color": "#FF00FF" },
+            { "id": "banner_samurai", "name": "Samurai Lendário", "description": "Banner épico com estética de guerreiro samurai", "price": 3500, "rarity": "epico", "assetUrl": "/banners/samurai_gaming_banner.png", "color": "#DC143C" },
+            { "id": "banner_storm", "name": "Tempestade Elétrica", "description": "Banner poderoso com raios e energia", "price": 4000, "rarity": "epico", "assetUrl": "/banners/storm_lightning_gaming_banner.png", "color": "#8B00FF" },
+            { "id": "banner_champion", "name": "Campeão Supremo", "description": "Banner lendário dourado para os melhores competidores", "price": 7500, "rarity": "lendario", "assetUrl": "/banners/champion_gold_gaming_banner.png", "color": "#FFD700" }
+        ],
+        "titles": [
+            { "id": "title_warrior", "name": "Guerreiro", "description": "Título de um guerreiro determinado", "price": 300, "rarity": "comum", "display": "« Guerreiro »" },
+            { "id": "title_hunter", "name": "Caçador", "description": "Título de um caçador habilidoso", "price": 300, "rarity": "comum", "display": "◆ Caçador ◆" },
+            { "id": "title_shadow", "name": "Sombra", "description": "Título misterioso e furtivo", "price": 400, "rarity": "comum", "display": "░ Sombra ░" },
+            { "id": "title_veteran", "name": "Veterano", "description": "Título de experiência em batalha", "price": 800, "rarity": "raro", "display": "★ Veterano ★" },
+            { "id": "title_ace", "name": "Ás", "description": "Título de um jogador excepcional", "price": 1000, "rarity": "raro", "display": "♠ Ás ♠" },
+            { "id": "title_destroyer", "name": "Destruidor", "description": "Título de um jogador implacável", "price": 1200, "rarity": "raro", "display": "✦ Destruidor ✦" },
+            { "id": "title_striker", "name": "Artilheiro", "description": "Título para quem sempre acerta o alvo", "price": 1500, "rarity": "raro", "display": "▸ Artilheiro ◂" },
+            { "id": "title_elite", "name": "Elite", "description": "Título de jogador de elite", "price": 2000, "rarity": "epico", "display": "◈ Elite ◈" },
+            { "id": "title_mastermind", "name": "Mente Brilhante", "description": "Título de estrategista supremo", "price": 2500, "rarity": "epico", "display": "◇ Mente Brilhante ◇" },
+            { "id": "title_phantom", "name": "Fantasma", "description": "Título intimidador e misterioso", "price": 2500, "rarity": "epico", "display": "▓ Fantasma ▓" },
+            { "id": "title_predator", "name": "Predador", "description": "Título de caçador supremo", "price": 3000, "rarity": "epico", "display": "◀ Predador ▶" },
+            { "id": "title_legend", "name": "Lenda", "description": "Título lendário para os melhores", "price": 5000, "rarity": "lendario", "display": "『 Lenda 』" },
+            { "id": "title_immortal", "name": "Imortal", "description": "Título de glória eterna", "price": 7500, "rarity": "lendario", "display": "【 Imortal 】" },
+            { "id": "title_god", "name": "Divindade", "description": "O título supremo absoluto", "price": 15000, "rarity": "lendario", "display": "《 Divindade 》" }
+        ],
+        "roles": [
+            { "id": "role_bronze", "name": "Cargo Bronze", "description": "Cargo Bronze decorativo", "price": 1000, "rarity": "comum", "color": "#CD7F32" },
+            { "id": "role_silver", "name": "Cargo Prata", "description": "Cargo Prata decorativo", "price": 2500, "rarity": "raro", "color": "#C0C0C0" },
+            { "id": "role_gold", "name": "Cargo Ouro", "description": "Cargo Ouro decorativo", "price": 5000, "rarity": "epico", "color": "#FFD700" },
+            { "id": "role_diamond", "name": "Cargo Diamante", "description": "Cargo Diamante exclusivo", "price": 10000, "rarity": "lendario", "color": "#B9F2FF" }
+        ],
+        "rarityColors": { "comum": "#9E9E9E", "raro": "#2196F3", "epico": "#9C27B0", "lendario": "#FF9800" },
+        "rarityEmojis": { "comum": "⚪", "raro": "🔵", "epico": "🟣", "lendario": "🟠" }
+    };
 }
 
 async function getTopPlayersByCoins(limit = 10) {
@@ -1444,6 +1487,52 @@ async function getTopPlayersByCoins(limit = 10) {
             .map(([id, data]) => ({ userId: id, ...data }))
             .sort((a, b) => (b.coins || 0) - (a.coins || 0))
             .slice(0, limit);
+    }
+}
+
+async function getBotNote() {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            const result = await client.query("SELECT value FROM config WHERE key = 'bot_note'");
+            if (result.rows.length > 0) {
+                return result.rows[0].value.note || null;
+            }
+            return null;
+        } catch (error) {
+            console.error('Erro ao buscar nota do bot:', error.message);
+            return null;
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const config = readJSON(JSON_FILES.config, {});
+        return config.botNote || null;
+    }
+}
+
+async function setBotNote(note) {
+    if (usePostgres && pool) {
+        let client;
+        try {
+            client = await pool.connect();
+            await client.query(`
+                INSERT INTO config (key, value) VALUES ('bot_note', $1)
+                ON CONFLICT (key) DO UPDATE SET value = $1
+            `, [JSON.stringify({ note })]);
+            return true;
+        } catch (error) {
+            console.error('Erro ao salvar nota do bot:', error.message);
+            return false;
+        } finally {
+            if (client) try { client.release(); } catch (e) {}
+        }
+    } else {
+        const config = readJSON(JSON_FILES.config, {});
+        config.botNote = note;
+        writeJSON(JSON_FILES.config, config);
+        return true;
     }
 }
 
@@ -1489,5 +1578,7 @@ module.exports = {
     recordMatchResult,
     getPlayerMatchHistory,
     getShopCatalog,
-    getTopPlayersByCoins
+    getTopPlayersByCoins,
+    getBotNote,
+    setBotNote
 };

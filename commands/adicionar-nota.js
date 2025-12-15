@@ -3,6 +3,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { createSuccessEmbed, createErrorEmbed } = require('../utils/embeds');
 const { getEmojis } = require('../utils/emojis');
+const { setBotNote } = require('../utils/database');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -29,6 +30,8 @@ module.exports = {
         const nota = interaction.options.getString('nota');
 
         try {
+            await setBotNote(nota);
+
             await interaction.client.user.setPresence({
                 activities: [{
                     name: nota,
@@ -39,7 +42,7 @@ module.exports = {
 
             await interaction.editReply({
                 embeds: [createSuccessEmbed(
-                    `Nota atualizada com sucesso!\n\n**Nova nota:** ${nota}\n\nA nota permanecerá até que você a altere novamente.`,
+                    `Nota atualizada com sucesso!\n\n**Nova nota:** ${nota}\n\nA nota foi salva e permanecerá mesmo após reiniciar o bot.`,
                     interaction.client
                 )]
             });
