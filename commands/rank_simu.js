@@ -28,6 +28,7 @@ module.exports = {
     
     async execute(interaction) {
         const emojis = getEmojis(interaction.client);
+        console.log(`🔍 [rank_simu] Bot: ${interaction.client.botConfig?.name || 'undefined'}, Emoji raiopixel: ${emojis.raiopixel}`);
         const tipo = interaction.options.getString('tipo');
         const atualizacao = interaction.options.getString('atualizacao') || 'atual';
 
