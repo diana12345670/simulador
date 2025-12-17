@@ -587,7 +587,6 @@ async function startTournament(client, simulatorId) {
     simulator.bracketData = bracketData;
     simulator.categoryId = category.id;
 
-    const emojis = getEmojis(client);
     await channel.send({
         embeds: [createRedEmbed({
             title: `${emojis.fogo} TORNEIO INICIADO!`,

@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "description": "Complete Discord tournament bot with bracket management, ranking system, and automated match handling",
   "main": "index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node index.js",
     "deploy": "node deploy-commands.js",
