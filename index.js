@@ -50,36 +50,33 @@ if (!process.env.OWNER_ID) {
     console.log('✅ Usando OWNER_ID padrão:', DEFAULT_OWNER_ID);
 }
 
-const botConfigs = [];
+    const botConfigs = [];
+    const token1 = process.env.BOT_TOKEN_1 || process.env.BOT_TOKEN;
+    if (token1) {
+        botConfigs.push({
+            name: 'Bot 1',
+            token: token1,
+            applicationId: process.env.APPLICATION_ID_1 || process.env.APPLICATION_ID || null
+        });
+    }
+    if (process.env.BOT_TOKEN_2) {
+        botConfigs.push({
+            name: 'Bot 2',
+            token: process.env.BOT_TOKEN_2,
+            applicationId: process.env.APPLICATION_ID_2 || null
+        });
+    }
+    if (process.env.BOT_TOKEN_3) {
+        botConfigs.push({
+            name: 'Bot 3',
+            token: process.env.BOT_TOKEN_3,
+            applicationId: process.env.APPLICATION_ID_3 || null
+        });
+    }
 
-const token1 = process.env.BOT_TOKEN_1 || process.env.BOT_TOKEN;
-if (token1) {
-    botConfigs.push({
-        name: 'Bot 1',
-        token: token1,
-        applicationId: process.env.APPLICATION_ID_1 || process.env.APPLICATION_ID || null
-    });
-}
-if (process.env.BOT_TOKEN_2) {
-    botConfigs.push({
-        name: 'Bot 2',
-        token: process.env.BOT_TOKEN_2,
-        applicationId: process.env.APPLICATION_ID_2 || null
-    });
-}
-if (process.env.BOT_TOKEN_3) {
-    botConfigs.push({
-        name: 'Bot 3',
-        token: process.env.BOT_TOKEN_3,
-        applicationId: process.env.APPLICATION_ID_3 || null
-    });
-}
-
-if (botConfigs.length === 0) {
-    console.error('❌ Nenhum token de bot configurado!');
-    console.error('Configure pelo menos um: BOT_TOKEN ou BOT_TOKEN_1, BOT_TOKEN_2, BOT_TOKEN_3');
-    process.exit(1);
-}
+    if (botConfigs.length === 0) {
+        console.warn('⚠️ Nenhum token de bot configurado! O Dashboard funcionará em modo limitado.');
+    }
 
 console.log(`📦 ${botConfigs.length} bot(s) configurado(s)`);
 
@@ -583,14 +580,16 @@ async function start() {
         await initDatabase();
         console.log('✅ Banco de dados inicializado!');
 
+        console.log('🔄 Fazendo login dos bots...');
+        
+        // Iniciamos o servidor web antes do login para que o Railway consiga dar o "health check" (pong)
+        // mesmo que o bot demore para logar ou o token esteja faltando.
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`🌐 Servidor web rodando na porta ${PORT}`);
             console.log(`📊 Dashboard: http://localhost:${PORT}`);
             console.log(`🏓 Ping endpoint: http://localhost:${PORT}/ping`);
         });
 
-        console.log('🔄 Fazendo login dos bots...');
-        
         const loginPromises = clients.map(async (client) => {
             try {
                 await client.login(client.botConfig.token);
@@ -614,23 +613,6 @@ async function start() {
         console.log(`✅ ${successCount} bot(s) online`);
         if (failCount > 0) {
             console.log(`❌ ${failCount} bot(s) com erro`);
-        }
-        
-        let totalGuilds = 0;
-        let totalUsers = 0;
-        for (const client of clients) {
-            if (client.isReady()) {
-                totalGuilds += client.guilds.cache.size;
-                totalUsers += client.guilds.cache.reduce((acc, g) => acc + g.memberCount, 0);
-            }
-        }
-        console.log(`📊 Total de servidores: ${totalGuilds}`);
-        console.log(`👥 Total de usuários: ${totalUsers}`);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
-        if (successCount === 0) {
-            console.error('❌ Nenhum bot conseguiu fazer login!');
-            process.exit(1);
         }
 
     } catch (error) {
