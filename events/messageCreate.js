@@ -8,6 +8,11 @@ module.exports = {
         if (message.author.bot) return;
         if (!message.guild) return;
 
+        // Verificar se a IA está ativa no servidor
+        const { readConfig } = require('../utils/database');
+        const aiConfig = await readConfig('ai_enabled_guilds', {});
+        if (aiConfig[message.guild.id] === false) return;
+
         if (message.mentions.everyone) return;
         if (message.mentions.roles.size > 0) return;
         

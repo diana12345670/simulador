@@ -1,6 +1,6 @@
 // desbugar.js - Comando para limpar simulador travado
 const { SlashCommandBuilder } = require('discord.js');
-const { getPool, getTournamentById, deleteTournament } = require('../utils/database');
+const { getTournamentById, deleteTournament, getAllTournaments } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 
 module.exports = {
@@ -19,20 +19,8 @@ module.exports = {
         if (simulatorId) {
             tournament = await getTournamentById(simulatorId);
         } else {
-            const dbClient = await getPool().connect();
-            try {
-                const result = await dbClient.query(
-                    'SELECT * FROM tournaments WHERE channel_id = $1 OR category_id = $2',
-                    [interaction.channelId, interaction.channel.parentId]
-                );
-                tournament = result.rows.length > 0 ? {
-                    id: result.rows[0].id,
-                    creatorId: result.rows[0].creator_id,
-                    categoryId: result.rows[0].category_id
-                } : null;
-            } finally {
-                dbClient.release();
-            }
+            const allTs = await getAllTournaments();
+            tournament = allTs.find(t => t.channelId === interaction.channelId || t.categoryId === interaction.channel.parentId);
         }
 
         if (!tournament) {
@@ -58,9 +46,9 @@ module.exports = {
                 if (category) {
                     const categoryChannels = category.children.cache;
                     for (const [, channel] of categoryChannels) {
-                        await channel.delete('Simulador desbugado');
+                        try { await channel.delete('Simulador desbugado'); } catch (e) {}
                     }
-                    await category.delete('Simulador desbugado');
+                    try { await category.delete('Simulador desbugado'); } catch (e) {}
                 }
             }
 

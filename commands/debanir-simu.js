@@ -1,15 +1,15 @@
-// banir_simu.js - Comando para banir usuário de simuladores
+// debanir_simu.js - Comando para desbanir usuário de simuladores
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { banUser, isUserBannedInGuild } = require('../utils/database');
+const { unbanUser, isUserBannedInGuild } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('banir_simu')
-        .setDescription('Bane um usuário de participar de simuladores neste servidor')
+        .setName('debanir-simu')
+        .setDescription('Desbane um usuário de participar de simuladores neste servidor')
         .addUserOption(option =>
             option.setName('usuario')
-                .setDescription('Usuário a ser banido')
+                .setDescription('Usuário a ser desbanido')
                 .setRequired(true))
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     
@@ -19,22 +19,22 @@ module.exports = {
         try {
             const isBanned = await isUserBannedInGuild(user.id, interaction.guildId);
 
-            if (isBanned) {
+            if (!isBanned) {
                 return interaction.reply({
-                    embeds: [createErrorEmbed('Este usuário já está banido de simuladores neste servidor.', interaction.client)],
+                    embeds: [createErrorEmbed('Este usuário não está banido de simuladores neste servidor.', interaction.client)],
                     ephemeral: true
                 });
             }
 
-            await banUser(user.id, 'Banido de simuladores localmente');
+            await unbanUser(user.id);
 
             await interaction.reply({
-                embeds: [createSuccessEmbed(`${user} foi banido de participar de simuladores neste servidor.`, interaction.client)]
+                embeds: [createSuccessEmbed(`${user} foi desbanido de participar de simuladores neste servidor.`, interaction.client)]
             });
         } catch (error) {
-            console.error('Erro ao banir usuário:', error);
+            console.error('Erro ao desbanir usuário:', error);
             await interaction.reply({
-                embeds: [createErrorEmbed('Erro ao processar banimento.', interaction.client)],
+                embeds: [createErrorEmbed('Erro ao processar desbanimento.', interaction.client)],
                 ephemeral: true
             });
         }

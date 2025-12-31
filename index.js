@@ -377,8 +377,12 @@ app.get('/', async (req, res) => {
         };
     }));
 
-    const topServersData = await getTopServers(3);
-    const topServers = await Promise.all(topServersData.map(async (server) => {
+    const topServersData = await getTopServers(10); // Pegar mais para garantir que temos o suficiente após o filtro
+    const topServers = [];
+    
+    for (const server of topServersData) {
+        if (topServers.length >= 3) break;
+        
         for (const client of readyClients) {
             const guild = client.guilds.cache.get(server.guildId);
             if (guild) {
@@ -390,17 +394,18 @@ app.get('/', async (req, res) => {
                         inviteUrl = `https://discord.gg/${permanentInvite.code}`;
                     }
                 } catch (err) {}
-                return {
+                
+                topServers.push({
                     name: guild.name,
                     icon: guild.iconURL(),
                     memberCount: guild.memberCount,
                     simulatorsCreated: server.simulatorsCreated,
                     inviteUrl: inviteUrl
-                };
+                });
+                break; // Achou a guild, vai para o próximo serverData
             }
         }
-        return null;
-    }));
+    }
 
     let totalGuilds = 0;
     let totalUsers = 0;
@@ -428,6 +433,9 @@ app.get('/', async (req, res) => {
         totalBots: clients.length,
         onlineBots: readyClients.length
     };
+
+    // Ordenar servidores por número de membros (decrescente)
+    allGuilds.sort((a, b) => b.memberCount - a.memberCount);
 
     const botsInfo = readyClients.map(client => ({
         username: client.user.username,

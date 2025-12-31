@@ -1,8 +1,7 @@
 // banir_server.js - Comando para o dono banir um servidor
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { getPool } = require('../utils/database');
+const { banServer, isGuildBanned } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
-const path = require('path');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -23,16 +22,14 @@ module.exports = {
 
         const guildId = interaction.options.getString('server_id');
 
-        const dbClient = await getPool().connect();
         try {
-            await dbClient.query(`
-                INSERT INTO servers_banidos (guild_id, reason)
-                VALUES ($1, $2)
-                ON CONFLICT (guild_id) DO UPDATE
-                SET banned_at = CURRENT_TIMESTAMP, reason = $2
-            `, [guildId, 'Banido manualmente']);
-        } finally {
-            dbClient.release();
+            await banServer(guildId, 'Banido manualmente');
+        } catch (error) {
+            console.error('Erro ao banir servidor:', error);
+            return interaction.reply({
+                embeds: [createErrorEmbed('Erro ao salvar o banimento no banco de dados.', interaction.client)],
+                ephemeral: true
+            });
         }
 
         const guild = interaction.client.guilds.cache.get(guildId);
