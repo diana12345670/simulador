@@ -315,6 +315,10 @@ app.post('/api/purchase', async (req, res) => {
     }
 });
 
+app.get('/', (req, res) => {
+    res.status(200).send('Bot Online');
+});
+
 app.get('/ping', (req, res) => {
     res.status(200).send('pong');
 });
@@ -573,6 +577,10 @@ async function registerCommands(client) {
         console.error(`❌ [${client.botConfig.name}] Erro ao registrar comandos:`, error);
     }
 }
+
+app.get('/', (req, res) => {
+    res.status(200).send('Bot Online');
+});
 
 app.get('/ping', (req, res) => {
     res.status(200).send('pong');
