@@ -10,19 +10,18 @@ const path = require('path');
  */
 function readJSON(filePath, defaultValue = {}) {
     try {
-        // Garante que o diretório existe
         const dir = path.dirname(filePath);
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
 
-        // Se o arquivo não existe, retorna valor padrão
         if (!fs.existsSync(filePath)) {
             writeJSON(filePath, defaultValue);
             return defaultValue;
         }
 
         const data = fs.readFileSync(filePath, 'utf8');
+        if (!data || data.trim() === '') return defaultValue;
         return JSON.parse(data);
     } catch (error) {
         console.error(`Erro ao ler ${filePath}:`, error);
@@ -37,13 +36,14 @@ function readJSON(filePath, defaultValue = {}) {
  */
 function writeJSON(filePath, data) {
     try {
-        // Garante que o diretório existe
         const dir = path.dirname(filePath);
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
 
-        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+        const tempPath = `${filePath}.tmp`;
+        fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf8');
+        fs.renameSync(tempPath, filePath);
     } catch (error) {
         console.error(`Erro ao escrever ${filePath}:`, error);
     }

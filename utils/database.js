@@ -136,14 +136,30 @@ async function updateRankLocal(guildId, userId, stats) {
 }
 
 async function getRankGlobal(limit = 10) {
-    const rank = readJSON(JSON_FILES.rank_global, {});
-    return Object.entries(rank).map(([user_id, d]) => ({ user_id, ...d })).sort((a, b) => b.points - a.points).slice(0, limit);
+    try {
+        const rank = readJSON(JSON_FILES.rank_global, {});
+        return Object.entries(rank)
+            .map(([user_id, d]) => ({ user_id, ...d }))
+            .sort((a, b) => (b.points || 0) - (a.points || 0))
+            .slice(0, limit);
+    } catch (error) {
+        console.error('Erro ao buscar rank global:', error);
+        return [];
+    }
 }
 
 async function getRankLocal(guildId, limit = 10) {
-    const filePath = path.join(JSON_FILES.rank_local_dir, `${guildId}.json`);
-    const rank = readJSON(filePath, {});
-    return Object.entries(rank).map(([user_id, d]) => ({ user_id, ...d })).sort((a, b) => b.points - a.points).slice(0, limit);
+    try {
+        const filePath = path.join(JSON_FILES.rank_local_dir, `${guildId}.json`);
+        const rank = readJSON(filePath, {});
+        return Object.entries(rank)
+            .map(([user_id, d]) => ({ user_id, ...d }))
+            .sort((a, b) => (b.points || 0) - (a.points || 0))
+            .slice(0, limit);
+    } catch (error) {
+        console.error(`Erro ao buscar rank local para guild ${guildId}:`, error);
+        return [];
+    }
 }
 
 async function isUserBanned(userId) {
@@ -182,15 +198,27 @@ async function createTournament(data) {
 }
 
 async function getTournamentById(id) {
-    const ts = readJSON(JSON_FILES.tournaments, {});
-    return ts[id] || null;
+    try {
+        const ts = readJSON(JSON_FILES.tournaments, {});
+        return ts[id] || null;
+    } catch (error) {
+        console.error(`Erro ao buscar torneio ${id}:`, error);
+        return null;
+    }
 }
 
 async function updateTournament(id, update) {
-    const ts = readJSON(JSON_FILES.tournaments, {});
-    if (ts[id]) {
-        ts[id] = { ...ts[id], ...update };
-        writeJSON(JSON_FILES.tournaments, ts);
+    try {
+        const ts = readJSON(JSON_FILES.tournaments, {});
+        if (ts[id]) {
+            ts[id] = { ...ts[id], ...update };
+            writeJSON(JSON_FILES.tournaments, ts);
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error(`Erro ao atualizar torneio ${id}:`, error);
+        return false;
     }
 }
 
@@ -279,6 +307,15 @@ async function getLiveRankPanelsByGuild(guildId) {
     return panels.filter(p => p.guildId === guildId);
 }
 
+async function removeLiveRankPanel(panelId) {
+    let panels = await getLiveRankPanels();
+    const initialLength = panels.length;
+    panels = panels.filter(p => p.id !== panelId);
+    if (panels.length !== initialLength) {
+        writeJSON(JSON_FILES.live_rank_panels, panels);
+    }
+}
+
 module.exports = {
     initDatabase, readConfig, writeConfig, getSimulador, saveSimulador,
     updateRankGlobal, updateRankLocal, getRankGlobal, getRankLocal,
@@ -286,5 +323,5 @@ module.exports = {
     createTournament, getTournamentById, updateTournament, deleteTournament,
     getAllTournaments, countActiveTournaments, getTopServers, incrementServerSimulators,
     getPlayer, updatePlayer, addMatchHistory, getShopCatalog, getLiveRankPanels, saveLiveRankPanel,
-    banServer, unbanServer, setBotNote, getBotNote, getLiveRankPanelsByGuild
+    banServer, unbanServer, setBotNote, getBotNote, getLiveRankPanelsByGuild, removeLiveRankPanel
 };

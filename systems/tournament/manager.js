@@ -334,7 +334,8 @@ async function updateSimulatorPanel(client, simulatorId) {
 
     try {
         const message = await channel.messages.fetch(simulator.panelMessageId);
-
+        if (!message) return;
+        
         console.log(`🔄 Atualizando painel - Mensagem tem ${message.components.length} ActionRows`);
 
         // Monta descrição dependendo do modo de seleção
@@ -524,7 +525,7 @@ async function startTournament(client, simulatorId) {
     }
 
     // Se for seleção manual, valida se todos os times estão completos
-    if (simulator.teamSelection === 'manual') {
+    if (teamSelection === 'manual') {
         const teamsData = simulator.teamsData || {};
         const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
         const totalTeams = simulator.totalTeams || (simulator.maxPlayers / playersPerTeam);
@@ -537,13 +538,15 @@ async function startTournament(client, simulatorId) {
                 
                 // Impede que o torneio inicie se houver times incompletos na seleção manual
                 if (simulator.state === 'open') {
-                    await channel.send({
-                        embeds: [createRedEmbed({
-                            title: `${emojis.negative} Erro ao iniciar torneio`,
-                            description: `O Time ${i} está incompleto! (${teamPlayers.length}/${playersPerTeam} jogadores)\n\nO torneio manual só pode ser iniciado com todos os times cheios.`,
-                            timestamp: true
-                        })]
-                    });
+                    try {
+                        await channel.send({
+                            embeds: [createRedEmbed({
+                                title: `${emojis.negative} Erro ao iniciar torneio`,
+                                description: `O Time ${i} está incompleto! (${teamPlayers.length}/${playersPerTeam} jogadores)\n\nO torneio manual só pode ser iniciado com todos os times cheios.`,
+                                timestamp: true
+                            })]
+                        });
+                    } catch (e) { console.error(e); }
                     return;
                 }
             }

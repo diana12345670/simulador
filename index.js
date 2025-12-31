@@ -102,17 +102,14 @@ function createClient(config) {
     const eventsPath = path.join(__dirname, 'events');
     const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
-    for (const file of eventFiles) {
-        const filePath = path.join(eventsPath, file);
-        delete require.cache[require.resolve(filePath)];
-        const event = require(filePath);
-
-        if (event.once) {
-            client.once(event.name, (...args) => event.execute(...args));
-        } else {
-            client.on(event.name, (...args) => event.execute(...args));
+    client.once('ready', async () => {
+        try {
+            const event = require('./events/ready');
+            await event.execute(client);
+        } catch (error) {
+            console.error(`❌ Erro no evento ready do ${config.name}:`, error);
         }
-    }
+    });
 
     return client;
 }
