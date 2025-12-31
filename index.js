@@ -9,7 +9,7 @@ const cookieParser = require('cookie-parser');
 const FileStore = require('session-file-store')(session);
 const { initDatabase } = require('./utils/database');
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
 let DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || process.env.APPLICATION_ID || null;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
@@ -39,7 +39,7 @@ if (!DISCORD_REDIRECT_URI) {
         DISCORD_REDIRECT_URI = `${renderUrl}/auth/discord/callback`;
     } else {
         // Localhost
-        DISCORD_REDIRECT_URI = 'http://localhost:5000/auth/discord/callback';
+        DISCORD_REDIRECT_URI = 'http://localhost:8080/auth/discord/callback';
     }
 }
 
@@ -598,8 +598,8 @@ async function start() {
         // mesmo que o bot demore para logar ou o token esteja faltando.
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`🌐 Servidor web rodando na porta ${PORT}`);
-            console.log(`📊 Dashboard: http://localhost:${PORT}`);
-            console.log(`🏓 Ping endpoint: http://localhost:${PORT}/ping`);
+            console.log(`📊 Dashboard: http://0.0.0.0:${PORT}`);
+            console.log(`🏓 Ping endpoint: http://0.0.0.0:${PORT}/ping`);
         });
 
         const loginPromises = clients.map(async (client) => {
