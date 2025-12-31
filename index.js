@@ -6,6 +6,7 @@ const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord
 const express = require('express');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
+const FileStore = require('session-file-store')(session);
 const { initDatabase } = require('./utils/database');
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -102,12 +103,12 @@ function createClient(config) {
     const eventsPath = path.join(__dirname, 'events');
     const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
-    client.once('ready', async () => {
+    client.once('clientReady', async () => {
         try {
             const event = require('./events/ready');
             await event.execute(client);
         } catch (error) {
-            console.error(`❌ Erro no evento ready do ${config.name}:`, error);
+            console.error(`❌ Erro no evento clientReady do ${config.name}:`, error);
         }
     });
 
@@ -135,6 +136,10 @@ app.use(express.json());
 app.use(cookieParser());
 app.set('trust proxy', 1);
 app.use(session({
+    store: new FileStore({
+        path: path.join(__dirname, 'data', 'sessions'),
+        logFn: () => {}
+    }),
     secret: process.env.SESSION_SECRET || 'simulator-bot-secret-key-2024',
     resave: false,
     saveUninitialized: false,

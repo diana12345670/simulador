@@ -2,7 +2,7 @@
 const { getBotNote } = require('../utils/database');
 
 module.exports = {
-    name: 'ready',
+    name: 'clientReady',
     once: true,
     async execute(client) {
         const botName = client.botConfig ? client.botConfig.name : 'Bot';
