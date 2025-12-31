@@ -574,6 +574,10 @@ async function registerCommands(client) {
     }
 }
 
+app.get('/ping', (req, res) => {
+    res.status(200).send('pong');
+});
+
 async function start() {
     try {
         console.log('🔄 Inicializando banco de dados...');
