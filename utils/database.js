@@ -23,24 +23,8 @@ const JSON_FILES = {
 };
 
 async function tryConnectPostgres() {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) return false;
-    try {
-        const pg = require('pg');
-        const poolUrl = databaseUrl.includes('.us-east-2') 
-            ? databaseUrl.replace('.us-east-2', '-pooler.us-east-2')
-            : databaseUrl;
-        pool = new pg.Pool({ connectionString: poolUrl, max: 5 });
-        const client = await pool.connect();
-        await client.query('SELECT 1');
-        client.release();
-        console.log('✅ PostgreSQL detectado e conectado.');
-        return true;
-    } catch (error) {
-        console.log('⚠️ PostgreSQL falhou, usando JSON.');
-        pool = null;
-        return false;
-    }
+    // Forçado a usar apenas JSON conforme solicitado
+    return false;
 }
 
 function initJsonDatabase() {
@@ -286,6 +270,15 @@ async function setBotNote(note) {
     await writeConfig('bot_note', note);
 }
 
+async function getBotNote() {
+    return await readConfig('bot_note', '');
+}
+
+async function getLiveRankPanelsByGuild(guildId) {
+    const panels = await getLiveRankPanels();
+    return panels.filter(p => p.guildId === guildId);
+}
+
 module.exports = {
     initDatabase, readConfig, writeConfig, getSimulador, saveSimulador,
     updateRankGlobal, updateRankLocal, getRankGlobal, getRankLocal,
@@ -293,5 +286,5 @@ module.exports = {
     createTournament, getTournamentById, updateTournament, deleteTournament,
     getAllTournaments, countActiveTournaments, getTopServers, incrementServerSimulators,
     getPlayer, updatePlayer, addMatchHistory, getShopCatalog, getLiveRankPanels, saveLiveRankPanel,
-    banServer, unbanServer, setBotNote
+    banServer, unbanServer, setBotNote, getBotNote, getLiveRankPanelsByGuild
 };

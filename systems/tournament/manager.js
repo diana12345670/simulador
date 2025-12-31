@@ -534,14 +534,18 @@ async function startTournament(client, simulatorId) {
             const teamPlayers = teamsData[`time${i}`] || [];
             if (teamPlayers.length !== playersPerTeam) {
                 console.log(`❌ Time ${i} incompleto: ${teamPlayers.length}/${playersPerTeam}`);
-                await channel.send({
-                    embeds: [createRedEmbed({
-                        title: `${emojis.negative} Erro ao iniciar torneio`,
-                        description: `O Time ${i} está incompleto! (${teamPlayers.length}/${playersPerTeam} jogadores)`,
-                        timestamp: true
-                    })]
-                });
-                return;
+                
+                // Impede que o torneio inicie se houver times incompletos na seleção manual
+                if (simulator.state === 'open') {
+                    await channel.send({
+                        embeds: [createRedEmbed({
+                            title: `${emojis.negative} Erro ao iniciar torneio`,
+                            description: `O Time ${i} está incompleto! (${teamPlayers.length}/${playersPerTeam} jogadores)\n\nO torneio manual só pode ser iniciado com todos os times cheios.`,
+                            timestamp: true
+                        })]
+                    });
+                    return;
+                }
             }
         }
     }

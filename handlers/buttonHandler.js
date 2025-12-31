@@ -69,17 +69,24 @@ async function handleTeamSelect(interaction) {
     }
 
     const playerId = interaction.user.id;
-    const teamsData = simulator.teamsData || {};
-    const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
     const currentPlayers = simulator.players || [];
 
-    const isNewPlayer = !currentPlayers.includes(playerId);
-    if (isNewPlayer && currentPlayers.length >= simulator.maxPlayers) {
+    if (currentPlayers.includes(playerId)) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Você já está inscrito neste simulador.', interaction.client)],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    if (currentPlayers.length >= simulator.maxPlayers) {
         return interaction.reply({
             embeds: [createErrorEmbed('Este simulador já está lotado!', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
+
+    const teamsData = simulator.teamsData || {};
+    const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
 
     let currentTeam = null;
     for (const [teamKey, players] of Object.entries(teamsData)) {
@@ -155,17 +162,24 @@ async function handleTeamJoin(interaction) {
     }
 
     const playerId = interaction.user.id;
-    const teamsData = simulator.teamsData || {};
-    const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
     const currentPlayers = simulator.players || [];
 
-    const isNewPlayer = !currentPlayers.includes(playerId);
-    if (isNewPlayer && currentPlayers.length >= simulator.maxPlayers) {
+    if (currentPlayers.includes(playerId)) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Você já está inscrito neste simulador.', interaction.client)],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    if (currentPlayers.length >= simulator.maxPlayers) {
         return interaction.reply({
             embeds: [createErrorEmbed('Este simulador já está lotado!', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
+
+    const teamsData = simulator.teamsData || {};
+    const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
 
     let currentTeam = null;
     for (const [teamKey, players] of Object.entries(teamsData)) {
@@ -228,6 +242,7 @@ async function handleTeamJoin(interaction) {
 
 async function handleJoin(interaction) {
     const simulatorId = interaction.customId.replace('simu_join_', '');
+    const playerId = interaction.user.id;
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator || simulator.state !== 'open') {
@@ -237,14 +252,16 @@ async function handleJoin(interaction) {
         });
     }
 
-    if (simulator.players.includes(interaction.user.id)) {
+    // Verificação rigorosa de duplicidade e lotação
+    const currentPlayers = simulator.players || [];
+    if (currentPlayers.includes(playerId)) {
         return interaction.reply({
             embeds: [createErrorEmbed('Você já está inscrito neste simulador.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
-    if (simulator.players.length >= simulator.maxPlayers) {
+    if (currentPlayers.length >= simulator.maxPlayers) {
         return interaction.reply({
             embeds: [createErrorEmbed('Este simulador já está lotado.', interaction.client)],
             flags: MessageFlags.Ephemeral
