@@ -413,7 +413,8 @@ async function handleCancel(interaction) {
     }
 
     const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
-    if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
+    const OWNER_ID_2 = process.env.OWNER_ID_2 || '1438204670920364103';
+    if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID && interaction.user.id !== OWNER_ID_2) {
         return interaction.editReply({
             embeds: [createErrorEmbed('Apenas o criador pode cancelar o simulador.', interaction.client)]
         });
@@ -494,7 +495,12 @@ async function handleStart(interaction) {
         });
     }
 
-    if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
+    const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
+    const OWNER_ID_2 = process.env.OWNER_ID_2 || '1438204670920364103';
+    
+    if (interaction.user.id !== simulator.creatorId && 
+        interaction.user.id !== OWNER_ID && 
+        interaction.user.id !== OWNER_ID_2) {
         return interaction.editReply({
             embeds: [createErrorEmbed('Apenas o criador pode iniciar o simulador.', interaction.client)]
         });
@@ -532,7 +538,8 @@ async function handleMatchWin(interaction, winnerTeamNum) {
     if (!simulator) return;
 
     const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
-    if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
+    const OWNER_ID_2 = process.env.OWNER_ID_2 || '1438204670920364103';
+    if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID && interaction.user.id !== OWNER_ID_2) {
         return interaction.reply({
             embeds: [createErrorEmbed('Apenas o criador pode declarar vencedor.', interaction.client)],
             flags: MessageFlags.Ephemeral
@@ -591,7 +598,8 @@ async function handleWalkover(interaction) {
     if (!simulator) return;
 
     const OWNER_ID_WO = process.env.OWNER_ID || '1339336477661724674';
-    if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID_WO) {
+    const OWNER_ID_WO_2 = process.env.OWNER_ID_2 || '1438204670920364103';
+    if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID_WO && interaction.user.id !== OWNER_ID_WO_2) {
         return interaction.reply({
             embeds: [createErrorEmbed('Apenas o criador pode declarar W.O.', interaction.client)],
             flags: MessageFlags.Ephemeral

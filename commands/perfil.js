@@ -40,8 +40,8 @@ module.exports = {
             const displayName = targetUser.displayName || targetUser.username;
             const titleDisplay = equippedTitleData ? equippedTitleData.display : (player && player.totalWins >= 1 ? '◇ Novato ◇' : '');
             
-            const winRate = calculateWinRate(player ? player.totalWins : 0, player ? player.totalLosses : 0);
-            const totalGames = (player.totalWins || 0) + (player.totalLosses || 0);
+            const winRate = calculateWinRate(player ? player.totalWins || 0 : 0, player ? player.totalLosses || 0 : 0);
+            const totalGames = (player ? player.totalWins || 0 : 0) + (player ? player.totalLosses || 0 : 0);
             
             const embed = new EmbedBuilder()
                 .setColor(embedColor)
