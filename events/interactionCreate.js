@@ -57,6 +57,13 @@ module.exports = {
             console.log(`🔘 Interação de ${type} detectada: ${interaction.customId}`);
             try {
                 await handleButton(interaction);
+                // Se não houve resposta/defer, envia fallback para evitar timeout
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({
+                        content: `${emojis.negative} A ação não respondeu a tempo. Tente novamente.`,
+                        flags: MessageFlags.Ephemeral
+                    }).catch(() => {});
+                }
             } catch (error) {
                 console.error(`❌ Erro ao processar ${type}:`, error);
                 

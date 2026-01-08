@@ -49,6 +49,19 @@ function createClient(config) {
     client.botConfig = config; client.commands = new Collection();
     const { loadCommands } = require('./handlers/commandHandler');
     loadCommands(client);
+    // Eventos
+    try {
+        const interactionHandler = require('./events/interactionCreate');
+        client.on('interactionCreate', async (interaction) => {
+            try {
+                await interactionHandler.execute(interaction);
+            } catch (err) {
+                console.error('Erro no interactionCreate:', err);
+            }
+        });
+    } catch (err) {
+        console.error('Falha ao registrar interactionCreate:', err);
+    }
     client.once('clientReady', async () => {
         try { const event = require('./events/ready'); await event.execute(client); } catch (error) { console.error(`Erro Ready ${config.name}:`, error); }
     });
