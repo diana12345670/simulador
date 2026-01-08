@@ -1,7 +1,7 @@
 // simulador2v2.js - Comando para criar simulador 2v2
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
-const { readConfig } = require('../utils/database');
-const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
+const { readConfig, isUserBanned, isUserBannedInGuild } = require('../utils/database');
+const { createErrorEmbed, createSuccessEmbed, createRedEmbed } = require('../utils/embeds');
 const { createSimulator } = require('../systems/tournament/manager');
 const { getEmojis } = require('../utils/emojis');
 const path = require('path');
@@ -66,6 +66,24 @@ module.exports = {
         const premio = interaction.options.getString('premio') || 'Nenhum';
 
         const emojis = getEmojis(interaction.client);
+
+        if (await isUserBanned(interaction.user.id)) {
+            return interaction.reply({
+                embeds: [createRedEmbed({
+                    title: `${emojis.negative} Banido pela equipe Sky`,
+                    description: `Você está banido de jogar simuladores pela equipe Sky.\n\n${emojis.pergaminhopixel} Peça apelo em: https://discord.com/invite/8M83fTdyRW`,
+                    timestamp: true
+                })],
+                flags: MessageFlags.Ephemeral
+            });
+        }
+
+        if (await isUserBannedInGuild(interaction.user.id, interaction.guildId)) {
+            return interaction.reply({
+                embeds: [createErrorEmbed(`${emojis.negative} Você está banido de simuladores neste servidor.`, interaction.client)],
+                flags: MessageFlags.Ephemeral
+            });
+        }
 
         if (!VALID_QUANTITIES.includes(jogadores)) {
             return interaction.reply({

@@ -186,6 +186,21 @@ async function unbanUser(userId) {
     writeJSON(JSON_FILES.bans, bans);
 }
 
+async function banUserInGuild(userId, guildId, reason = 'N/A') {
+    const bans = readJSON(JSON_FILES.bans, { global: [], local: {} });
+    if (!bans.local[guildId]) bans.local[guildId] = [];
+    if (!bans.local[guildId].find(b => b.userId === userId)) {
+        bans.local[guildId].push({ userId, reason, bannedAt: new Date().toISOString() });
+        writeJSON(JSON_FILES.bans, bans);
+    }
+}
+
+async function unbanUserInGuild(userId, guildId) {
+    const bans = readJSON(JSON_FILES.bans, { global: [], local: {} });
+    bans.local[guildId] = (bans.local[guildId] || []).filter(b => b.userId !== userId);
+    writeJSON(JSON_FILES.bans, bans);
+}
+
 async function isGuildBanned(guildId) {
     const servers = readJSON(JSON_FILES.servers_banidos, []);
     return servers.some(s => s.guildId === guildId);
@@ -316,12 +331,29 @@ async function removeLiveRankPanel(panelId) {
     }
 }
 
+async function addOwnerHelper(userId) {
+    const helpers = await readConfig('owner_helpers', []);
+    if (!helpers.includes(userId)) {
+        helpers.push(userId);
+        await writeConfig('owner_helpers', helpers);
+    }
+    return helpers;
+}
+
+async function isOwnerOrAuthorized(userId) {
+    if (!userId) return false;
+    if (userId === process.env.OWNER_ID) return true;
+    const helpers = await readConfig('owner_helpers', []);
+    return helpers.includes(userId);
+}
+
 module.exports = {
     initDatabase, readConfig, writeConfig, getSimulador, saveSimulador,
     updateRankGlobal, updateRankLocal, getRankGlobal, getRankLocal,
-    isUserBanned, isUserBannedInGuild, banUser, unbanUser, isGuildBanned,
+    isUserBanned, isUserBannedInGuild, banUser, unbanUser, banUserInGuild, unbanUserInGuild, isGuildBanned,
     createTournament, getTournamentById, updateTournament, deleteTournament,
     getAllTournaments, countActiveTournaments, getTopServers, incrementServerSimulators,
     getPlayer, updatePlayer, addMatchHistory, getShopCatalog, getLiveRankPanels, saveLiveRankPanel,
-    banServer, unbanServer, setBotNote, getBotNote, getLiveRankPanelsByGuild, removeLiveRankPanel
+    banServer, unbanServer, setBotNote, getBotNote, getLiveRankPanelsByGuild, removeLiveRankPanel,
+    addOwnerHelper, isOwnerOrAuthorized
 };

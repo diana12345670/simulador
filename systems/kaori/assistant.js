@@ -1,4 +1,5 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { readConfig } = require('../../utils/database');
 
 let openai = null;
 
@@ -89,6 +90,11 @@ const WO_OFFLINE_RESPONSES = [
     'W.O.? 2 min pra responderem, se não, vitória pro adversário',
     'típico de covarde. 2 min pra aparecerem ou é W.O.'
 ];
+
+async function isAIEnabled(guildId) {
+    const aiConfig = await readConfig('ai_enabled_guilds', {});
+    return aiConfig[guildId] !== false;
+}
 
 async function analyzeMessage(context, userMessage) {
     if (!openai) {
@@ -411,6 +417,7 @@ function checkMessageForAutoConfirmation(message, channelId) {
 }
 
 async function giveVictoryByKaori(channel, confirmationData) {
+    if (!(await isAIEnabled(channel.guildId))) return;
     try {
         const { getTournamentById, updateTournament } = require('../../utils/database');
         const { advanceWinner } = require('../tournament/bracket');
@@ -466,6 +473,7 @@ async function giveVictoryByKaori(channel, confirmationData) {
 }
 
 async function handleKaoriMention(message, simulator, match) {
+    if (!(await isAIEnabled(message.guildId))) return;
     const pending = pendingConfirmations.get(message.channel.id);
     const lowerContent = message.content.toLowerCase();
     const mentionsKaori = lowerContent.includes('kaori');
@@ -575,6 +583,7 @@ Usuário: ${message.author.username} (${team1.includes(authorId) ? 'Time 1' : te
 async function askForScore(channel, match) {
     try {
         if (!channel || !channel.id) return;
+        if (!(await isAIEnabled(channel.guildId))) return;
         
         if (isKaoriPausedForChannel(channel.id)) return;
         

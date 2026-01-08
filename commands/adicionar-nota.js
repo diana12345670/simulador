@@ -3,7 +3,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { createSuccessEmbed, createErrorEmbed } = require('../utils/embeds');
 const { getEmojis } = require('../utils/emojis');
-const { setBotNote } = require('../utils/database');
+const { setBotNote, isOwnerOrAuthorized } = require('../utils/database');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -18,7 +18,7 @@ module.exports = {
     async execute(interaction) {
         const emojis = getEmojis(interaction.client);
         
-        if (interaction.user.id !== process.env.OWNER_ID) {
+        if (!(await isOwnerOrAuthorized(interaction.user.id))) {
             return interaction.reply({
                 embeds: [createErrorEmbed('Apenas o dono do bot pode usar este comando.', interaction.client)],
                 ephemeral: true

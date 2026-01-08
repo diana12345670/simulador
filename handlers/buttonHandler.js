@@ -1,5 +1,5 @@
 const { createRedEmbed, createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
-const { getTournamentById, updateTournament, deleteTournament, incrementServerSimulators } = require('../utils/database');
+const { getTournamentById, updateTournament, deleteTournament, incrementServerSimulators, isUserBanned, isUserBannedInGuild } = require('../utils/database');
 const { updateSimulatorPanel, startTournament, cancelSimulatorTimeout } = require('../systems/tournament/manager');
 const { getEmojis } = require('../utils/emojis');
 const { MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
@@ -69,6 +69,26 @@ async function handleTeamSelect(interaction) {
     }
 
     const playerId = interaction.user.id;
+    const emojis = getEmojis(interaction.client);
+
+    if (await isUserBanned(playerId)) {
+        return interaction.reply({
+            embeds: [createRedEmbed({
+                title: `${emojis.negative} Banido pela equipe Sky`,
+                description: `Você está banido de jogar simuladores pela equipe Sky.\n\n${emojis.pergaminhopixel} Peça apelo em: https://discord.com/invite/8M83fTdyRW`,
+                timestamp: true
+            })],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    if (await isUserBannedInGuild(playerId, interaction.guildId)) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Você está banido de simuladores neste servidor.', interaction.client)],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
     const currentPlayers = simulator.players || [];
 
     if (currentPlayers.includes(playerId)) {
@@ -134,7 +154,6 @@ async function handleTeamSelect(interaction) {
         players: newPlayers 
     });
 
-    const emojis = getEmojis(interaction.client);
     const action = currentTeam ? `trocou para o Time ${selectedTeamNumber}` : `entrou no Time ${selectedTeamNumber}`;
     await interaction.reply({
         embeds: [createRedEmbed({
@@ -227,7 +246,6 @@ async function handleTeamJoin(interaction) {
         players: newPlayers 
     });
 
-    const emojis = getEmojis(interaction.client);
     const action = currentTeam ? `trocou para o Time ${teamNumber}` : `entrou no Time ${teamNumber}`;
     await interaction.reply({
         embeds: [createRedEmbed({
@@ -252,6 +270,26 @@ async function handleJoin(interaction) {
         });
     }
 
+    const emojis = getEmojis(interaction.client);
+
+    if (await isUserBanned(playerId)) {
+        return interaction.reply({
+            embeds: [createRedEmbed({
+                title: `${emojis.negative} Banido pela equipe Sky`,
+                description: `Você está banido de jogar simuladores pela equipe Sky.\n\n${emojis.pergaminhopixel} Peça apelo em: https://discord.com/invite/8M83fTdyRW`,
+                timestamp: true
+            })],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    if (await isUserBannedInGuild(playerId, interaction.guildId)) {
+        return interaction.reply({
+            embeds: [createErrorEmbed('Você está banido de simuladores neste servidor.', interaction.client)],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
     // Verificação rigorosa de duplicidade e lotação
     const currentPlayers = simulator.players || [];
     if (currentPlayers.includes(playerId)) {
@@ -271,7 +309,6 @@ async function handleJoin(interaction) {
     const newPlayers = [...currentPlayers, playerId];
     await updateTournament(simulatorId, { players: newPlayers });
 
-    const emojis = getEmojis(interaction.client);
     await interaction.reply({
         embeds: [createRedEmbed({
             description: `${emojis.positive} Você entrou no simulador!`,

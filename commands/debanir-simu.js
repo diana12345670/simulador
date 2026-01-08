@@ -1,11 +1,11 @@
 // debanir_simu.js - Comando para desbanir usuário de simuladores
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { unbanUser, isUserBannedInGuild } = require('../utils/database');
+const { unbanUserInGuild, isUserBannedInGuild } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('debanir-simu')
+        .setName('desbanir-simu')
         .setDescription('Desbane um usuário de participar de simuladores neste servidor')
         .addUserOption(option =>
             option.setName('usuario')
@@ -26,7 +26,7 @@ module.exports = {
                 });
             }
 
-            await unbanUser(user.id);
+            await unbanUserInGuild(user.id, interaction.guildId);
 
             await interaction.reply({
                 embeds: [createSuccessEmbed(`${user} foi desbanido de participar de simuladores neste servidor.`, interaction.client)]

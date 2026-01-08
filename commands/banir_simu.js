@@ -1,6 +1,6 @@
 // banir_simu.js - Comando para banir usuário de simuladores
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { banUser, isUserBannedInGuild } = require('../utils/database');
+const { banUserInGuild, isUserBannedInGuild } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 
 module.exports = {
@@ -26,10 +26,10 @@ module.exports = {
                 });
             }
 
-            await banUser(user.id, 'Banido de simuladores localmente');
+            await banUserInGuild(user.id, interaction.guildId, 'Banido de simuladores localmente');
 
             await interaction.reply({
-                embeds: [createSuccessEmbed(`${user} foi banido de participar de simuladores neste servidor.`, interaction.client)]
+                embeds: [createSuccessEmbed(`${user} foi banido de participar de simuladores neste servidor`, interaction.client)]
             });
         } catch (error) {
             console.error('Erro ao banir usuário:', error);
