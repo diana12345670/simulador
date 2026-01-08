@@ -11,7 +11,11 @@ module.exports = {
         .addUserOption(option =>
             option.setName('usuario')
                 .setDescription('Usuário que receberá a permissão')
-                .setRequired(true)),
+                .setRequired(false))
+        .addStringOption(option =>
+            option.setName('id')
+                .setDescription('ID do usuário (use se estiver em DM ou sem menção)')
+                .setRequired(false)),
 
     async execute(interaction) {
         const emojis = getEmojis(interaction.client);
@@ -24,26 +28,28 @@ module.exports = {
             });
         }
 
-        const target = interaction.options.getUser('usuario');
-        if (!target) {
+        const targetUser = interaction.options.getUser('usuario');
+        const targetId = targetUser?.id || interaction.options.getString('id');
+
+        if (!targetId) {
             return interaction.reply({
-                embeds: [createErrorEmbed('Usuário inválido.', interaction.client)],
+                embeds: [createErrorEmbed('Informe o usuário (menção) ou o ID.', interaction.client)],
                 ephemeral: true
             });
         }
 
-        if (target.id === process.env.OWNER_ID) {
+        if (targetId === process.env.OWNER_ID) {
             return interaction.reply({
                 embeds: [createErrorEmbed(`${emojis.alerta} O dono já tem todas as permissões.`, interaction.client)],
                 ephemeral: true
             });
         }
 
-        await addOwnerHelper(target.id);
+        await addOwnerHelper(targetId);
 
         await interaction.reply({
             embeds: [createSuccessEmbed(
-                `${emojis.positive} ${target} agora tem permissão para usar os comandos de dono.`,
+                `${emojis.positive} <@${targetId}> agora tem permissão para usar os comandos de dono.`,
                 interaction.client
             )]
         });
