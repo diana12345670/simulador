@@ -93,7 +93,7 @@ const WO_OFFLINE_RESPONSES = [
 
 async function isAIEnabled(guildId) {
     const aiConfig = await readConfig('ai_enabled_guilds', {});
-    return aiConfig[guildId] !== false;
+    return aiConfig[guildId] === true; // padrão: DESATIVADO; só liga se estiver true
 }
 
 async function analyzeMessage(context, userMessage) {
