@@ -300,9 +300,9 @@ async function cancelSimulatorIfNotFull(client, simulatorId) {
                     const panelMessage = await channel.messages.fetch(simulator.panelMessageId);
 
                     const cancelledEmbed = createRedEmbed({
-                        title: `${emojis.fogo} ${t('pt', 'panel_title', { mode: simulator.mode, game: simulator.jogo })}`,
-                        description: `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.trofeupixel} **Modo:** ${simulator.mode}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n${emojis.negative} **Este simulador foi cancelado automaticatically**\n${emojis.alerta} Timeout de 6 minutos por falta de jogadores`,
-                        footer: { text: 'Simulador cancelado por timeout' },
+                        title: `${emojis.fogo} ${t(simulator.language || 'pt', 'panel_title', { mode: simulator.mode, game: simulator.jogo })}`,
+                        description: `${emojis.raiopixel} **${t(simulator.language || 'pt', 'panel_game')}:** ${simulator.jogo}\n${emojis.pergaminhopixel} **${t(simulator.language || 'pt', 'panel_version')}:** ${simulator.versao}\n${emojis.trofeupixel} **${t(simulator.language || 'pt', 'panel_mode')}:** ${simulator.mode}\n${emojis.presentepixel} **${t(simulator.language || 'pt', 'panel_prize')}:** ${simulator.prize}\n\n${emojis.negative} **${t(simulator.language || 'pt', 'simulator_cancelled_auto')}**\n${emojis.alerta} ${t(simulator.language || 'pt', 'simulator_timeout_reason')}`,
+                        footer: { text: t(simulator.language || 'pt', 'simulator_cancelled_timeout') },
                         timestamp: true
                     });
 
@@ -545,7 +545,16 @@ async function startTournament(client, simulatorId) {
     const emojis = getEmojis(client);
 
     const guild = client.guilds.cache.get(simulator.guildId);
+    if (!guild) {
+        console.error(`❌ Guild não encontrada: ${simulator.guildId}`);
+        return;
+    }
+
     const channel = guild.channels.cache.get(simulator.channelId);
+    if (!channel) {
+        console.error(`❌ Canal não encontrado: ${simulator.channelId}`);
+        return;
+    }
 
     // Incrementa o contador de simuladores para o rank de servidores APENAS quando o torneio iniciar
     // Verifica se já não foi contado antes
