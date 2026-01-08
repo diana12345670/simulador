@@ -3,6 +3,8 @@ const { SlashCommandBuilder } = require('discord.js');
 const { unbanUser, isUserBanned } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 const { getEmojis } = require('../utils/emojis');
+const { getGuildLanguage } = require('../utils/lang');
+const { t } = require('../utils/i18n');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -14,11 +16,12 @@ module.exports = {
                 .setRequired(true)),
 
     async execute(interaction) {
+        const lang = await getGuildLanguage(interaction.guildId);
         const emojis = getEmojis(interaction.client);
 
         if (interaction.user.id !== process.env.OWNER_ID) {
             return interaction.reply({
-                embeds: [createErrorEmbed(`${emojis.negative} Apenas o dono do bot pode usar este comando.`, interaction.client)],
+                embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'owner_only')}`, interaction.client)],
                 ephemeral: true
             });
         }
@@ -28,7 +31,7 @@ module.exports = {
 
         if (!isBanned) {
             return interaction.reply({
-                embeds: [createErrorEmbed(`${emojis.alerta} ${user} não está banido globalmente.`, interaction.client)],
+                embeds: [createErrorEmbed(`${emojis.alerta} ${t(lang, 'not_banned_global', { user: user.toString() })}`, interaction.client)],
                 ephemeral: true
             });
         }
@@ -37,7 +40,7 @@ module.exports = {
 
         await interaction.reply({
             embeds: [createSuccessEmbed(
-                `${emojis.positive} ${user} foi desbanido globalmente e pode voltar a jogar simuladores.`,
+                `${emojis.positive} ${t(lang, 'unban_global_success', { user: user.toString() })}`,
                 interaction.client
             )]
         });

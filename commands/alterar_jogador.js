@@ -3,6 +3,8 @@ const { getTournamentById, updateTournament, getRunningTournamentByGuild } = req
 const { createErrorEmbed, createRedEmbed, createSuccessEmbed } = require('../utils/embeds');
 const { getEmojis } = require('../utils/emojis');
 const { updateSimulatorPanel } = require('../systems/tournament/manager');
+const { getGuildLanguage } = require('../utils/lang');
+const { t } = require('../utils/i18n');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -22,6 +24,7 @@ module.exports = {
                 .setRequired(false)),
     
     async execute(interaction) {
+        const lang = await getGuildLanguage(interaction.guildId);
         const emojis = getEmojis(interaction.client);
         const jogadorSair = interaction.options.getUser('jogador_sair');
         const jogadorEntrar = interaction.options.getUser('jogador_entrar');
@@ -29,7 +32,7 @@ module.exports = {
 
         if (jogadorSair.id === jogadorEntrar.id) {
             return interaction.reply({
-                embeds: [createErrorEmbed(`${emojis.negative} Os jogadores devem ser diferentes!`)],
+                embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'different_players_required')}`)],
                 flags: MessageFlags.Ephemeral
             });
         }
@@ -47,33 +50,33 @@ module.exports = {
 
             if (!simulator) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`${emojis.negative} Nenhum torneio em andamento encontrado neste servidor.`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'no_running_tournament')}`)]
                 });
             }
 
             const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
             if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`${emojis.negative} Apenas o criador do torneio pode alterar jogadores.`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'only_creator_alter')}`)]
                 });
             }
 
             if (!simulator.players.includes(jogadorSair.id)) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`${emojis.negative} ${jogadorSair} não está participando deste torneio.`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'player_not_in_tournament', { player: jogadorSair.toString() })}`)]
                 });
             }
 
             if (simulator.players.includes(jogadorEntrar.id)) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`${emojis.negative} ${jogadorEntrar} já está participando deste torneio.`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'substitute_already_in_tournament', { player: jogadorEntrar.toString() })}`)]
                 });
             }
 
             const bracketData = simulator.bracketData;
             if (!bracketData || !bracketData.matches) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`${emojis.negative} Este torneio ainda não tem um bracket gerado.`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'no_bracket_generated')}`)]
                 });
             }
 
@@ -105,7 +108,7 @@ module.exports = {
 
             if (!substituicaoFeita) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`${emojis.negative} ${jogadorSair} não foi encontrado em nenhuma partida pendente.\n\nPossíveis motivos:\n• O jogador já foi eliminado\n• Todas as partidas do jogador já foram concluídas`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'player_not_in_pending_matches', { player: jogadorSair.toString() })}`)]
                 });
             }
 
@@ -140,8 +143,8 @@ module.exports = {
 
                         await matchChannel.send({
                             embeds: [createRedEmbed({
-                                title: `${emojis.alerta} Substituição de Jogador`,
-                                description: `${jogadorSair} foi substituído por ${jogadorEntrar}`,
+                                title: `${emojis.alerta} ${t(lang, 'player_substitution_title')}`,
+                                description: t(lang, 'player_substitution_desc', { removed: jogadorSair.toString(), added: jogadorEntrar.toString() }),
                                 timestamp: true
                             })]
                         });
@@ -188,9 +191,9 @@ module.exports = {
 
             await interaction.editReply({
                 embeds: [createRedEmbed({
-                    title: `${emojis.positive} Jogador Substituído`,
-                    description: `**Saiu:** ${jogadorSair}\n**Entrou:** ${jogadorEntrar}\n\n**Partida:** ${roundName} - ${matchEncontrada.id}\n**Posição:** ${timeEncontrado}`,
-                    footer: { text: `Torneio: ${simulator.jogo} ${simulator.mode}` },
+                    title: `${emojis.positive} ${t(lang, 'player_substituted_title')}`,
+                    description: t(lang, 'player_substituted_desc', { removed: jogadorSair.toString(), added: jogadorEntrar.toString(), match: `${roundName} - ${matchEncontrada.id}`, team: timeEncontrado }),
+                    footer: { text: t(lang, 'tournament_footer', { game: simulator.jogo, mode: simulator.mode }) },
                     timestamp: true
                 })]
             });
@@ -198,7 +201,7 @@ module.exports = {
         } catch (error) {
             console.error('Erro ao alterar jogador:', error);
             await interaction.editReply({
-                embeds: [createErrorEmbed(`${emojis.negative} Erro ao substituir jogador. Tente novamente.`)]
+                embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'error_substitute_player')}`)]
             });
         }
     }

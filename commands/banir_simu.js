@@ -2,6 +2,8 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { banUserInGuild, isUserBannedInGuild } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
+const { getGuildLanguage } = require('../utils/lang');
+const { t } = require('../utils/i18n');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -14,6 +16,7 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     
     async execute(interaction) {
+        const lang = await getGuildLanguage(interaction.guildId);
         const user = interaction.options.getUser('usuario');
 
         try {
@@ -21,7 +24,7 @@ module.exports = {
 
             if (isBanned) {
                 return interaction.reply({
-                    embeds: [createErrorEmbed('Este usuário já está banido de simuladores neste servidor.', interaction.client)],
+                    embeds: [createErrorEmbed(t(lang, 'already_banned_local'), interaction.client)],
                     ephemeral: true
                 });
             }
@@ -29,12 +32,12 @@ module.exports = {
             await banUserInGuild(user.id, interaction.guildId, 'Banido de simuladores localmente');
 
             await interaction.reply({
-                embeds: [createSuccessEmbed(`${user} foi banido de participar de simuladores neste servidor`, interaction.client)]
+                embeds: [createSuccessEmbed(t(lang, 'ban_local_success', { user: user.toString() }), interaction.client)]
             });
         } catch (error) {
             console.error('Erro ao banir usuário:', error);
             await interaction.reply({
-                embeds: [createErrorEmbed('Erro ao processar banimento.', interaction.client)],
+                embeds: [createErrorEmbed(t(lang, 'error_ban_process'), interaction.client)],
                 ephemeral: true
             });
         }

@@ -26,21 +26,21 @@ module.exports = {
             const rankPosition = top10.findIndex(p => p.user_id === targetUser.id) + 1;
             
             let equippedBannerData = null;
-            if (player.equippedBanner) {
+            if (player && player.equippedBanner) {
                 equippedBannerData = catalog.banners.find(b => b.id === player.equippedBanner);
             }
             
             let equippedTitleData = null;
-            if (player.equippedTitle) {
+            if (player && player.equippedTitle) {
                 equippedTitleData = catalog.titles.find(t => t.id === player.equippedTitle);
             }
             
             const embedColor = equippedBannerData ? parseInt(equippedBannerData.color.replace('#', ''), 16) : 0xFF0000;
             
             const displayName = targetUser.displayName || targetUser.username;
-            const titleDisplay = equippedTitleData ? equippedTitleData.display : (player.totalWins >= 1 ? '◇ Novato ◇' : '');
+            const titleDisplay = equippedTitleData ? equippedTitleData.display : (player && player.totalWins >= 1 ? '◇ Novato ◇' : '');
             
-            const winRate = calculateWinRate(player.totalWins, player.totalLosses);
+            const winRate = calculateWinRate(player ? player.totalWins : 0, player ? player.totalLosses : 0);
             const totalGames = (player.totalWins || 0) + (player.totalLosses || 0);
             
             const embed = new EmbedBuilder()
@@ -56,8 +56,8 @@ module.exports = {
             }
             
             const statsValue = [
-                `\`${(player.coins || 0).toLocaleString('pt-BR')}\` moedas`,
-                `\`${player.totalWins || 0}\` vitórias · \`${player.totalLosses || 0}\` derrotas`,
+                `\`${(player ? player.coins || 0 : 0).toLocaleString('pt-BR')}\` moedas`,
+                `\`${player ? player.totalWins || 0 : 0}\` vitórias · \`${player ? player.totalLosses || 0 : 0}\` derrotas`,
                 `\`${winRate}%\` taxa de vitória`
             ].join('\n');
             
@@ -68,9 +68,8 @@ module.exports = {
             });
             
             const progressValue = [
-                `Sequência: \`${player.currentStreak || 0}\``,
-                `Recorde: \`${player.bestStreak || 0}\``,
-                `vs Top 10: \`${player.winsVsTop10 || 0}\``
+                `\`${(player ? player.totalWins || 0 : 0)}/${totalGames}\` jogos`,
+                `\`${rankPosition > 0 ? '#' + rankPosition : 'N/A'}\` rank global`
             ].join('\n');
             
             embed.addFields({ 
@@ -87,8 +86,8 @@ module.exports = {
                 });
             }
             
-            const bannersCount = (player.bannersOwned || []).length;
-            const titlesCount = (player.titlesOwned || []).length;
+            const bannersCount = (player ? player.bannersOwned : []).length;
+            const titlesCount = (player ? player.titlesOwned : []).length;
             
             const footerParts = [];
             if (bannersCount > 0 || titlesCount > 0) {

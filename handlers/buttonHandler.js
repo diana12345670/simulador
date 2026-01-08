@@ -3,6 +3,8 @@ const { getTournamentById, updateTournament, deleteTournament, incrementServerSi
 const { updateSimulatorPanel, startTournament, cancelSimulatorTimeout } = require('../systems/tournament/manager');
 const { getEmojis } = require('../utils/emojis');
 const { MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
+const { getGuildLanguage } = require('../utils/lang');
+const { t } = require('../utils/i18n');
 
 const timeouts = new Map(); 
 
@@ -50,6 +52,7 @@ async function handleButton(interaction) {
 
 
 async function handleTeamSelect(interaction) {
+    const lang = await getGuildLanguage(interaction.guildId);
     // Novo formato: team_select_sim-GUILDID-TIMESTAMP_MENUINDEX
     // Precisamos extrair o simulatorId corretamente
     const customId = interaction.customId;
@@ -63,7 +66,7 @@ async function handleTeamSelect(interaction) {
 
     if (!simulator || simulator.state !== 'open') {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador não está mais aberto.', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'simul_closed'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -74,8 +77,8 @@ async function handleTeamSelect(interaction) {
     if (await isUserBanned(playerId)) {
         return interaction.reply({
             embeds: [createRedEmbed({
-                title: `${emojis.negative} Banido pela equipe Sky`,
-                description: `Você está banido de jogar simuladores pela equipe Sky.\n\n${emojis.pergaminhopixel} Peça apelo em: https://discord.com/invite/8M83fTdyRW`,
+                title: `${emojis.negative} ${t(lang, 'banned_global_title')}`,
+                description: t(lang, 'banned_global_desc'),
                 timestamp: true
             })],
             flags: MessageFlags.Ephemeral
@@ -84,7 +87,7 @@ async function handleTeamSelect(interaction) {
 
     if (await isUserBannedInGuild(playerId, interaction.guildId)) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Você está banido de simuladores neste servidor.', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'banned_local'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -93,14 +96,14 @@ async function handleTeamSelect(interaction) {
 
     if (currentPlayers.includes(playerId)) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Você já está inscrito neste simulador.', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'join_already'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
     if (currentPlayers.length >= simulator.maxPlayers) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador já está lotado!', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'join_full'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -118,7 +121,7 @@ async function handleTeamSelect(interaction) {
 
     if (currentTeam === `time${selectedTeamNumber}`) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Você já está neste time!', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'team_same'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -126,7 +129,7 @@ async function handleTeamSelect(interaction) {
     const targetTeam = teamsData[`time${selectedTeamNumber}`] || [];
     if (targetTeam.length >= playersPerTeam) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este time já está cheio!', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'team_full'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -154,10 +157,12 @@ async function handleTeamSelect(interaction) {
         players: newPlayers 
     });
 
-    const action = currentTeam ? `trocou para o Time ${selectedTeamNumber}` : `entrou no Time ${selectedTeamNumber}`;
+    const actionText = currentTeam
+        ? t(lang, 'switch_team', { team: selectedTeamNumber })
+        : t(lang, 'join_team', { team: selectedTeamNumber });
     await interaction.reply({
         embeds: [createRedEmbed({
-            description: `${emojis.positive} Você ${action}!`,
+            description: `${emojis.positive} ${actionText}`,
             timestamp: true
         })],
         flags: MessageFlags.Ephemeral
@@ -259,13 +264,14 @@ async function handleTeamJoin(interaction) {
 }
 
 async function handleJoin(interaction) {
+    const lang = await getGuildLanguage(interaction.guildId);
     const simulatorId = interaction.customId.replace('simu_join_', '');
     const playerId = interaction.user.id;
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator || simulator.state !== 'open') {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador não está mais aberto.', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'simul_closed'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -275,8 +281,8 @@ async function handleJoin(interaction) {
     if (await isUserBanned(playerId)) {
         return interaction.reply({
             embeds: [createRedEmbed({
-                title: `${emojis.negative} Banido pela equipe Sky`,
-                description: `Você está banido de jogar simuladores pela equipe Sky.\n\n${emojis.pergaminhopixel} Peça apelo em: https://discord.com/invite/8M83fTdyRW`,
+                title: `${emojis.negative} ${t(lang, 'banned_global_title')}`,
+                description: t(lang, 'banned_global_desc'),
                 timestamp: true
             })],
             flags: MessageFlags.Ephemeral
@@ -285,7 +291,7 @@ async function handleJoin(interaction) {
 
     if (await isUserBannedInGuild(playerId, interaction.guildId)) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Você está banido de simuladores neste servidor.', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'banned_local'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -294,14 +300,14 @@ async function handleJoin(interaction) {
     const currentPlayers = simulator.players || [];
     if (currentPlayers.includes(playerId)) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Você já está inscrito neste simulador.', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'join_already'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
     if (currentPlayers.length >= simulator.maxPlayers) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador já está lotado.', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'join_full'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -311,7 +317,7 @@ async function handleJoin(interaction) {
 
     await interaction.reply({
         embeds: [createRedEmbed({
-            description: `${emojis.positive} Você entrou no simulador!`,
+            description: `${emojis.positive} ${t(lang, 'join_success')}`,
             timestamp: true
         })],
         flags: MessageFlags.Ephemeral
@@ -321,19 +327,20 @@ async function handleJoin(interaction) {
 }
 
 async function handleLeave(interaction) {
+    const lang = await getGuildLanguage(interaction.guildId);
     const simulatorId = interaction.customId.replace('simu_leave_', '');
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator || simulator.state !== 'open') {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador não está mais aberto.', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'simul_closed'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
     if (!simulator.players.includes(interaction.user.id)) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Você não está inscrito neste simulador.', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'leave_not_in'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -355,7 +362,7 @@ async function handleLeave(interaction) {
     const emojis = getEmojis(interaction.client);
     await interaction.reply({
         embeds: [createRedEmbed({
-            description: `${emojis.negative} Você saiu do simulador.`,
+            description: `${emojis.negative} ${t(lang, 'leave_success')}`,
             timestamp: true
         })],
         flags: MessageFlags.Ephemeral

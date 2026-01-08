@@ -3,6 +3,8 @@ const { getTournamentById, updateTournament, getOpenTournamentByChannel, getRunn
 const { createErrorEmbed, createRedEmbed } = require('../utils/embeds');
 const { updateSimulatorPanel } = require('../systems/tournament/manager');
 const { getEmojis } = require('../utils/emojis');
+const { getGuildLanguage } = require('../utils/lang');
+const { t } = require('../utils/i18n');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -18,13 +20,14 @@ module.exports = {
                 .setRequired(false)),
     
     async execute(interaction) {
+        const lang = await getGuildLanguage(interaction.guildId);
         const emojis = getEmojis(interaction.client);
         const jogadorRemover = interaction.options.getUser('jogador');
         const jogadorSubstituto = interaction.options.getUser('substituir_por');
 
         if (jogadorSubstituto && jogadorRemover.id === jogadorSubstituto.id) {
             return interaction.reply({
-                embeds: [createErrorEmbed(`${emojis.negative} Os jogadores devem ser diferentes!`)],
+                embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'different_players_required')}`)],
                 flags: MessageFlags.Ephemeral
             });
         }
@@ -40,26 +43,26 @@ module.exports = {
 
             if (!simulator) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`${emojis.negative} Nenhum simulador encontrado neste canal.`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'no_simulator_in_channel')}`)]
                 });
             }
 
             const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
             if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`${emojis.negative} Apenas o criador do simulador pode remover jogadores.`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'only_creator_remove')}`)]
                 });
             }
 
             if (!simulator.players.includes(jogadorRemover.id)) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`${emojis.negative} ${jogadorRemover} não está participando deste simulador.`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'player_not_in_simulator', { player: jogadorRemover.toString() })}`)]
                 });
             }
 
             if (jogadorSubstituto && simulator.players.includes(jogadorSubstituto.id)) {
                 return interaction.editReply({
-                    embeds: [createErrorEmbed(`${emojis.negative} ${jogadorSubstituto} já está participando deste simulador.`)]
+                    embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'substitute_already_in_simulator', { player: jogadorSubstituto.toString() })}`)]
                 });
             }
 
@@ -79,7 +82,7 @@ module.exports = {
                     }
                 }
 
-                description = `**Removido:** ${jogadorRemover}\n**Substituído por:** ${jogadorSubstituto}`;
+                description = t(lang, 'player_removed_and_substituted', { removed: jogadorRemover.toString(), substitute: jogadorSubstituto.toString() });
             } else {
                 newPlayers = simulator.players.filter(id => id !== jogadorRemover.id);
                 
@@ -89,7 +92,7 @@ module.exports = {
                     }
                 }
 
-                description = `**Removido:** ${jogadorRemover}`;
+                description = t(lang, 'player_removed', { player: jogadorRemover.toString() });
             }
 
             if (simulator.state === 'running' && simulator.bracketData && simulator.bracketData.matches) {
@@ -149,9 +152,9 @@ module.exports = {
 
             await interaction.editReply({
                 embeds: [createRedEmbed({
-                    title: `${emojis.positive} Jogador Removido`,
+                    title: `${emojis.positive} ${t(lang, 'player_removed_title')}`,
                     description: description,
-                    footer: { text: `Simulador: ${simulator.jogo} ${simulator.mode}` },
+                    footer: { text: t(lang, 'simulator_footer', { game: simulator.jogo, mode: simulator.mode }) },
                     timestamp: true
                 })]
             });
@@ -159,7 +162,7 @@ module.exports = {
         } catch (error) {
             console.error('Erro ao remover jogador:', error);
             await interaction.editReply({
-                embeds: [createErrorEmbed(`${emojis.negative} Erro ao remover jogador. Tente novamente.`)]
+                embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'error_remove_player')}`)]
             });
         }
     }

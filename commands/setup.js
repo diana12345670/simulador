@@ -1,6 +1,6 @@
 
 // setup.js - Comando para configurar cargo de criador de simuladores
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const { readConfig, writeConfig } = require('../utils/database');
 const { createRedEmbed, createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 const { getEmojis } = require('../utils/emojis');
@@ -18,6 +18,17 @@ module.exports = {
                 .setDescription('Canal onde o bot enviará as mensagens')
                 .addChannelTypes(ChannelType.GuildText)
                 .setRequired(true))
+        .addStringOption(option =>
+            option.setName('linguagem')
+                .setDescription('Idioma padrão das mensagens do bot neste servidor')
+                .addChoices(
+                    { name: 'English', value: 'en' },
+                    { name: '中文 (Zhōngwén)', value: 'zh' },
+                    { name: 'Español', value: 'es' },
+                    { name: 'Français', value: 'fr' },
+                    { name: 'Deutsch', value: 'de' }
+                )
+                .setRequired(false))
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     
     async execute(interaction) {
@@ -59,15 +70,18 @@ module.exports = {
         }
 
         config[interaction.guildId].simuCreatorRole = role.id;
+        const lang = interaction.options.getString('linguagem') || config[interaction.guildId].language || 'pt';
+        config[interaction.guildId].language = lang;
 
         // Salva configuração no PostgreSQL com a chave 'guild_config'
         await writeConfig('guild_config', config);
         
         console.log(`✅ Cargo configurado para ${interaction.guildId}: ${role.id}`);
+        console.log(`✅ Linguagem configurada para ${interaction.guildId}: ${lang}`);
 
         await interaction.editReply({
             embeds: [createSuccessEmbed(
-                `${emojis.positive} Cargo configurado!\n\nApenas membros com o cargo ${role} poderão criar simuladores.`
+                `${emojis.positive} Configuração salva!\n\nCargo: ${role}\nIdioma: ${lang.toUpperCase()}\n\nApenas membros com o cargo ${role} poderão criar simuladores.`
             )]
         });
     }

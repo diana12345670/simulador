@@ -3,6 +3,8 @@ const { SlashCommandBuilder } = require('discord.js');
 const { banUser, isUserBanned } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 const { getEmojis } = require('../utils/emojis');
+const { getGuildLanguage } = require('../utils/lang');
+const { t } = require('../utils/i18n');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -18,22 +20,23 @@ module.exports = {
                 .setRequired(false)),
 
     async execute(interaction) {
+        const lang = await getGuildLanguage(interaction.guildId);
         const emojis = getEmojis(interaction.client);
 
         if (interaction.user.id !== process.env.OWNER_ID) {
             return interaction.reply({
-                embeds: [createErrorEmbed(`${emojis.negative} Apenas o dono do bot pode usar este comando.`, interaction.client)],
+                embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'owner_only')}`, interaction.client)],
                 ephemeral: true
             });
         }
 
         const user = interaction.options.getUser('usuario');
-        const motivo = interaction.options.getString('motivo') || 'Banido pela equipe Sky';
+        const motivo = interaction.options.getString('motivo') || t(lang, 'default_ban_reason');
 
         const alreadyBanned = await isUserBanned(user.id);
         if (alreadyBanned) {
             return interaction.reply({
-                embeds: [createErrorEmbed(`${emojis.alerta} ${user} já está banido globalmente.`, interaction.client)],
+                embeds: [createErrorEmbed(`${emojis.alerta} ${t(lang, 'already_banned_global', { user: user.toString() })}`, interaction.client)],
                 ephemeral: true
             });
         }
@@ -42,7 +45,7 @@ module.exports = {
 
         await interaction.reply({
             embeds: [createSuccessEmbed(
-                `${emojis.negative} ${user} foi banido globalmente de todos os simuladores.\n\n${emojis.pergaminhopixel} Motivo: ${motivo}`,
+                `${emojis.negative} ${t(lang, 'ban_global_success', { user: user.toString(), motivo })}`,
                 interaction.client
             )]
         });

@@ -337,6 +337,10 @@ async function updateSimulatorPanel(client, simulatorId) {
     const teamsData = simulator.teamsData || simulator.teams_data || {};
     const teamSelection = simulator.teamSelection || simulator.team_selection || 'aleatorio';
     const startMode = simulator.startMode || simulator.start_mode || 'automatico';
+    const guildLanguage = (simulator.language) || (simulator.guildLanguage) || null; // se vier salvo
+    const { getGuildLanguage } = require('../../utils/lang');
+    const lang = guildLanguage || (await getGuildLanguage(guildId));
+    const { t } = require('../../utils/i18n');
 
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return;
@@ -352,8 +356,8 @@ async function updateSimulatorPanel(client, simulatorId) {
 
         // Monta descrição dependendo do modo de seleção
         const selectionText = teamSelection === 'manual' 
-            ? `${emojis.joiapixel} **Escolha de Times:** Manual (escolha seu time)`
-            : `${emojis.joiapixel} **Escolha de Times:** Aleatório`;
+            ? `${emojis.joiapixel} ${t(lang, 'selection_manual')}`
+            : `${emojis.joiapixel} ${t(lang, 'selection_auto')}`;
 
         let panelDescription;
         if (teamSelection === 'manual') {
@@ -367,18 +371,19 @@ async function updateSimulatorPanel(client, simulatorId) {
                     : 'Vazio';
                 teamsText += `\n**Time ${i}** (${teamPlayers.length}/${playersPerTeam}): ${playerMentions}`;
             }
-            panelDescription = `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.joiapixel} **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n**Jogadores (${players.length}/${maxPlayers})**${teamsText}`;
+            panelDescription = `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.joiapixel} **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n${t(lang, 'panel_players', { count: players.length, max: maxPlayers })}${teamsText}`;
         } else {
             const playersList = players.length > 0
                 ? players.map(id => `<@${id}>`).join('\n')
                 : 'Nenhum jogador ainda';
-            panelDescription = `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.joiapixel} **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n**Jogadores (${players.length}/${maxPlayers})**\n${playersList}`;
+            const playersText = players.length > 0 ? playersList : t(lang, 'panel_no_players');
+            panelDescription = `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.joiapixel} **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n${t(lang, 'panel_players', { count: players.length, max: maxPlayers })}\n${playersText}`;
         }
 
         const updatedEmbed = createRedEmbed({
-            title: `${emojis.fogo} Simulador ${simulator.mode} – ${simulator.jogo}`,
+            title: `${emojis.fogo} ${t(lang, 'panel_title', { mode: simulator.mode, game: simulator.jogo })}`,
             description: panelDescription,
-            footer: { text: players.length >= maxPlayers ? 'Simulador lotado!' : 'Aguardando jogadores...' },
+            footer: { text: players.length >= maxPlayers ? t(lang, 'panel_full') : t(lang, 'panel_waiting') },
             timestamp: true
         });
 

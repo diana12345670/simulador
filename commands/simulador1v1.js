@@ -4,6 +4,8 @@ const { readConfig, isUserBanned, isUserBannedInGuild } = require('../utils/data
 const { createErrorEmbed, createSuccessEmbed, createRedEmbed } = require('../utils/embeds');
 const { createSimulator } = require('../systems/tournament/manager');
 const { getEmojis } = require('../utils/emojis');
+const { getGuildLanguage } = require('../utils/lang');
+const { t } = require('../utils/i18n');
 const path = require('path');
 
 // Quantidades válidas para 1v1
@@ -51,19 +53,20 @@ module.exports = {
                 .setRequired(false)),
 
     async execute(interaction) {
+        const lang = await getGuildLanguage(interaction.guildId);
         const emojis = getEmojis(interaction.client);
         const jogo = interaction.options.getString('jogo');
         const versao = interaction.options.getString('versao');
         const modo = interaction.options.getString('modo_mapa');
         const quantidade = interaction.options.getInteger('quantidade');
         const startMode = interaction.options.getString('start');
-        const premio = interaction.options.getString('premio') || 'Nenhum';
+        const premio = interaction.options.getString('premio') || t(lang, 'no_prize');
 
         if (await isUserBanned(interaction.user.id)) {
             return interaction.reply({
                 embeds: [createRedEmbed({
-                    title: `${emojis.negative} Banido pela equipe Sky`,
-                    description: `Você está banido de jogar simuladores pela equipe Sky.\n\n${emojis.pergaminhopixel} Peça apelo em: https://discord.com/invite/8M83fTdyRW`,
+                    title: `${emojis.negative} ${t(lang, 'banned_global_title')}`,
+                    description: t(lang, 'banned_global_desc'),
                     timestamp: true
                 })],
                 flags: MessageFlags.Ephemeral
@@ -72,7 +75,7 @@ module.exports = {
 
         if (await isUserBannedInGuild(interaction.user.id, interaction.guildId)) {
             return interaction.reply({
-                embeds: [createErrorEmbed(`${emojis.negative} Você está banido de simuladores neste servidor.`, interaction.client)],
+                embeds: [createErrorEmbed(t(lang, 'banned_local'), interaction.client)],
                 flags: MessageFlags.Ephemeral
             });
         }
@@ -80,7 +83,7 @@ module.exports = {
         if (!VALID_QUANTITIES.includes(quantidade)) {
             return interaction.reply({
                 embeds: [createErrorEmbed(
-                    `${emojis.negative} Quantidade inválida para 1v1!\n\nQuantidades aceitas: ${VALID_QUANTITIES.join(', ')}`
+                    `${emojis.negative} ${t(lang, 'invalid_quantity_1v1', { quantities: VALID_QUANTITIES.join(', ') })}`
                 )],
                 flags: MessageFlags.Ephemeral
             });
@@ -100,7 +103,7 @@ module.exports = {
         if (!guildConfig || !guildConfig.simuCreatorRole) {
             return interaction.reply({
                 embeds: [createErrorEmbed(
-                    `${emojis.negative} Este servidor ainda não configurou o cargo de criador de simuladores.\n\nUm administrador deve usar \`/setup\` primeiro.`
+                    `${emojis.negative} ${t(lang, 'no_simu_role_configured')}`
                 )],
                 flags: MessageFlags.Ephemeral
             });
@@ -109,7 +112,7 @@ module.exports = {
         const hasRole = interaction.member.roles.cache.has(guildConfig.simuCreatorRole);
         if (!hasRole && interaction.user.id !== process.env.OWNER_ID) {
             return interaction.reply({
-                embeds: [createErrorEmbed(`${emojis.negative} Você não tem permissão para criar simuladores.`)],
+                embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'no_permission_create_simu')}`)],
                 flags: MessageFlags.Ephemeral
             });
         }
@@ -133,7 +136,7 @@ module.exports = {
         } catch (error) {
             console.error('Erro ao criar simulador:', error);
             await interaction.editReply({
-                embeds: [createErrorEmbed(`${emojis.negative} Erro ao criar simulador. Tente novamente.`)]
+                embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'error_create_simulator')}`)]
             });
         }
     }
