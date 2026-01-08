@@ -14,11 +14,22 @@ module.exports = {
 
             if (!command) {
                 console.error(`Comando ${interaction.commandName} não encontrado`);
-                return;
+                // Responde para evitar timeout no cliente
+                return interaction.reply({
+                    content: `${emojis.negative} Comando não registrado. Tente novamente mais tarde.`,
+                    flags: MessageFlags.Ephemeral
+                }).catch(() => {});
             }
 
             try {
                 await command.execute(interaction);
+                // Se o comando não respondeu nem deferiu, envia fallback para evitar timeout silencioso
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({
+                        content: `${emojis.negative} O comando não respondeu a tempo. Tente novamente.`,
+                        flags: MessageFlags.Ephemeral
+                    }).catch(() => {});
+                }
             } catch (error) {
                 console.error(`Erro ao executar comando ${interaction.commandName}:`, error);
                 
