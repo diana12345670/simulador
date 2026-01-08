@@ -9,15 +9,15 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('setup')
         .setDescription('Configura os cargos, canais e permissões do bot no servidor')
-        .addRoleOption(option =>
-            option.setName('cargo')
-                .setDescription('Cargo que terá acesso aos comandos do bot (opcional, usa padrão em guild específica)')
-                .setRequired(false))
         .addChannelOption(option =>
             option.setName('canal')
                 .setDescription('Canal onde o bot enviará as mensagens')
                 .addChannelTypes(ChannelType.GuildText)
                 .setRequired(true))
+        .addRoleOption(option =>
+            option.setName('cargo')
+                .setDescription('Cargo que terá acesso aos comandos do bot (opcional, usa padrão em guild específica)')
+                .setRequired(false))
         .addStringOption(option =>
             option.setName('linguagem')
                 .setDescription('Idioma padrão das mensagens do bot neste servidor')
