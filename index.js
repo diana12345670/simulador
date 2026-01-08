@@ -152,6 +152,7 @@ app.get('/loja', async (req, res) => {
 // ==========================================
 async function deployCommands() {
     try {
+        console.log('🔄 Iniciando deploy automático de comandos...');
         const { REST, Routes } = require('discord.js');
         const fs = require('fs');
         const path = require('path');
@@ -160,15 +161,24 @@ async function deployCommands() {
         const commandsPath = path.join(__dirname, 'commands');
         const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
         
+        console.log(`📦 Encontrados ${commandFiles.length} arquivos de comando`);
+        
         for (const file of commandFiles) {
             const command = require(path.join(commandsPath, file));
             if ('data' in command && 'execute' in command) {
                 commands.push(command.data.toJSON());
+                console.log(`✅ Comando preparado: ${command.data.name}`);
             }
         }
         
+        console.log(`🚀 Registrando ${commands.length} comandos na API do Discord...`);
+        
         // Deploy para cada bot
         for (const client of clients) {
+            console.log(`🤖 Verificando bot: ${client.botConfig.name}`);
+            console.log(`   - Application ID: ${client.botConfig.applicationId}`);
+            console.log(`   - Ready: ${client.isReady()}`);
+            
             if (client.botConfig.applicationId && client.isReady()) {
                 const rest = new REST().setToken(client.botConfig.token);
                 try {
@@ -179,11 +189,16 @@ async function deployCommands() {
                     console.log(`✅ [${client.botConfig.name}] Comandos registrados: ${commands.length}`);
                 } catch (error) {
                     console.error(`❌ [${client.botConfig.name}] Erro ao registrar comandos:`, error.message);
+                    console.error(`   Status:`, error.status);
+                    console.error(`   Stack:`, error.stack);
                 }
+            } else {
+                console.log(`⚠️ [${client.botConfig.name}] Pulando - Application ID ou Ready false`);
             }
         }
     } catch (error) {
-        console.error('Erro no deploy de comandos:', error);
+        console.error('❌ Erro no deploy de comandos:', error);
+        console.error('   Stack:', error.stack);
     }
 }
 
@@ -208,7 +223,11 @@ async function start() {
                 .then(() => {
                     console.log(`✅ [${client.botConfig.name}] Online.`);
                     // Fazer deploy dos comandos quando o bot ficar online
-                    setTimeout(() => deployCommands(), 2000);
+                    console.log(`⏰ Agendando deploy de comandos em 2 segundos...`);
+                    setTimeout(() => {
+                        console.log(`🚀 Executando deploy agendado para [${client.botConfig.name}]`);
+                        deployCommands();
+                    }, 2000);
                 })
                 .catch(err => console.error(`❌ [${client.botConfig.name}] Falha:`, err.message));
         }
