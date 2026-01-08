@@ -163,7 +163,7 @@ function createClient(config) {
     loadCommands(client);
     
     // Evento para pegar Application ID automaticamente quando o bot ficar online
-    client.once('ready', async () => {
+    client.once('clientReady', async () => {
         if (!client.botConfig.applicationId && client.application) {
             client.botConfig.applicationId = client.application.id;
             console.log(`🆔 [${client.botConfig.name}] Application ID obtido automaticamente: ${client.application.id}`);
