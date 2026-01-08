@@ -161,6 +161,15 @@ function createClient(config) {
     client.botConfig = config; client.commands = new Collection();
     const { loadCommands } = require('./handlers/commandHandler');
     loadCommands(client);
+    
+    // Evento para pegar Application ID automaticamente quando o bot ficar online
+    client.once('ready', async () => {
+        if (!client.botConfig.applicationId && client.application) {
+            client.botConfig.applicationId = client.application.id;
+            console.log(`🆔 [${client.botConfig.name}] Application ID obtido automaticamente: ${client.application.id}`);
+        }
+    });
+    
     // Eventos
     try {
         const interactionHandler = require('./events/interactionCreate');
@@ -280,11 +289,12 @@ async function start() {
                 .then(() => {
                     console.log(`✅ [${client.botConfig.name}] Online.`);
                     // Fazer deploy dos comandos quando o bot ficar online
-                    console.log(`⏰ Agendando deploy de comandos em 2 segundos...`);
+                    console.log(`⏰ Agendando deploy de comandos em 5 segundos...`);
                     setTimeout(() => {
                         console.log(`🚀 Executando deploy agendado para [${client.botConfig.name}]`);
+                        console.log(`   Application ID atual: ${client.botConfig.applicationId || '❌ NULL'}`);
                         deployCommands();
-                    }, 2000);
+                    }, 5000); // Aumentado para 5 segundos para dar tempo do Application ID ser obtido
                 })
                 .catch(err => console.error(`❌ [${client.botConfig.name}] Falha:`, err.message));
         }
