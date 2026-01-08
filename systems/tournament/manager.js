@@ -32,6 +32,9 @@ async function createSimulator(client, guild, creator, options) {
     const { mode, jogo, versao, modo, maxPlayers, teamSelection = 'aleatorio', startMode = 'automatico', prize = 'Nenhum', channel } = options;
 
     const emojis = getEmojis(client);
+    const { getGuildLanguage } = require('../../utils/lang');
+    const { t } = require('../../utils/i18n');
+    const lang = await getGuildLanguage(guild.id);
 
     const simulatorId = `sim-${guild.id}-${Date.now()}`;
 
@@ -65,7 +68,8 @@ async function createSimulator(client, guild, creator, options) {
         bracket_data: null,
         state: 'open',
         panel_message_id: null,
-        category_id: null
+        category_id: null,
+        language: lang // Salva o idioma no simulador
     };
 
     await createTournament({
@@ -80,26 +84,26 @@ async function createSimulator(client, guild, creator, options) {
 
     // Monta descrição do painel
     const selectionText = teamSelection === 'manual' 
-        ? `${emojis.joiapixel} **Escolha de Times:** Manual (escolha seu time)`
-        : `${emojis.joiapixel} **Escolha de Times:** Aleatório`;
+        ? `${emojis.joiapixel} ${t(lang, 'selection_manual')}`
+        : `${emojis.joiapixel} ${t(lang, 'selection_auto')}`;
 
     let panelDescription;
     if (teamSelection === 'manual') {
         // Monta lista de times para seleção manual
         let teamsText = '';
         for (let i = 1; i <= totalTeams; i++) {
-            teamsText += `\n**Time ${i}** (0/${playersPerTeam}): Vazio`;
+            teamsText += `\n${t(lang, 'panel_team_line', { num: i, count: 0, max: playersPerTeam, players: t(lang, 'panel_no_players') })}`;
         }
-        panelDescription = `${emojis.raiopixel} **Jogo:** ${jogo}\n${emojis.pergaminhopixel} **Versão:** ${versao}\n${emojis.joiapixel} **Modo/Mapa:** ${modo}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${prize}\n\n**Jogadores (0/${maxPlayers})**${teamsText}`;
+        panelDescription = `${emojis.raiopixel} **Jogo:** ${jogo}\n${emojis.pergaminhopixel} **Versão:** ${versao}\n${emojis.joiapixel} **Modo/Mapa:** ${modo}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${prize}\n\n${t(lang, 'panel_players', { count: 0, max: maxPlayers })}${teamsText}`;
     } else {
-        panelDescription = `${emojis.raiopixel} **Jogo:** ${jogo}\n${emojis.pergaminhopixel} **Versão:** ${versao}\n${emojis.joiapixel} **Modo/Mapa:** ${modo}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${prize}\n\n**Jogadores (0/${maxPlayers})**\nNenhum jogador ainda`;
+        panelDescription = `${emojis.raiopixel} **Jogo:** ${jogo}\n${emojis.pergaminhopixel} **Versão:** ${versao}\n${emojis.joiapixel} **Modo/Mapa:** ${modo}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${prize}\n\n${t(lang, 'panel_players', { count: 0, max: maxPlayers })}\n${t(lang, 'panel_no_players')}`;
     }
 
     // Cria e envia painel de entrada
     const panelEmbed = createRedEmbed({
-        title: `${emojis.fogo} Simulador ${mode} – ${jogo}`,
+        title: `${emojis.fogo} ${t(lang, 'panel_title', { mode, game: jogo })}`,
         description: panelDescription,
-        footer: { text: 'Aguardando jogadores...' },
+        footer: { text: t(lang, 'panel_waiting') },
         timestamp: true
     });
 
@@ -280,8 +284,8 @@ async function cancelSimulatorIfNotFull(client, simulatorId) {
                     const panelMessage = await channel.messages.fetch(simulator.panelMessageId);
 
                     const cancelledEmbed = createRedEmbed({
-                        title: `${emojis.fogo} Simulador ${simulator.mode} – ${simulator.jogo}`,
-                        description: `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.trofeupixel} **Modo:** ${simulator.mode}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n${emojis.negative} **Este simulador foi cancelado automaticamente**\n${emojis.alerta} Timeout de 6 minutos por falta de jogadores`,
+                        title: `${emojis.fogo} ${t('pt', 'panel_title', { mode: simulator.mode, game: simulator.jogo })}`,
+                        description: `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.trofeupixel} **Modo:** ${simulator.mode}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n${emojis.negative} **Este simulador foi cancelado automaticatically**\n${emojis.alerta} Timeout de 6 minutos por falta de jogadores`,
                         footer: { text: 'Simulador cancelado por timeout' },
                         timestamp: true
                     });

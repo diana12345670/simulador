@@ -85,7 +85,11 @@ const dictionaries = {
             alterar_jogador: 'Substitute a player in running tournament.',
             help: 'Show this help message.'
         },
-        help_footer: 'Language: English'
+        help_footer: 'Language: English',
+        setup_success: 'Configuration saved!',
+        setup_role: 'Role',
+        setup_language: 'Language',
+        setup_permission_info: 'Only members with the role {role} can create simulators.'
     },
     zh: {
         selection_manual: '**队伍选择：** 手动（自行选择队伍）',
@@ -131,7 +135,11 @@ const dictionaries = {
             alterar_jogador: '在运行中的比赛中替换玩家。',
             help: '显示此帮助。'
         },
-        help_footer: '语言: 中文'
+        help_footer: '语言: 中文',
+        setup_success: '配置已保存！',
+        setup_role: '角色',
+        setup_language: '语言',
+        setup_permission_info: '只有拥有 {role} 角色的成员才能创建模拟器。'
     },
     es: {
         selection_manual: '**Selección de equipos:** Manual (elige tu equipo)',
@@ -177,7 +185,11 @@ const dictionaries = {
             alterar_jogador: 'Sustituir un jugador en torneo en curso.',
             help: 'Muestra esta ayuda.'
         },
-        help_footer: 'Idioma: Español'
+        help_footer: 'Idioma: Español',
+        setup_success: '¡Configuración guardada!',
+        setup_role: 'Rol',
+        setup_language: 'Idioma',
+        setup_permission_info: 'Solo los miembros con el rol {role} pueden crear simuladores.'
     },
     fr: {
         selection_manual: '**Choix d’équipe :** Manuel (choisissez votre équipe)',
@@ -223,7 +235,11 @@ const dictionaries = {
             alterar_jogador: 'Remplacer un joueur dans un tournoi en cours.',
             help: 'Afficher cette aide.'
         },
-        help_footer: 'Langue : Français'
+        help_footer: 'Langue: Français',
+        setup_success: 'Configuration enregistrée !',
+        setup_role: 'Rôle',
+        setup_language: 'Langue',
+        setup_permission_info: 'Seuls les membres avec le rôle {role} peuvent créer des simulateurs.'
     },
     de: {
         selection_manual: '**Teamauswahl:** Manuell (Team selbst wählen)',
@@ -269,7 +285,11 @@ const dictionaries = {
             alterar_jogador: 'Spieler im laufenden Turnier ersetzen.',
             help: 'Diese Hilfe anzeigen.'
         },
-        help_footer: 'Sprache: Deutsch'
+        help_footer: 'Sprache: Deutsch',
+        setup_success: 'Konfiguration gespeichert!',
+        setup_role: 'Rolle',
+        setup_language: 'Sprache',
+        setup_permission_info: 'Nur Mitglieder mit der Rolle {role} können Simulatoren erstellen.'
     }
 };
 
