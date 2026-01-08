@@ -50,6 +50,8 @@ module.exports = {
         config[interaction.guildId].simuCreatorRole = role.id;
         const lang = interaction.options.getString('linguagem') || config[interaction.guildId].language || 'pt';
         config[interaction.guildId].language = lang;
+        
+        console.log(`🌍 DEBUG SETUP: Guild ${interaction.guildId} - Idioma salvo: ${lang}`);
 
         // Salva configuração no PostgreSQL com a chave 'guild_config'
         await writeConfig('guild_config', config);

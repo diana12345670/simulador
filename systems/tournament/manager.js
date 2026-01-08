@@ -35,6 +35,8 @@ async function createSimulator(client, guild, creator, options) {
     const { getGuildLanguage } = require('../../utils/lang');
     const { t } = require('../../utils/i18n');
     const lang = await getGuildLanguage(guild.id);
+    
+    console.log(`🌍 DEBUG: Guild ${guild.id} - Idioma detectado: ${lang}`);
 
     const simulatorId = `sim-${guild.id}-${Date.now()}`;
 
@@ -94,9 +96,9 @@ async function createSimulator(client, guild, creator, options) {
         for (let i = 1; i <= totalTeams; i++) {
             teamsText += `\n${t(lang, 'panel_team_line', { num: i, count: 0, max: playersPerTeam, players: t(lang, 'panel_no_players') })}`;
         }
-        panelDescription = `${emojis.raiopixel} **Jogo:** ${jogo}\n${emojis.pergaminhopixel} **Versão:** ${versao}\n${emojis.joiapixel} **Modo/Mapa:** ${modo}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${prize}\n\n${t(lang, 'panel_players', { count: 0, max: maxPlayers })}${teamsText}`;
+        panelDescription = `${emojis.raiopixel} **${t(lang, 'panel_game')}:** ${jogo}\n${emojis.pergaminhopixel} **${t(lang, 'panel_version')}:** ${versao}\n${emojis.joiapixel} **${t(lang, 'panel_mode')}:** ${modo}\n${selectionText}\n${emojis.presentepixel} **${t(lang, 'panel_prize')}:** ${prize}\n\n${t(lang, 'panel_players', { count: 0, max: maxPlayers })}${teamsText}`;
     } else {
-        panelDescription = `${emojis.raiopixel} **Jogo:** ${jogo}\n${emojis.pergaminhopixel} **Versão:** ${versao}\n${emojis.joiapixel} **Modo/Mapa:** ${modo}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${prize}\n\n${t(lang, 'panel_players', { count: 0, max: maxPlayers })}\n${t(lang, 'panel_no_players')}`;
+        panelDescription = `${emojis.raiopixel} **${t(lang, 'panel_game')}:** ${jogo}\n${emojis.pergaminhopixel} **${t(lang, 'panel_version')}:** ${versao}\n${emojis.joiapixel} **${t(lang, 'panel_mode')}:** ${modo}\n${selectionText}\n${emojis.presentepixel} **${t(lang, 'panel_prize')}:** ${prize}\n\n${t(lang, 'panel_players', { count: 0, max: maxPlayers })}\n${t(lang, 'panel_no_players')}`;
     }
 
     // Cria e envia painel de entrada
@@ -191,16 +193,16 @@ async function createSimulator(client, guild, creator, options) {
         const buttons = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setCustomId(`simu_join_${simulatorId}`)
-                    .setLabel('Entrar')
+                    .setCustomId(`simu_join_v2_${simulatorId}`)
+                    .setLabel(t(lang, 'button_join'))
                     .setStyle(ButtonStyle.Danger),
                 new ButtonBuilder()
-                    .setCustomId(`simu_leave_${simulatorId}`)
-                    .setLabel('Sair')
+                    .setCustomId(`simu_leave_v2_${simulatorId}`)
+                    .setLabel(t(lang, 'button_leave'))
                     .setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder()
-                    .setCustomId(`simu_cancel_${simulatorId}`)
-                    .setLabel('Cancelar Simulador')
+                    .setCustomId(`simu_cancel_v2_${simulatorId}`)
+                    .setLabel(t(lang, 'button_cancel'))
                     .setStyle(ButtonStyle.Secondary)
             );
         components.push(buttons);
@@ -227,10 +229,19 @@ async function createSimulator(client, guild, creator, options) {
     console.log(`✅ Simulador ${mode} criado: ${simulatorId}`);
 
     const timeoutId = setTimeout(() => {
+        console.log(`⏰ DEBUG: Timeout disparado para: ${simulatorId} após ${TIMEOUT_DURATION / 60000} minutos`);
         cancelSimulatorIfNotFull(client, simulatorId);
     }, TIMEOUT_DURATION);
+    
+    // Limpa qualquer timer existente para este simulador (prevenção de duplicação)
+    if (simulatorTimeouts.has(simulatorId)) {
+        clearTimeout(simulatorTimeouts.get(simulatorId));
+        console.log(`⏰ DEBUG: Timer duplicado encontrado e limpo para: ${simulatorId}`);
+    }
+    
     simulatorTimeouts.set(simulatorId, timeoutId);
     console.log(`⏱️ Timer de ${TIMEOUT_DURATION / 60000} minutos iniciado para: ${simulatorId}`);
+    console.log(`⏰ DEBUG: Timeout ID: ${timeoutId}, Total timers ativos: ${simulatorTimeouts.size}`);
 
     return {
         id: simulatorId,
@@ -254,9 +265,14 @@ async function createSimulator(client, guild, creator, options) {
  * Cancela simulador se não estiver cheio
  */
 async function cancelSimulatorIfNotFull(client, simulatorId) {
+    console.log(`⏰ DEBUG: cancelSimulatorIfNotFull chamado para: ${simulatorId}`);
+    
     if (simulatorTimeouts.has(simulatorId)) {
         clearTimeout(simulatorTimeouts.get(simulatorId));
         simulatorTimeouts.delete(simulatorId);
+        console.log(`⏰ DEBUG: Timer limpo para: ${simulatorId}`);
+    } else {
+        console.log(`⏰ DEBUG: Nenhum timer encontrado para: ${simulatorId}`);
     }
 
     const simulator = await getTournamentById(simulatorId);
@@ -591,7 +607,7 @@ async function startTournament(client, simulatorId) {
     }
     
     const category = await guild.channels.create({
-        name: `Torneio ${simulator.jogo}`.substring(0, 100),
+        name: `${t(lang, 'tournament_category', { game: simulator.jogo })}`.substring(0, 100),
         type: ChannelType.GuildCategory,
         permissionOverwrites: categoryPermissions
     });
@@ -610,8 +626,8 @@ async function startTournament(client, simulatorId) {
 
     await channel.send({
         embeds: [createRedEmbed({
-            title: `${emojis.fogo} TORNEIO INICIADO!`,
-            description: 'O chaveamento foi gerado! Preparando canais...',
+            title: `${emojis.fogo} ${t(lang, 'tournament_started')}`,
+            description: t(lang, 'tournament_bracket_generating'),
             timestamp: true
         })]
     });
@@ -624,7 +640,7 @@ async function startTournament(client, simulatorId) {
             continue;
         }
         const matchNumber = match.id.split('match')[1];
-        await createMatchChannel(guild, category, simulator, match, `rodada-1-${matchNumber}`);
+        await createMatchChannel(guild, category, simulator, match, `${t(lang, 'round_channel', { round: 1, number: matchNumber })}`);
     }
 
     // Verifica se há BYEs e já processa a próxima rodada se necessário
@@ -635,8 +651,8 @@ async function startTournament(client, simulatorId) {
 
     await channel.send({
         embeds: [createRedEmbed({
-            title: `${emojis.positive} Canais criados!`,
-            description: 'As partidas da primeira rodada foram criadas. Boa sorte!',
+            title: `${emojis.positive} ${t(lang, 'channels_created')}`,
+            description: t(lang, 'channels_first_round'),
             timestamp: true
         })]
     });
@@ -701,13 +717,13 @@ async function createMatchChannel(guild, category, simulator, match, channelName
 
     const matchEmojis = getEmojis(guild.client);
     const matchEmbed = createRedEmbed({
-        title: `${matchEmojis.raiopixel} Partida`,
+        title: `${matchEmojis.raiopixel} ${t(lang, 'match_title')}`,
         fields: [
-            { name: 'Time 1', value: team1Mentions, inline: true },
-            { name: 'VS', value: matchEmojis.raiopixel, inline: true },
-            { name: 'Time 2', value: team2Mentions, inline: true }
+            { name: t(lang, 'match_team1'), value: team1Mentions, inline: true },
+            { name: t(lang, 'match_vs'), value: matchEmojis.raiopixel, inline: true },
+            { name: t(lang, 'match_team2'), value: team2Mentions, inline: true }
         ],
-        description: 'Boa sorte! O criador do simulador declarará o vencedor.\n\n*Mencione o criador ou digite "Kaori" se precisar de ajuda!*',
+        description: t(lang, 'match_description'),
         timestamp: true
     });
 
@@ -715,15 +731,15 @@ async function createMatchChannel(guild, category, simulator, match, channelName
         .addComponents(
             new ButtonBuilder()
                 .setCustomId(`match_win1_${simulator.id}_${match.id}`)
-                .setLabel('Time 1 Venceu')
+                .setLabel(t(lang, 'button_team1_wins'))
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
                 .setCustomId(`match_win2_${simulator.id}_${match.id}`)
-                .setLabel('Time 2 Venceu')
+                .setLabel(t(lang, 'button_team2_wins'))
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
                 .setCustomId(`match_wo_${simulator.id}_${match.id}`)
-                .setLabel('W.O.')
+                .setLabel(t(lang, 'button_wo'))
                 .setStyle(ButtonStyle.Secondary)
         );
 
