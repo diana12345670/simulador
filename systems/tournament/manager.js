@@ -326,14 +326,19 @@ async function updateSimulatorPanel(client, simulatorId) {
 
     const emojis = getEmojis(client);
 
-    const guild = client.guilds.cache.get(simulator.guildId);
+    // Compatibilidade com chaves antigas (snake_case) gravadas no JSON
+    const guildId = simulator.guildId || simulator.guild_id;
+    const channelId = simulator.channelId || simulator.channel_id;
+    const panelMessageId = simulator.panelMessageId || simulator.panel_message_id;
+
+    const guild = client.guilds.cache.get(guildId);
     if (!guild) return;
 
-    const channel = guild.channels.cache.get(simulator.channelId);
+    const channel = guild.channels.cache.get(channelId);
     if (!channel) return;
 
     try {
-        const message = await channel.messages.fetch(simulator.panelMessageId);
+        const message = await channel.messages.fetch(panelMessageId);
         if (!message) return;
         
         console.log(`🔄 Atualizando painel - Mensagem tem ${message.components.length} ActionRows`);
