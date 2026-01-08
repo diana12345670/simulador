@@ -330,6 +330,13 @@ async function updateSimulatorPanel(client, simulatorId) {
     const guildId = simulator.guildId || simulator.guild_id;
     const channelId = simulator.channelId || simulator.channel_id;
     const panelMessageId = simulator.panelMessageId || simulator.panel_message_id;
+    const maxPlayers = simulator.maxPlayers || simulator.max_players;
+    const playersPerTeam = simulator.playersPerTeam || simulator.players_per_team || parseInt((simulator.mode || '1v1').charAt(0));
+    const totalTeams = simulator.totalTeams || simulator.total_teams || Math.floor((maxPlayers || 2) / playersPerTeam) || 1;
+    const players = simulator.players || simulator.players_list || [];
+    const teamsData = simulator.teamsData || simulator.teams_data || {};
+    const teamSelection = simulator.teamSelection || simulator.team_selection || 'aleatorio';
+    const startMode = simulator.startMode || simulator.start_mode || 'automatico';
 
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return;
@@ -344,17 +351,14 @@ async function updateSimulatorPanel(client, simulatorId) {
         console.log(`🔄 Atualizando painel - Mensagem tem ${message.components.length} ActionRows`);
 
         // Monta descrição dependendo do modo de seleção
-        const selectionText = simulator.teamSelection === 'manual' 
+        const selectionText = teamSelection === 'manual' 
             ? `${emojis.joiapixel} **Escolha de Times:** Manual (escolha seu time)`
             : `${emojis.joiapixel} **Escolha de Times:** Aleatório`;
 
         let panelDescription;
-        if (simulator.teamSelection === 'manual') {
+        if (teamSelection === 'manual') {
             // Monta lista de times para seleção manual
             let teamsText = '';
-            const teamsData = simulator.teamsData || {};
-            const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
-            const totalTeams = simulator.totalTeams || Math.floor(simulator.maxPlayers / playersPerTeam);
 
             for (let i = 1; i <= totalTeams; i++) {
                 const teamPlayers = teamsData[`time${i}`] || [];
@@ -363,19 +367,18 @@ async function updateSimulatorPanel(client, simulatorId) {
                     : 'Vazio';
                 teamsText += `\n**Time ${i}** (${teamPlayers.length}/${playersPerTeam}): ${playerMentions}`;
             }
-            const currentPlayers = simulator.players || [];
-            panelDescription = `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.joiapixel} **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n**Jogadores (${currentPlayers.length}/${simulator.maxPlayers})**${teamsText}`;
+            panelDescription = `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.joiapixel} **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n**Jogadores (${players.length}/${maxPlayers})**${teamsText}`;
         } else {
-            const playersList = simulator.players.length > 0
-                ? simulator.players.map(id => `<@${id}>`).join('\n')
+            const playersList = players.length > 0
+                ? players.map(id => `<@${id}>`).join('\n')
                 : 'Nenhum jogador ainda';
-            panelDescription = `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.joiapixel} **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n**Jogadores (${simulator.players.length}/${simulator.maxPlayers})**\n${playersList}`;
+            panelDescription = `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.joiapixel} **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n**Jogadores (${players.length}/${maxPlayers})**\n${playersList}`;
         }
 
         const updatedEmbed = createRedEmbed({
             title: `${emojis.fogo} Simulador ${simulator.mode} – ${simulator.jogo}`,
             description: panelDescription,
-            footer: { text: simulator.players.length >= simulator.maxPlayers ? 'Simulador lotado!' : 'Aguardando jogadores...' },
+            footer: { text: players.length >= maxPlayers ? 'Simulador lotado!' : 'Aguardando jogadores...' },
             timestamp: true
         });
 
@@ -385,8 +388,7 @@ async function updateSimulatorPanel(client, simulatorId) {
             updatedEmbed.setThumbnail(guildImage);
         }
 
-        const isFull = simulator.players.length >= simulator.maxPlayers;
-        const startMode = simulator.startMode || simulator.start_mode || 'automatico';
+        const isFull = players.length >= maxPlayers;
         let newComponents = [];
 
         if (isFull && startMode === 'manual') {
@@ -403,9 +405,7 @@ async function updateSimulatorPanel(client, simulatorId) {
                 );
             newComponents = [controlButtons];
         } else if (!isFull) {
-            if (simulator.teamSelection === 'manual') {
-                const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
-                const totalTeams = simulator.totalTeams || Math.floor(simulator.maxPlayers / playersPerTeam);
+            if (teamSelection === 'manual') {
 
                 if (totalTeams > 2) {
                     const teamOptions = [];
