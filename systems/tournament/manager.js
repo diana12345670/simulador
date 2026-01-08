@@ -400,11 +400,11 @@ async function updateSimulatorPanel(client, simulatorId) {
             const controlButtons = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
-                        .setCustomId(`simu_start_${simulatorId}`)
+                        .setCustomId(`simu_start_v2_${simulatorId}`)
                         .setLabel('Começar Simulador')
                         .setStyle(ButtonStyle.Success),
                     new ButtonBuilder()
-                        .setCustomId(`simu_cancel_${simulatorId}`)
+                        .setCustomId(`simu_cancel_v2_${simulatorId}`)
                         .setLabel('Cancelar Simulador')
                         .setStyle(ButtonStyle.Danger)
                 );
@@ -434,7 +434,7 @@ async function updateSimulatorPanel(client, simulatorId) {
                         const endNum = Math.min((i + 1) * MAX_OPTIONS, totalTeams);
 
                         const selectMenu = new StringSelectMenuBuilder()
-                            .setCustomId(`team_select_${simulatorId}_${i}`)
+                            .setCustomId(`team_select_v2_${simulatorId}_${i}`)
                             .setPlaceholder(`Selecione um time (${startNum}-${endNum})...`)
                             .addOptions(chunk);
 
@@ -452,7 +452,7 @@ async function updateSimulatorPanel(client, simulatorId) {
                         }
                         currentRow.addComponents(
                             new ButtonBuilder()
-                                .setCustomId(`team_join_${simulatorId}_${i}`)
+                                .setCustomId(`team_join_v2_${simulatorId}_${i}`)
                                 .setLabel(`Time ${i}`)
                                 .setStyle(ButtonStyle.Primary)
                         );
@@ -466,11 +466,11 @@ async function updateSimulatorPanel(client, simulatorId) {
                 const controlButtons = new ActionRowBuilder()
                     .addComponents(
                         new ButtonBuilder()
-                            .setCustomId(`simu_leave_${simulatorId}`)
+                            .setCustomId(`simu_leave_v2_${simulatorId}`)
                             .setLabel('Sair')
                             .setStyle(ButtonStyle.Secondary),
                         new ButtonBuilder()
-                            .setCustomId(`simu_cancel_${simulatorId}`)
+                            .setCustomId(`simu_cancel_v2_${simulatorId}`)
                             .setLabel('Cancelar Simulador')
                             .setStyle(ButtonStyle.Secondary)
                     );
@@ -479,15 +479,15 @@ async function updateSimulatorPanel(client, simulatorId) {
                 const buttons = new ActionRowBuilder()
                     .addComponents(
                         new ButtonBuilder()
-                            .setCustomId(`simu_join_${simulatorId}`)
+                            .setCustomId(`simu_join_v2_${simulatorId}`)
                             .setLabel('Entrar')
                             .setStyle(ButtonStyle.Danger),
                         new ButtonBuilder()
-                            .setCustomId(`simu_leave_${simulatorId}`)
+                            .setCustomId(`simu_leave_v2_${simulatorId}`)
                             .setLabel('Sair')
                             .setStyle(ButtonStyle.Secondary),
                         new ButtonBuilder()
-                            .setCustomId(`simu_cancel_${simulatorId}`)
+                            .setCustomId(`simu_cancel_v2_${simulatorId}`)
                             .setLabel('Cancelar Simulador')
                             .setStyle(ButtonStyle.Secondary)
                     );

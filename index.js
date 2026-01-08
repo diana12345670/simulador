@@ -148,7 +148,47 @@ app.get('/loja', async (req, res) => {
 });
 
 // ==========================================
-// 4. BANCO DE DADOS E SESSÕES (BACKGROUND)
+// 4. DEPLOY DE COMANDOS (PRIMEIRA EXECUÇÃO)
+// ==========================================
+async function deployCommands() {
+    try {
+        const { REST, Routes } = require('discord.js');
+        const fs = require('fs');
+        const path = require('path');
+        
+        const commands = [];
+        const commandsPath = path.join(__dirname, 'commands');
+        const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+        
+        for (const file of commandFiles) {
+            const command = require(path.join(commandsPath, file));
+            if ('data' in command && 'execute' in command) {
+                commands.push(command.data.toJSON());
+            }
+        }
+        
+        // Deploy para cada bot
+        for (const client of clients) {
+            if (client.botConfig.applicationId && client.isReady()) {
+                const rest = new REST().setToken(client.botConfig.token);
+                try {
+                    await rest.put(
+                        Routes.applicationCommands(client.botConfig.applicationId),
+                        { body: commands }
+                    );
+                    console.log(`✅ [${client.botConfig.name}] Comandos registrados: ${commands.length}`);
+                } catch (error) {
+                    console.error(`❌ [${client.botConfig.name}] Erro ao registrar comandos:`, error.message);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Erro no deploy de comandos:', error);
+    }
+}
+
+// ==========================================
+// 5. BANCO DE DADOS E SESSÕES (BACKGROUND)
 // ==========================================
 async function start() {
     try {
@@ -165,7 +205,11 @@ async function start() {
 
         for (const client of clients) {
             client.login(client.botConfig.token)
-                .then(() => console.log(`✅ [${client.botConfig.name}] Online.`))
+                .then(() => {
+                    console.log(`✅ [${client.botConfig.name}] Online.`);
+                    // Fazer deploy dos comandos quando o bot ficar online
+                    setTimeout(() => deployCommands(), 2000);
+                })
                 .catch(err => console.error(`❌ [${client.botConfig.name}] Falha:`, err.message));
         }
     } catch (error) { console.error('Erro background:', error); }

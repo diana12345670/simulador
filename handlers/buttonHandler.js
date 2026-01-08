@@ -6,27 +6,43 @@ const { MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelect
 const { getGuildLanguage } = require('../utils/lang');
 const { t } = require('../utils/i18n');
 
+// Versão atual do painel - incrementar quando fazer mudanças estruturais
+const CURRENT_PANEL_VERSION = '2.0';
+
 const timeouts = new Map(); 
 
 async function handleButton(interaction) {
+    const lang = await getGuildLanguage(interaction.guildId);
     const customId = interaction.customId;
 
+    // Verificar se é um painel antigo (sem versão)
+    if (customId.startsWith('simu_') && !customId.includes('_v2_')) {
+        const emojis = getEmojis(interaction.client);
+        return interaction.reply({
+            embeds: [createErrorEmbed(
+                `${emojis.negative} ${t(lang, 'old_panel_warning')}\n\n${t(lang, 'old_panel_solution')}`,
+                interaction.client
+            )],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
     if (interaction.isStringSelectMenu()) {
-        if (customId.startsWith('team_select_')) {
+        if (customId.startsWith('team_select_v2_')) {
             await handleTeamSelect(interaction);
         }
         return;
     }
 
-    if (customId.startsWith('simu_join_')) {
+    if (customId.startsWith('simu_join_v2_')) {
         await handleJoin(interaction);
-    } else if (customId.startsWith('simu_leave_')) {
+    } else if (customId.startsWith('simu_leave_v2_')) {
         await handleLeave(interaction);
-    } else if (customId.startsWith('simu_cancel_')) {
+    } else if (customId.startsWith('simu_cancel_v2_')) {
         await handleCancel(interaction);
-    } else if (customId.startsWith('simu_start_')) {
+    } else if (customId.startsWith('simu_start_v2_')) {
         await handleStart(interaction);
-    } else if (customId.startsWith('team_join_')) {
+    } else if (customId.startsWith('team_join_v2_')) {
         await handleTeamJoin(interaction);
     } else if (customId.startsWith('match_win1_')) {
         await handleMatchWin(interaction, 1);
@@ -53,10 +69,9 @@ async function handleButton(interaction) {
 
 async function handleTeamSelect(interaction) {
     const lang = await getGuildLanguage(interaction.guildId);
-    // Novo formato: team_select_sim-GUILDID-TIMESTAMP_MENUINDEX
-    // Precisamos extrair o simulatorId corretamente
+    // Novo formato: team_select_v2_sim-GUILDID-TIMESTAMP_MENUINDEX
     const customId = interaction.customId;
-    const withoutPrefix = customId.replace('team_select_', '');
+    const withoutPrefix = customId.replace('team_select_v2_', '');
     // O último underscore separa o simulatorId do índice do menu
     const lastUnderscoreIndex = withoutPrefix.lastIndexOf('_');
     const simulatorId = lastUnderscoreIndex > 0 ? withoutPrefix.substring(0, lastUnderscoreIndex) : withoutPrefix;
@@ -173,8 +188,19 @@ async function handleTeamSelect(interaction) {
 
 async function handleTeamJoin(interaction) {
     const parts = interaction.customId.split('_');
-    const simulatorId = parts[2];
-    const teamNumber = parseInt(parts[3]);
+    // Formato antigo: team_join_simulatorId_teamNumber
+    // Formato novo: team_join_v2_simulatorId_teamNumber
+    let simulatorId, teamNumber;
+    
+    if (parts[2] === 'v2') {
+        // Formato novo: team_join_v2_simulatorId_teamNumber
+        simulatorId = parts[3];
+        teamNumber = parseInt(parts[4]);
+    } else {
+        // Formato antigo: team_join_simulatorId_teamNumber
+        simulatorId = parts[2];
+        teamNumber = parseInt(parts[3]);
+    }
 
     const simulator = await getTournamentById(simulatorId);
 
@@ -265,7 +291,7 @@ async function handleTeamJoin(interaction) {
 
 async function handleJoin(interaction) {
     const lang = await getGuildLanguage(interaction.guildId);
-    const simulatorId = interaction.customId.replace('simu_join_', '');
+    const simulatorId = interaction.customId.replace('simu_join_v2_', '');
     const playerId = interaction.user.id;
     const simulator = await getTournamentById(simulatorId);
 
@@ -328,7 +354,7 @@ async function handleJoin(interaction) {
 
 async function handleLeave(interaction) {
     const lang = await getGuildLanguage(interaction.guildId);
-    const simulatorId = interaction.customId.replace('simu_leave_', '');
+    const simulatorId = interaction.customId.replace('simu_leave_v2_', '');
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator || simulator.state !== 'open') {
@@ -377,7 +403,7 @@ async function handleCancel(interaction) {
     // Defer IMEDIATAMENTE para evitar timeout/duplicação
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     
-    const simulatorId = interaction.customId.replace('simu_cancel_', '');
+    const simulatorId = interaction.customId.replace('simu_cancel_v2_', '');
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator) {
@@ -456,7 +482,7 @@ async function handleCancel(interaction) {
 
 async function handleStart(interaction) {
     const emojis = getEmojis(interaction.client);
-    const simulatorId = interaction.customId.replace('simu_start_', '');
+    const simulatorId = interaction.customId.replace('simu_start_v2_', '');
     
     // Defer imediato para evitar timeout do Discord
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
