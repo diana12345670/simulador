@@ -75,6 +75,30 @@ async function deployCommands() {
     }
 }
 
+// Endpoint para debug de variáveis de ambiente
+app.get('/debug-env', (req, res) => {
+    const envVars = {
+        BOT_TOKEN_1: process.env.BOT_TOKEN_1 ? '✅ Definido' : '❌ Não definido',
+        BOT_TOKEN: process.env.BOT_TOKEN ? '✅ Definido' : '❌ Não definido',
+        BOT_TOKEN_2: process.env.BOT_TOKEN_2 ? '✅ Definido' : '❌ Não definido',
+        APPLICATION_ID_1: process.env.APPLICATION_ID_1 || '❌ Não definido',
+        APPLICATION_ID: process.env.APPLICATION_ID || '❌ Não definido',
+        APPLICATION_ID_2: process.env.APPLICATION_ID_2 || '❌ Não definido',
+        OWNER_ID: process.env.OWNER_ID || '❌ Não definido',
+        OWNER_ID_2: process.env.OWNER_ID_2 || '❌ Não definido'
+    };
+    
+    res.json({
+        timestamp: new Date().toISOString(),
+        environment: envVars,
+        botConfigs: botConfigs.map(config => ({
+            name: config.name,
+            hasToken: !!config.token,
+            applicationId: config.applicationId
+        }))
+    });
+});
+
 // Endpoint para deploy manual de comandos
 app.get('/deploy-commands', async (req, res) => {
     try {
@@ -114,9 +138,22 @@ const { initDatabase } = require('./utils/database');
 
 // Lógica de Bots
 const botConfigs = [];
+console.log('🔍 Verificando variáveis de ambiente:');
+console.log(`   BOT_TOKEN_1: ${process.env.BOT_TOKEN_1 ? '✅ Definido' : '❌ Não definido'}`);
+console.log(`   BOT_TOKEN: ${process.env.BOT_TOKEN ? '✅ Definido' : '❌ Não definido'}`);
+console.log(`   BOT_TOKEN_2: ${process.env.BOT_TOKEN_2 ? '✅ Definido' : '❌ Não definido'}`);
+console.log(`   APPLICATION_ID_1: ${process.env.APPLICATION_ID_1 || '❌ Não definido'}`);
+console.log(`   APPLICATION_ID: ${process.env.APPLICATION_ID || '❌ Não definido'}`);
+console.log(`   APPLICATION_ID_2: ${process.env.APPLICATION_ID_2 || '❌ Não definido'}`);
+
 const token1 = process.env.BOT_TOKEN_1 || process.env.BOT_TOKEN;
 if (token1) botConfigs.push({ name: 'Bot 1', token: token1, applicationId: process.env.APPLICATION_ID_1 || process.env.APPLICATION_ID || null });
 if (process.env.BOT_TOKEN_2) botConfigs.push({ name: 'Bot 2', token: process.env.BOT_TOKEN_2, applicationId: process.env.APPLICATION_ID_2 || null });
+
+console.log(`📦 Configurações de bots criadas: ${botConfigs.length}`);
+botConfigs.forEach((config, index) => {
+    console.log(`   Bot ${index + 1}: ${config.name} - Application ID: ${config.applicationId || '❌ NULL'}`);
+});
 
 const clients = [];
 function createClient(config) {
