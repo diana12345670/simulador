@@ -1,5 +1,5 @@
 // debanir_simu.js - Comando para desbanir usuário de simuladores
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { unbanUserInGuild, isUserBannedInGuild } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 const { getGuildLanguage } = require('../utils/lang');
@@ -25,7 +25,7 @@ module.exports = {
             if (!isBanned) {
                 return interaction.reply({
                     embeds: [createErrorEmbed(t(lang, 'not_banned_local'), interaction.client)],
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -38,7 +38,7 @@ module.exports = {
             console.error('Erro ao desbanir usuário:', error);
             await interaction.reply({
                 embeds: [createErrorEmbed(t(lang, 'error_unban_process'), interaction.client)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
     }

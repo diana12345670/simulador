@@ -1,5 +1,5 @@
 // banir_server.js - Comando para o dono banir um servidor
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { banServer, isGuildBanned, isOwnerOrAuthorized } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 
@@ -17,7 +17,7 @@ module.exports = {
         if (!authorized) {
             return interaction.reply({
                 embeds: [createErrorEmbed('Apenas o dono do bot pode usar este comando.', interaction.client)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -29,7 +29,7 @@ module.exports = {
             console.error('Erro ao banir servidor:', error);
             return interaction.reply({
                 embeds: [createErrorEmbed('Erro ao salvar o banimento no banco de dados.', interaction.client)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 

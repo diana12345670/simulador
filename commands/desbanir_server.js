@@ -1,6 +1,7 @@
 // desbanir_server.js - Comando para o dono remover banimento de servidor
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { unbanServer, isGuildBanned } = require('../utils/database');
+const { isOwnerOrAuthorized } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 
 module.exports = {
@@ -13,10 +14,11 @@ module.exports = {
                 .setRequired(true)),
 
     async execute(interaction) {
-        if (interaction.user.id !== process.env.OWNER_ID) {
+        const authorized = await isOwnerOrAuthorized(interaction.user.id);
+        if (!authorized) {
             return interaction.reply({
                 embeds: [createErrorEmbed('Apenas o dono do bot pode usar este comando.', interaction.client)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -26,7 +28,7 @@ module.exports = {
         if (!banned) {
             return interaction.reply({
                 embeds: [createErrorEmbed('Este servidor não está banido.', interaction.client)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -36,7 +38,7 @@ module.exports = {
             console.error('Erro ao desbanir servidor:', error);
             return interaction.reply({
                 embeds: [createErrorEmbed('Erro ao remover banimento no banco de dados.', interaction.client)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 

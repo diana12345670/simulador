@@ -1,5 +1,5 @@
 // sair_server.js - Comando para o dono do bot sair de um servidor
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 const { getEmojis } = require('../utils/emojis');
 
@@ -19,7 +19,7 @@ module.exports = {
         if (interaction.user.id !== process.env.OWNER_ID) {
             return interaction.reply({
                 embeds: [createErrorEmbed(`${emojis.negative} Apenas o dono do bot pode usar este comando.`)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -31,7 +31,7 @@ module.exports = {
             if (!guild) {
                 return interaction.reply({
                     embeds: [createErrorEmbed(`${emojis.negative} Servidor não encontrado.`)],
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -45,7 +45,7 @@ module.exports = {
             console.error('Erro ao sair do servidor:', error);
             await interaction.reply({
                 embeds: [createErrorEmbed(`${emojis.negative} Erro ao sair do servidor.`)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
     }

@@ -1,6 +1,6 @@
 // banir-jogador.js - Banimento GLOBAL pelo dono (todos os simuladores)
-const { SlashCommandBuilder } = require('discord.js');
-const { banUser, isUserBanned } = require('../utils/database');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
+const { banUser, isUserBanned, isOwnerOrAuthorized } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 const { getEmojis } = require('../utils/emojis');
 const { getGuildLanguage } = require('../utils/lang');
@@ -23,10 +23,11 @@ module.exports = {
         const lang = await getGuildLanguage(interaction.guildId);
         const emojis = getEmojis(interaction.client);
 
-        if (interaction.user.id !== process.env.OWNER_ID) {
+        const authorized = await isOwnerOrAuthorized(interaction.user.id);
+        if (!authorized) {
             return interaction.reply({
                 embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'owner_only')}`, interaction.client)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -37,7 +38,7 @@ module.exports = {
         if (alreadyBanned) {
             return interaction.reply({
                 embeds: [createErrorEmbed(`${emojis.alerta} ${t(lang, 'already_banned_global', { user: user.toString() })}`, interaction.client)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 

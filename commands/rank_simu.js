@@ -1,6 +1,6 @@
 
 // rank_simu.js - Comando para mostrar ranking
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { getRankGlobal, getRankLocal, addLiveRankPanel, countLiveRankPanelsByGuild } = require('../utils/database');
 const { createRedEmbed, createErrorEmbed } = require('../utils/embeds');
 const { getEmojis } = require('../utils/emojis');
@@ -36,7 +36,7 @@ module.exports = {
             if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
                 return interaction.reply({
                     embeds: [createErrorEmbed(`${emojis.negative} Apenas administradores podem criar painéis de rank ao vivo.`)],
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -44,7 +44,7 @@ module.exports = {
             if (panelCount >= 2) {
                 return interaction.reply({
                     embeds: [createErrorEmbed(`${emojis.negative} Este servidor já possui 2 painéis de rank ao vivo. Apague uma mensagem de rank existente para criar outra.`)],
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
         }
@@ -63,7 +63,7 @@ module.exports = {
         if (!rankData || rankData.length === 0) {
             return interaction.reply({
                 embeds: [createErrorEmbed(`${emojis.negative} Ainda não há dados de ranking.`)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
