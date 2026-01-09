@@ -1,5 +1,5 @@
 // servidores.js - Comando para o dono listar servidores
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { createRedEmbed, createErrorEmbed } = require('../utils/embeds');
 const { getEmojis } = require('../utils/emojis');
 
@@ -15,11 +15,11 @@ module.exports = {
         if (interaction.user.id !== process.env.OWNER_ID) {
             return interaction.reply({
                 embeds: [createErrorEmbed(`${emojis.negative} Apenas o dono do bot pode usar este comando.`)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const guilds = interaction.client.guilds.cache;
 
@@ -96,7 +96,7 @@ module.exports = {
                 timestamp: true
             });
 
-            await interaction.followUp({ embeds: [embed], ephemeral: true });
+            await interaction.followUp({ embeds: [embed], flags: MessageFlags.Ephemeral });
         }
     }
 };

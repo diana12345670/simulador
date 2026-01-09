@@ -1,5 +1,5 @@
 // desbugar.js - Comando para limpar simulador travado
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { getTournamentById, deleteTournament, getAllTournaments } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 
@@ -26,7 +26,7 @@ module.exports = {
         if (!tournament) {
             return interaction.reply({
                 embeds: [createErrorEmbed('Simulador não encontrado.', interaction.client)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -34,7 +34,7 @@ module.exports = {
         if (interaction.user.id !== tournament.creatorId && interaction.user.id !== OWNER_ID) {
             return interaction.reply({
                 embeds: [createErrorEmbed('Apenas o criador do simulador ou o dono do bot pode desbugá-lo.', interaction.client)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 

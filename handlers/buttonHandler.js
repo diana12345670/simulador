@@ -414,6 +414,7 @@ async function handleCancel(interaction) {
 
     const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
     const OWNER_ID_2 = process.env.OWNER_ID_2 || '1438204670920364103';
+    console.log(`🔍 DEBUG OWNER: User ID: ${interaction.user.id}, OWNER_ID: ${OWNER_ID}, OWNER_ID_2: ${OWNER_ID_2}`);
     if (interaction.user.id !== simulator.creator_id && interaction.user.id !== OWNER_ID && interaction.user.id !== OWNER_ID_2) {
         return interaction.editReply({
             embeds: [createErrorEmbed('Apenas o criador pode cancelar o simulador.', interaction.client)]

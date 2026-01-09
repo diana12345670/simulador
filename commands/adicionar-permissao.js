@@ -1,5 +1,5 @@
 // adicionar-permissao.js - Concede permissão de dono a um usuário (helpers)
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 const { getEmojis } = require('../utils/emojis');
 const { addOwnerHelper, isOwnerOrAuthorized } = require('../utils/database');
@@ -24,7 +24,7 @@ module.exports = {
         if (!authorized) {
             return interaction.reply({
                 embeds: [createErrorEmbed(`${emojis.negative} Apenas o dono do bot pode usar este comando.`, interaction.client)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -34,14 +34,14 @@ module.exports = {
         if (!targetId) {
             return interaction.reply({
                 embeds: [createErrorEmbed('Informe o usuário (menção) ou o ID.', interaction.client)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
         if (targetId === process.env.OWNER_ID) {
             return interaction.reply({
                 embeds: [createErrorEmbed(`${emojis.alerta} O dono já tem todas as permissões.`, interaction.client)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 

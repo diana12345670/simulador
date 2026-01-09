@@ -1,6 +1,6 @@
 
 // adicionar-nota.js - Comando para o dono do bot adicionar nota customizada no perfil
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { createSuccessEmbed, createErrorEmbed } = require('../utils/embeds');
 const { getEmojis } = require('../utils/emojis');
 const { setBotNote, isOwnerOrAuthorized } = require('../utils/database');
@@ -21,11 +21,11 @@ module.exports = {
         if (!(await isOwnerOrAuthorized(interaction.user.id))) {
             return interaction.reply({
                 embeds: [createErrorEmbed('Apenas o dono do bot pode usar este comando.', interaction.client)],
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const nota = interaction.options.getString('nota');
 

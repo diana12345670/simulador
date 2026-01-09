@@ -294,11 +294,24 @@ async function cancelSimulatorIfNotFull(client, simulatorId) {
         if (!guild) return;
 
         const channel = guild.channels.cache.get(simulator.channel_id);
-        if (channel) {
-            // Atualiza o painel para mostrar cancelamento
-            if (simulator.panel_message_id) {
-                try {
-                    const panelMessage = await channel.messages.fetch(simulator.panel_message_id);
+        if (channel && simulator.panel_message_id) {
+            try {
+                // Verificar se o canal ainda existe e se temos permissão
+                if (!channel.permissionsFor(guild.members.me).has('ViewChannel')) {
+                    console.log('⚠️ Sem permissão para ver o canal do simulador');
+                    return;
+                }
+
+                const panelMessage = await channel.messages.fetch(simulator.panel_message_id)
+                    .catch(err => {
+                        if (err.code === 10008) { // Unknown Message
+                            console.log('⚠️ Mensagem do painel não encontrada (provavelmente deletada)');
+                            return null;
+                        }
+                        throw err;
+                    });
+
+                if (panelMessage) {
 
                     const cancelledEmbed = createRedEmbed({
                         title: `${emojis.fogo} ${t(simulator.language || 'pt', 'panel_title', { mode: simulator.mode, game: simulator.jogo })}`,
@@ -311,11 +324,10 @@ async function cancelSimulatorIfNotFull(client, simulatorId) {
                         embeds: [cancelledEmbed],
                         components: []
                     });
-                } catch (error) {
-                    console.error('Erro ao atualizar painel:', error);
                 }
+            } catch (error) {
+                console.error('Erro ao atualizar painel:', error);
             }
-
         }
 
         // Apaga categoria se existir
