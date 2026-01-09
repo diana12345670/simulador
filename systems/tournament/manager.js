@@ -361,7 +361,6 @@ async function updateSimulatorPanel(client, simulatorId) {
     const guildLanguage = (simulator.language) || (simulator.guildLanguage) || null; // se vier salvo
     const { getGuildLanguage } = require('../../utils/lang');
     const lang = guildLanguage || 'en'; // Usa idioma salvo ou fallback para inglês
-    console.log(`🌍 DEBUG UPDATE: Guild ${guildId} - Idioma salvo: ${guildLanguage}, Usando: ${lang}`);
     const { t } = require('../../utils/i18n');
 
     const guild = client.guilds.cache.get(guildId);
@@ -390,16 +389,16 @@ async function updateSimulatorPanel(client, simulatorId) {
                 const teamPlayers = teamsData[`time${i}`] || [];
                 const playerMentions = teamPlayers.length > 0 
                     ? teamPlayers.map(id => `<@${id}>`).join(', ')
-                    : 'Vazio';
-                teamsText += `\n**Time ${i}** (${teamPlayers.length}/${playersPerTeam}): ${playerMentions}`;
+                    : t(lang, 'panel_no_players');
+                teamsText += `\n${t(lang, 'team_name', { num: i })} (${teamPlayers.length}/${playersPerTeam}): ${playerMentions}`;
             }
-            panelDescription = `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.joiapixel} **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n${t(lang, 'panel_players', { count: players.length, max: maxPlayers })}${teamsText}`;
+            panelDescription = `${emojis.raiopixel} ${t(lang, 'panel_game')}: ${simulator.jogo}\n${emojis.pergaminhopixel} ${t(lang, 'panel_version')}: ${simulator.versao}\n${emojis.joiapixel} ${t(lang, 'panel_mode')}: ${simulator.modoJogo || simulator.mode}\n${selectionText}\n${emojis.presentepixel} ${t(lang, 'panel_prize')}: ${simulator.prize}\n\n${t(lang, 'panel_players', { count: players.length, max: maxPlayers })}${teamsText}`;
         } else {
             const playersList = players.length > 0
                 ? players.map(id => `<@${id}>`).join('\n')
-                : 'Nenhum jogador ainda';
+                : t(lang, 'panel_no_players');
             const playersText = players.length > 0 ? playersList : t(lang, 'panel_no_players');
-            panelDescription = `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.joiapixel} **Modo/Mapa:** ${simulator.modoJogo || simulator.mode}\n${selectionText}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n${t(lang, 'panel_players', { count: players.length, max: maxPlayers })}\n${playersText}`;
+            panelDescription = `${emojis.raiopixel} ${t(lang, 'panel_game')}: ${simulator.jogo}\n${emojis.pergaminhopixel} ${t(lang, 'panel_version')}: ${simulator.versao}\n${emojis.joiapixel} ${t(lang, 'panel_mode')}: ${simulator.modoJogo || simulator.mode}\n${selectionText}\n${emojis.presentepixel} ${t(lang, 'panel_prize')}: ${simulator.prize}\n\n${t(lang, 'panel_players', { count: players.length, max: maxPlayers })}\n${playersText}`;
         }
 
         const updatedEmbed = createRedEmbed({
