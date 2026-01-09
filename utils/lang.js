@@ -14,8 +14,8 @@ async function getGuildLanguage(guildId) {
     } catch (e) {
         console.error(`🌍 DEBUG LANG: Erro ao ler configuração:`, e);
     }
-    console.log(`🌍 DEBUG LANG: Guild ${guildId} - Usando fallback 'en'`);
-    return 'en';
+    console.log(`🌍 DEBUG LANG: Guild ${guildId} - Usando fallback 'pt'`);
+    return 'pt';
 }
 
 module.exports = { getGuildLanguage };
