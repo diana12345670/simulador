@@ -4,6 +4,7 @@ const { createRedEmbed } = require('../../utils/embeds');
 const { getEmojis } = require('../../utils/emojis');
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder } = require('discord.js');
 const { generateBracket, advanceWinner, getRoundName } = require('./bracket');
+const { t } = require('../../utils/i18n');
 const path = require('path');
 const {
     createTournament,
@@ -124,7 +125,7 @@ async function createSimulator(client, guild, creator, options) {
             const teamOptions = [];
             for (let i = 1; i <= totalTeams; i++) {
                 teamOptions.push({
-                    label: `Time ${i}`,
+                    label: t(lang, 'team_name', { num: i }),
                     value: `time${i}`
                 });
             }
@@ -146,7 +147,7 @@ async function createSimulator(client, guild, creator, options) {
 
                 const selectMenu = new StringSelectMenuBuilder()
                     .setCustomId(`team_select_${simulatorId}_${i}`)
-                    .setPlaceholder(`Selecione um time (${startNum}-${endNum})...`)
+                    .setPlaceholder(t(lang, 'select_team_placeholder', { range: `${startNum}-${endNum}` }))
                     .addOptions(chunk);
 
                 components.push(new ActionRowBuilder().addComponents(selectMenu));
@@ -165,7 +166,7 @@ async function createSimulator(client, guild, creator, options) {
                 currentRow.addComponents(
                     new ButtonBuilder()
                         .setCustomId(`team_join_${simulatorId}_${i}`)
-                        .setLabel(`Time ${i}`)
+                        .setLabel(t(lang, 'team_name', { num: i }))
                         .setStyle(ButtonStyle.Primary)
                 );
                 buttonsInRow++;
@@ -180,11 +181,11 @@ async function createSimulator(client, guild, creator, options) {
             .addComponents(
                 new ButtonBuilder()
                     .setCustomId(`simu_leave_${simulatorId}`)
-                    .setLabel('Sair')
+                    .setLabel(t(lang, 'button_leave'))
                     .setStyle(ButtonStyle.Secondary),
                 new ButtonBuilder()
                     .setCustomId(`simu_cancel_${simulatorId}`)
-                    .setLabel('Cancelar Simulador')
+                    .setLabel(t(lang, 'button_cancel'))
                     .setStyle(ButtonStyle.Secondary)
             );
         components.push(controlButtons);
@@ -220,7 +221,7 @@ async function createSimulator(client, guild, creator, options) {
         console.log(`✅ Mensagem tem ${panelMessage.components.length} ActionRows`);
 
         // Atualiza com ID da mensagem do painel
-        await updateTournament(simulatorId, { panelMessageId: panelMessage.id });
+        await updateTournament(simulatorId, { panel_message_id: panelMessage.id });
     } catch (error) {
         console.error('❌ Erro ao enviar painel:', error);
         throw error;
