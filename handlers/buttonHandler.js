@@ -810,7 +810,7 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
 
     await updateLiveRankPanels(interaction.client);
 
-    await updateTournament(simulator.id, { state: 'finished', bracket_data: result.bracket_data });
+    await updateTournament(simulator.id, { state: 'finished', bracket_data: bracketData });
 
     setTimeout(async () => {
         try {
@@ -857,10 +857,10 @@ async function createNextRoundChannels(interaction, simulator, round, bracketDat
 }
 
 async function updateLiveRankPanels(client) {
-    const { getAllLiveRankPanels, removeLiveRankPanel, getRankGlobal, getRankLocal } = require('../utils/database');
+    const { getLiveRankPanels, removeLiveRankPanel, getRankGlobal, getRankLocal } = require('../utils/database');
 
     try {
-        const panels = await getAllLiveRankPanels();
+        const panels = await getLiveRankPanels();
 
         for (const panel of panels) {
             try {
