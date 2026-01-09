@@ -55,7 +55,7 @@ module.exports = {
             }
 
             const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
-            if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
+            if (interaction.user.id !== simulator.creator_id && interaction.user.id !== OWNER_ID) {
                 return interaction.editReply({
                     embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'only_creator_alter')}`)]
                 });
@@ -73,7 +73,7 @@ module.exports = {
                 });
             }
 
-            const bracketData = simulator.bracketData;
+            const bracketData = simulator.bracket_data;
             if (!bracketData || !bracketData.matches) {
                 return interaction.editReply({
                     embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'no_bracket_generated')}`)]
@@ -114,8 +114,8 @@ module.exports = {
 
             const newPlayers = simulator.players.map(id => id === jogadorSair.id ? jogadorEntrar.id : id);
 
-            let teamsData = simulator.teamsData || {};
-            if (simulator.teamSelection === 'manual' && teamsData) {
+            let teamsData = simulator.teams_data || {};
+            if (simulator.team_selection === 'manual' && teamsData) {
                 for (const teamKey of Object.keys(teamsData)) {
                     const index = teamsData[teamKey].indexOf(jogadorSair.id);
                     if (index !== -1) {
@@ -126,13 +126,13 @@ module.exports = {
 
             await updateTournament(simulator.id, {
                 players: newPlayers,
-                bracketData: bracketData,
-                teamsData: teamsData
+                bracket_data: bracketData,
+                teams_data: teamsData
             });
 
-            if (matchEncontrada && matchEncontrada.channelId) {
+            if (matchEncontrada && matchEncontrada.channel_id) {
                 try {
-                    const matchChannel = interaction.guild.channels.cache.get(matchEncontrada.channelId);
+                    const matchChannel = interaction.guild.channels.cache.get(matchEncontrada.channel_id);
                     if (matchChannel) {
                         await matchChannel.permissionOverwrites.delete(jogadorSair.id).catch(() => {});
 

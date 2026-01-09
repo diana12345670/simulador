@@ -48,7 +48,7 @@ module.exports = {
             }
 
             const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
-            if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID) {
+            if (interaction.user.id !== simulator.creator_id && interaction.user.id !== OWNER_ID) {
                 return interaction.editReply({
                     embeds: [createErrorEmbed(`${emojis.negative} ${t(lang, 'only_creator_remove')}`)]
                 });
@@ -67,13 +67,13 @@ module.exports = {
             }
 
             let newPlayers;
-            let teamsData = simulator.teamsData || {};
+            let teamsData = simulator.teams_data || {};
             let description;
 
             if (jogadorSubstituto) {
                 newPlayers = simulator.players.map(id => id === jogadorRemover.id ? jogadorSubstituto.id : id);
                 
-                if (simulator.teamSelection === 'manual' && teamsData) {
+                if (simulator.team_selection === 'manual' && teamsData) {
                     for (const teamKey of Object.keys(teamsData)) {
                         const index = teamsData[teamKey].indexOf(jogadorRemover.id);
                         if (index !== -1) {
@@ -86,7 +86,7 @@ module.exports = {
             } else {
                 newPlayers = simulator.players.filter(id => id !== jogadorRemover.id);
                 
-                if (simulator.teamSelection === 'manual' && teamsData) {
+                if (simulator.team_selection === 'manual' && teamsData) {
                     for (const teamKey of Object.keys(teamsData)) {
                         teamsData[teamKey] = teamsData[teamKey].filter(id => id !== jogadorRemover.id);
                     }
@@ -95,8 +95,8 @@ module.exports = {
                 description = t(lang, 'player_removed', { player: jogadorRemover.toString() });
             }
 
-            if (simulator.state === 'running' && simulator.bracketData && simulator.bracketData.matches) {
-                for (const match of simulator.bracketData.matches) {
+            if (simulator.state === 'running' && simulator.bracket_data && simulator.bracket_data.matches) {
+                for (const match of simulator.bracket_data.matches) {
                     if (match.status === 'completed') continue;
 
                     const indexTeam1 = match.team1.indexOf(jogadorRemover.id);
@@ -138,13 +138,13 @@ module.exports = {
 
                 await updateTournament(simulator.id, {
                     players: newPlayers,
-                    bracketData: simulator.bracketData,
-                    teamsData: teamsData
+                    bracket_data: simulator.bracket_data,
+                    teams_data: teamsData
                 });
             } else {
                 await updateTournament(simulator.id, {
                     players: newPlayers,
-                    teamsData: teamsData
+                    teams_data: teamsData
                 });
             }
 

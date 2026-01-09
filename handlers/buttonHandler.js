@@ -116,15 +116,15 @@ async function handleTeamSelect(interaction) {
         });
     }
 
-    if (currentPlayers.length >= simulator.maxPlayers) {
+    if (currentPlayers.length >= simulator.max_players) {
         return interaction.reply({
             embeds: [createErrorEmbed(t(lang, 'join_full'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
-    const teamsData = simulator.teamsData || {};
-    const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
+    const teamsData = simulator.teams_data || {};
+    const playersPerTeam = simulator.players_per_team || parseInt(simulator.mode.charAt(0));
 
     let currentTeam = null;
     for (const [teamKey, players] of Object.entries(teamsData)) {
@@ -168,7 +168,7 @@ async function handleTeamSelect(interaction) {
     }
 
     await updateTournament(simulatorId, { 
-        teamsData: teamsData,
+        teams_data: teamsData,
         players: newPlayers 
     });
 
@@ -221,15 +221,15 @@ async function handleTeamJoin(interaction) {
         });
     }
 
-    if (currentPlayers.length >= simulator.maxPlayers) {
+    if (currentPlayers.length >= simulator.max_players) {
         return interaction.reply({
             embeds: [createErrorEmbed('Este simulador já está lotado!', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
-    const teamsData = simulator.teamsData || {};
-    const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
+    const teamsData = simulator.teams_data || {};
+    const playersPerTeam = simulator.players_per_team || parseInt(simulator.mode.charAt(0));
 
     let currentTeam = null;
     for (const [teamKey, players] of Object.entries(teamsData)) {
@@ -273,7 +273,7 @@ async function handleTeamJoin(interaction) {
     }
 
     await updateTournament(simulatorId, { 
-        teamsData: teamsData,
+        teams_data: teamsData,
         players: newPlayers 
     });
 
@@ -331,7 +331,7 @@ async function handleJoin(interaction) {
         });
     }
 
-    if (currentPlayers.length >= simulator.maxPlayers) {
+    if (currentPlayers.length >= simulator.max_players) {
         return interaction.reply({
             embeds: [createErrorEmbed(t(lang, 'join_full'), interaction.client)],
             flags: MessageFlags.Ephemeral
@@ -373,8 +373,8 @@ async function handleLeave(interaction) {
 
     const newPlayers = simulator.players.filter(id => id !== interaction.user.id);
 
-    let teamsData = simulator.teamsData || {};
-    if (simulator.teamSelection === 'manual') {
+    let teamsData = simulator.teams_data || {};
+    if (simulator.team_selection === 'manual') {
         for (const teamKey of Object.keys(teamsData)) {
             teamsData[teamKey] = teamsData[teamKey].filter(id => id !== interaction.user.id);
         }
@@ -382,7 +382,7 @@ async function handleLeave(interaction) {
 
     await updateTournament(simulatorId, { 
         players: newPlayers,
-        teamsData: teamsData
+        teams_data: teamsData
     });
 
     const emojis = getEmojis(interaction.client);
@@ -414,7 +414,7 @@ async function handleCancel(interaction) {
 
     const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
     const OWNER_ID_2 = process.env.OWNER_ID_2 || '1438204670920364103';
-    if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID && interaction.user.id !== OWNER_ID_2) {
+    if (interaction.user.id !== simulator.creator_id && interaction.user.id !== OWNER_ID && interaction.user.id !== OWNER_ID_2) {
         return interaction.editReply({
             embeds: [createErrorEmbed('Apenas o criador pode cancelar o simulador.', interaction.client)]
         });
@@ -430,10 +430,10 @@ async function handleCancel(interaction) {
     });
 
     try {
-        const mainChannel = interaction.guild.channels.cache.get(simulator.channelId);
-        if (mainChannel && simulator.panelMessageId) {
+        const mainChannel = interaction.guild.channels.cache.get(simulator.channel_id);
+        if (mainChannel && simulator.panel_message_id) {
             try {
-                const panelMessage = await mainChannel.messages.fetch(simulator.panelMessageId);
+                const panelMessage = await mainChannel.messages.fetch(simulator.panel_message_id);
                 await panelMessage.edit({
                     embeds: [createRedEmbed({
                         title: `${emojis.fogo} Simulador ${simulator.mode} – ${simulator.jogo}`,
@@ -452,8 +452,8 @@ async function handleCancel(interaction) {
 
         setTimeout(async () => {
             try {
-                if (simulator.categoryId) {
-                    const category = interaction.guild.channels.cache.get(simulator.categoryId);
+                if (simulator.category_id) {
+                    const category = interaction.guild.channels.cache.get(simulator.category_id);
                     if (category) {
                         const categoryChannels = category.children.cache;
                         for (const [, channel] of categoryChannels) {
@@ -498,7 +498,7 @@ async function handleStart(interaction) {
     const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
     const OWNER_ID_2 = process.env.OWNER_ID_2 || '1438204670920364103';
     
-    if (interaction.user.id !== simulator.creatorId && 
+    if (interaction.user.id !== simulator.creator_id && 
         interaction.user.id !== OWNER_ID && 
         interaction.user.id !== OWNER_ID_2) {
         return interaction.editReply({
@@ -512,7 +512,7 @@ async function handleStart(interaction) {
         });
     }
 
-    if (simulator.players.length < simulator.maxPlayers) {
+    if (simulator.players.length < simulator.max_players) {
         return interaction.editReply({
             embeds: [createErrorEmbed('O simulador ainda não está lotado.', interaction.client)]
         });
@@ -539,14 +539,14 @@ async function handleMatchWin(interaction, winnerTeamNum) {
 
     const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
     const OWNER_ID_2 = process.env.OWNER_ID_2 || '1438204670920364103';
-    if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID && interaction.user.id !== OWNER_ID_2) {
+    if (interaction.user.id !== simulator.creator_id && interaction.user.id !== OWNER_ID && interaction.user.id !== OWNER_ID_2) {
         return interaction.reply({
             embeds: [createErrorEmbed('Apenas o criador pode declarar vencedor.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
-    if (!simulator.bracketData || !simulator.bracketData.matches) {
+    if (!simulator.bracket_data || !simulator.bracket_data.matches) {
         return interaction.reply({
             embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)],
             flags: MessageFlags.Ephemeral
@@ -554,7 +554,7 @@ async function handleMatchWin(interaction, winnerTeamNum) {
     }
 
     const { advanceWinner } = require('../systems/tournament/bracket');
-    const match = simulator.bracketData.matches.find(m => m.id === matchId);
+    const match = simulator.bracket_data.matches.find(m => m.id === matchId);
 
     if (!match) {
         return interaction.reply({
@@ -572,9 +572,9 @@ async function handleMatchWin(interaction, winnerTeamNum) {
         });
     }
 
-    const result = advanceWinner(simulator.bracketData, matchId, winnerTeam);
+    const result = advanceWinner(simulator.bracket_data, matchId, winnerTeam);
 
-    await updateTournament(simulator.id, { bracketData: result.bracketData });
+    await updateTournament(simulator.id, { bracket_data: result.bracketData });
 
     const winnerMentions = winnerTeam.map(id => `<@${id}>`).join(', ');
     await interaction.update({
@@ -599,21 +599,21 @@ async function handleWalkover(interaction) {
 
     const OWNER_ID_WO = process.env.OWNER_ID || '1339336477661724674';
     const OWNER_ID_WO_2 = process.env.OWNER_ID_2 || '1438204670920364103';
-    if (interaction.user.id !== simulator.creatorId && interaction.user.id !== OWNER_ID_WO && interaction.user.id !== OWNER_ID_WO_2) {
+    if (interaction.user.id !== simulator.creator_id && interaction.user.id !== OWNER_ID_WO && interaction.user.id !== OWNER_ID_WO_2) {
         return interaction.reply({
             embeds: [createErrorEmbed('Apenas o criador pode declarar W.O.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
-    if (!simulator.bracketData || !simulator.bracketData.matches) {
+    if (!simulator.bracket_data || !simulator.bracket_data.matches) {
         return interaction.reply({
             embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
-    const match = simulator.bracketData.matches.find(m => m.id === matchId);
+    const match = simulator.bracket_data.matches.find(m => m.id === matchId);
     
     if (!match || !match.team1 || !match.team2) {
         return interaction.reply({
@@ -661,7 +661,7 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
     const simulator = await getTournamentById(simulatorId);
     if (!simulator) return;
 
-    if (!simulator.bracketData || !simulator.bracketData.matches) {
+    if (!simulator.bracket_data || !simulator.bracket_data.matches) {
         return interaction.reply({
             embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)],
             flags: MessageFlags.Ephemeral
@@ -669,7 +669,7 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
     }
 
     const { advanceWinner } = require('../systems/tournament/bracket');
-    const match = simulator.bracketData.matches.find(m => m.id === matchId);
+    const match = simulator.bracket_data.matches.find(m => m.id === matchId);
 
     if (!match || !match.team1 || !match.team2) {
         return interaction.reply({
@@ -691,9 +691,9 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
     const loserMentions = loserTeam.map(id => `<@${id}>`).join(', ');
     const winnerMentions = winnerTeam.map(id => `<@${id}>`).join(', ');
 
-    const result = advanceWinner(simulator.bracketData, matchId, winnerTeam);
+    const result = advanceWinner(simulator.bracket_data, matchId, winnerTeam);
 
-    await updateTournament(simulator.id, { bracketData: result.bracketData });
+    await updateTournament(simulator.id, { bracket_data: result.bracketData });
 
     await interaction.update({
         embeds: [createRedEmbed({
@@ -709,14 +709,14 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
 
 async function checkRoundComplete(interaction, simulator, result) {
     if (result.isFinal) {
-        await handleChampion(interaction, simulator, result.champion, result.bracketData);
+        await handleChampion(interaction, simulator, result.champion, result.bracket_data);
         return;
     }
 
     const updatedSimulator = await getTournamentById(simulator.id);
     if (!updatedSimulator) return;
 
-    const bracketData = updatedSimulator.bracketData;
+    const bracketData = updatedSimulator.bracket_data;
 
     // Filtra partidas pendentes (status !== 'completed')
     const pendingMatches = bracketData.matches.filter(m => m.status !== 'completed');
@@ -743,9 +743,9 @@ async function checkRoundComplete(interaction, simulator, result) {
 
 async function deleteRoundChannels(interaction, simulator) {
     try {
-        if (!simulator.categoryId) return;
+        if (!simulator.category_id) return;
 
-        const category = interaction.guild.channels.cache.get(simulator.categoryId);
+        const category = interaction.guild.channels.cache.get(simulator.category_id);
         if (!category) return;
 
         const matchChannels = category.children.cache.filter(ch => 
@@ -784,7 +784,7 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
         timestamp: true
     });
 
-    const mainChannel = interaction.guild.channels.cache.get(simulator.channelId);
+    const mainChannel = interaction.guild.channels.cache.get(simulator.channel_id);
     if (mainChannel) {
         await mainChannel.send({ embeds: [championEmbed] });
     }
@@ -810,12 +810,12 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
 
     await updateLiveRankPanels(interaction.client);
 
-    await updateTournament(simulator.id, { state: 'finished', bracketData }); // Use simulator.id
+    await updateTournament(simulator.id, { state: 'finished', bracket_data: result.bracket_data });
 
     setTimeout(async () => {
         try {
-            if (simulator.categoryId) {
-                const category = interaction.guild.channels.cache.get(simulator.categoryId);
+            if (simulator.category_id) {
+                const category = interaction.guild.channels.cache.get(simulator.category_id);
                 if (category) {
                     const categoryChannels = category.children.cache;
                     for (const [, channel] of categoryChannels) {
@@ -837,7 +837,7 @@ async function createNextRoundChannels(interaction, simulator, round, bracketDat
     const { createMatchChannel } = require('../systems/tournament/manager');
     const { getRoundName } = require('../systems/tournament/bracket');
 
-    const category = interaction.guild.channels.cache.get(simulator.categoryId);
+    const category = interaction.guild.channels.cache.get(simulator.category_id);
     if (!category) {
         console.error('❌ Categoria do torneio não encontrada');
         return;

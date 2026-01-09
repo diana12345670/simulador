@@ -280,7 +280,7 @@ async function cancelSimulatorIfNotFull(client, simulatorId) {
     if (!simulator || simulator.state !== 'open') return;
 
     // Verifica se já está cheio
-    if (simulator.players.length >= simulator.maxPlayers) return;
+    if (simulator.players.length >= simulator.max_players) return;
 
     console.log(`⏱️ Cancelando simulador por timeout: ${simulatorId}`);
     const emojis = getEmojis(client);
@@ -543,6 +543,8 @@ async function startTournament(client, simulatorId) {
     const simulator = await getTournamentById(simulatorId);
 
     const emojis = getEmojis(client);
+    const lang = simulator.language || 'pt';
+    const teamSelection = simulator.team_selection || 'automatico';
 
     const guild = client.guilds.cache.get(simulator.guild_id);
     if (!guild) {
@@ -565,9 +567,9 @@ async function startTournament(client, simulatorId) {
 
     // Se for seleção manual, valida se todos os times estão completos
     if (teamSelection === 'manual') {
-        const teamsData = simulator.teamsData || {};
-        const playersPerTeam = simulator.playersPerTeam || parseInt(simulator.mode.charAt(0));
-        const totalTeams = simulator.totalTeams || (simulator.maxPlayers / playersPerTeam);
+        const teamsData = simulator.teams_data || {};
+        const playersPerTeam = simulator.players_per_team || parseInt(simulator.mode.charAt(0));
+        const totalTeams = simulator.total_teams || (simulator.max_players / playersPerTeam);
 
         // Verifica se todos os times estão completos
         for (let i = 1; i <= totalTeams; i++) {
@@ -594,8 +596,8 @@ async function startTournament(client, simulatorId) {
 
     // Gera chaveamento (passa opções de times se for seleção manual)
     const bracketOptions = {
-        teamSelection: simulator.teamSelection,
-        teamsData: simulator.teamsData
+        teamSelection: simulator.team_selection || 'automatico',
+        teamsData: simulator.teams_data || {}
     };
     const bracketData = generateBracket(simulator.players, simulator.mode, bracketOptions);
 
@@ -608,9 +610,9 @@ async function startTournament(client, simulatorId) {
     ];
     
     // Adiciona o criador à categoria para poder ver todos os canais
-    if (simulator.creatorId) {
+    if (simulator.creator_id) {
         categoryPermissions.push({
-            id: simulator.creatorId,
+            id: simulator.creator_id,
             allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
         });
     }
@@ -624,14 +626,14 @@ async function startTournament(client, simulatorId) {
     // Atualiza simulador com estado running, bracket e categoria
     await updateTournament(simulatorId, {
         state: 'running',
-        bracketData: bracketData,
-        categoryId: category.id
+        bracket_data: bracketData,
+        category_id: category.id
     });
 
     // Atualiza objeto local
     simulator.state = 'running';
-    simulator.bracketData = bracketData;
-    simulator.categoryId = category.id;
+    simulator.bracket_data = bracketData;
+    simulator.category_id = category.id;
 
     await channel.send({
         embeds: [createRedEmbed({
@@ -642,7 +644,7 @@ async function startTournament(client, simulatorId) {
     });
 
     // Cria canais para primeira rodada (ignora partidas BYE)
-    const firstRoundMatches = simulator.bracketData.matches.filter(m => m.round === 1 && !m.isBye && m.status === 'pending');
+    const firstRoundMatches = simulator.bracket_data.matches.filter(m => m.round === 1 && !m.isBye && m.status === 'pending');
     for (const match of firstRoundMatches) {
         if (!match.team1 || !match.team2) {
             console.log(`⚠️ Pulando partida ${match.id} - time incompleto`);
@@ -653,7 +655,7 @@ async function startTournament(client, simulatorId) {
     }
 
     // Verifica se há BYEs e já processa a próxima rodada se necessário
-    const byeMatches = simulator.bracketData.matches.filter(m => m.isBye);
+    const byeMatches = simulator.bracket_data.matches.filter(m => m.isBye);
     if (byeMatches.length > 0) {
         console.log(`✅ ${byeMatches.length} partida(s) BYE processada(s) automaticamente`);
     }
@@ -672,6 +674,7 @@ async function startTournament(client, simulatorId) {
  */
 async function createMatchChannel(guild, category, simulator, match, channelName) {
     const { startInactivityTimer } = require('../kaori/assistant');
+    const lang = simulator.language || 'pt';
 
     if (!match.team1 || !match.team2 || !Array.isArray(match.team1) || !Array.isArray(match.team2)) {
         console.error(`❌ Erro ao criar canal - times inválidos para partida ${match.id}`);
@@ -689,9 +692,9 @@ async function createMatchChannel(guild, category, simulator, match, channelName
     ];
 
     // Adiciona o criador do simulador a todos os canais de partida
-    if (simulator.creatorId) {
+    if (simulator.creator_id) {
         permissionOverwrites.push({
-            id: simulator.creatorId,
+            id: simulator.creator_id,
             allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
         });
     }
@@ -722,7 +725,7 @@ async function createMatchChannel(guild, category, simulator, match, channelName
     });
 
     match.channelId = matchChannel.id;
-    await updateTournament(simulator.id, { bracketData: simulator.bracketData });
+    await updateTournament(simulator.id, { bracket_data: simulator.bracket_data });
 
     const matchEmojis = getEmojis(guild.client);
     const matchEmbed = createRedEmbed({
@@ -757,7 +760,7 @@ async function createMatchChannel(guild, category, simulator, match, channelName
         components: [matchButtons]
     });
 
-    startInactivityTimer(matchChannel.id, matchChannel, match, simulator.creatorId);
+    startInactivityTimer(matchChannel.id, matchChannel, match, simulator.creator_id);
 }
 
 /**

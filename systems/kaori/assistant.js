@@ -424,14 +424,14 @@ async function giveVictoryByKaori(channel, confirmationData) {
         const { EmbedBuilder } = require('discord.js');
 
         const simulator = await getTournamentById(confirmationData.simulatorId);
-        if (!simulator || !simulator.bracketData) return;
+        if (!simulator || !simulator.bracket_data) return;
 
-        const match = simulator.bracketData.matches.find(m => m.id === confirmationData.matchId);
+        const match = simulator.bracket_data.matches.find(m => m.id === confirmationData.matchId);
         if (!match || match.status === 'completed') return;
 
-        const result = advanceWinner(simulator.bracketData, confirmationData.matchId, confirmationData.winnerTeam);
+        const result = advanceWinner(simulator.bracket_data, confirmationData.matchId, confirmationData.winnerTeam);
 
-        await updateTournament(confirmationData.simulatorId, { bracketData: result.bracketData });
+        await updateTournament(confirmationData.simulatorId, { bracket_data: result.bracketData });
 
         const winnerMentions = confirmationData.winnerTeam.map(id => `<@${id}>`).join(', ');
         const loserMentions = confirmationData.loserTeam.map(id => `<@${id}>`).join(', ');
