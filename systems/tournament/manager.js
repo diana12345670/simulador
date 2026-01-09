@@ -360,7 +360,8 @@ async function updateSimulatorPanel(client, simulatorId) {
     const startMode = simulator.startMode || simulator.start_mode || 'automatico';
     const guildLanguage = (simulator.language) || (simulator.guildLanguage) || null; // se vier salvo
     const { getGuildLanguage } = require('../../utils/lang');
-    const lang = guildLanguage || (await getGuildLanguage(guildId));
+    const lang = guildLanguage || 'en'; // Usa idioma salvo ou fallback para inglês
+    console.log(`🌍 DEBUG UPDATE: Guild ${guildId} - Idioma salvo: ${guildLanguage}, Usando: ${lang}`);
     const { t } = require('../../utils/i18n');
 
     const guild = client.guilds.cache.get(guildId);

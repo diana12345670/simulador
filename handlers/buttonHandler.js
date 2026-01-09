@@ -206,7 +206,7 @@ async function handleTeamJoin(interaction) {
 
     if (!simulator || simulator.state !== 'open') {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador não está mais aberto.', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'simul_closed'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -216,14 +216,14 @@ async function handleTeamJoin(interaction) {
 
     if (currentPlayers.includes(playerId)) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Você já está inscrito neste simulador.', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'join_already'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
     if (currentPlayers.length >= simulator.max_players) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este simulador já está lotado!', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'join_full'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -241,7 +241,7 @@ async function handleTeamJoin(interaction) {
 
     if (currentTeam === `time${teamNumber}`) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Você já está neste time!', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'team_same'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
@@ -249,7 +249,7 @@ async function handleTeamJoin(interaction) {
     const targetTeam = teamsData[`time${teamNumber}`] || [];
     if (targetTeam.length >= playersPerTeam) {
         return interaction.reply({
-            embeds: [createErrorEmbed('Este time já está cheio!', interaction.client)],
+            embeds: [createErrorEmbed(t(lang, 'team_full'), interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
