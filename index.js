@@ -133,7 +133,7 @@ app.listen(PORT, '0.0.0.0', () => {
 // ==========================================
 // 3. CARREGAMENTO DOS MÓDULOS PESADOS (APÓS O LISTEN)
 // ==========================================
-const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, REST, Routes, MessageFlags } = require('discord.js');
 const { initDatabase } = require('./utils/database');
 
 // Lógica de Bots
@@ -178,6 +178,26 @@ function createClient(config) {
                 await interactionHandler.execute(interaction);
             } catch (err) {
                 console.error('Erro no interactionCreate:', err);
+                
+                // Tenta responder ao usuário se houve erro
+                if (interaction && !interaction.replied && !interaction.deferred) {
+                    try {
+                        await interaction.reply({
+                            content: '❌ Ocorreu um erro ao processar este comando. Tente novamente.',
+                            flags: MessageFlags.Ephemeral
+                        });
+                    } catch (replyErr) {
+                        console.error('Erro ao responder sobre o erro:', replyErr);
+                    }
+                } else if (interaction && interaction.deferred && !interaction.replied) {
+                    try {
+                        await interaction.editReply({
+                            content: '❌ Ocorreu um erro ao processar este comando. Tente novamente.'
+                        });
+                    } catch (editErr) {
+                        console.error('Erro ao editar resposta sobre o erro:', editErr);
+                    }
+                }
             }
         });
     } catch (err) {

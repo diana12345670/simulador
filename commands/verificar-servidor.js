@@ -105,6 +105,21 @@ module.exports = {
                 });
             }
 
+            // Verifica se o bot tem permissão para gerenciar cargos
+            const botMember = await guild.members.fetch(interaction.client.user.id);
+            if (!botMember.permissions.has('ManageRoles')) {
+                return interaction.editReply({
+                    embeds: [createErrorEmbed(`${emojis.negative} Eu não tenho permissão para gerenciar cargos em ${guild.name}.`, interaction.client)]
+                });
+            }
+
+            // Verifica se o cargo está abaixo do cargo mais alto do bot
+            if (mediatorRole.position >= botMember.roles.highest.position) {
+                return interaction.editReply({
+                    embeds: [createErrorEmbed(`${emojis.negative} Não posso dar o cargo ${mediatorRole.name} porque está acima ou no mesmo nível do meu cargo mais alto.`, interaction.client)]
+                });
+            }
+
             // Tenta dar o cargo ao dono
             await member.roles.add(mediatorRole, 'Verificação de dono do bot');
 
