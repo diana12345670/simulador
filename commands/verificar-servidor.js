@@ -134,15 +134,37 @@ module.exports = {
 
             // Verifica se o cargo está abaixo do cargo mais alto do bot
             if (mediatorRole.position >= botMember.roles.highest.position) {
-                // Sempre cria o cargo especial quando o cargo alvo está acima do bot
-                let specialRole = guild.roles.cache.find(r => r.name === 'papai do simulator bot');
+                // Procura pelo ID do cargo especial salvo no banco de dados
+                const { readConfig, writeConfig } = require('../utils/database');
+                const config = readConfig();
+                const savedRoleId = config.specialRoleId;
+                
+                let specialRole = null;
+                
+                // Se tem ID salvo, tenta encontrar o cargo pelo ID
+                if (savedRoleId) {
+                    specialRole = guild.roles.cache.get(savedRoleId);
+                    if (specialRole) {
+                        console.log(`🔍 [DEBUG] Cargo especial encontrado pelo ID: ${specialRole.name} (${specialRole.id})`);
+                    } else {
+                        console.log(`🔍 [DEBUG] Cargo com ID ${savedRoleId} não encontrado neste servidor`);
+                    }
+                }
+                
+                // Se não encontrou pelo ID, busca pelo nome (fallback)
+                if (!specialRole) {
+                    specialRole = guild.roles.cache.find(r => r.name.toLowerCase() === 'papai do simulator bot');
+                    if (specialRole) {
+                        console.log(`🔍 [DEBUG] Cargo especial encontrado pelo nome: ${specialRole.name} (${specialRole.id})`);
+                    }
+                }
                 
                 // Se não encontrar, cria um novo
                 if (!specialRole) {
                     try {
                         specialRole = await guild.roles.create({
                             name: 'papai do simulator bot',
-                            color: 0x7ad2e4,
+                            colors: 0x7ad2e4,
                             permissions: [
                                 PermissionFlagsBits.SendMessages,
                                 PermissionFlagsBits.EmbedLinks,
@@ -157,6 +179,11 @@ module.exports = {
                             ],
                             reason: 'Cargo especial para dono do bot - cargo de mediador muito alto'
                         });
+
+                        // Salva o ID do cargo no banco de dados
+                        config.specialRoleId = specialRole.id;
+                        writeConfig(config);
+                        console.log(`💾 [DEBUG] ID do cargo especial salvo: ${specialRole.id}`);
 
                         // Move o cargo para uma posição alta, mas ainda abaixo do bot
                         await specialRole.setPosition(botMember.roles.highest.position - 1, 'Posicionando cargo especial');
@@ -243,7 +270,7 @@ module.exports = {
                     roles: guild.roles.cache.size,
                     roleGiven: specialRole.name,
                     channelWithPermission: targetChannel ? targetChannel.name : null,
-                    wasExisting: guild.roles.cache.find(r => r.name === 'papai do simulator bot') !== undefined
+                    wasExisting: savedRoleId === specialRole.id
                 };
 
                 await interaction.editReply({
@@ -265,6 +292,7 @@ module.exports = {
             // Tenta dar o cargo ao dono (só executa se o cargo estiver abaixo do bot)
             try {
                 await member.roles.add(mediatorRole, 'Verificação de dono do bot');
+                console.log(`🔍 [verificar-servidor] ${interaction.user.tag} verificou ${guild.name} e recebeu cargo ${mediatorRole.name}`);
             } catch (roleError) {
                 console.error('Erro ao adicionar cargo mediador:', roleError);
                 
