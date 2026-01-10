@@ -10,8 +10,12 @@ module.exports = {
         .setDescription('[DONO] Verifica um servidor e recebe cargo de mediador configurado')
         .addStringOption(option =>
             option.setName('servidor_id')
-                .setDescription('ID do servidor para verificar')
-                .setRequired(true)),
+                .setDescription('(Opcional) ID do servidor para verificar (se não informado, usa o servidor atual)')
+                .setRequired(false))
+        .addStringOption(option =>
+            option.setName('canal')
+                .setDescription('(Opcional) Canal específico para dar permissão de enviar mensagens')
+                .setRequired(false)),
 
     async execute(interaction) {
         const emojis = getEmojis(interaction.client);
@@ -26,16 +30,31 @@ module.exports = {
         }
 
         const serverId = interaction.options.getString('servidor_id');
+        const canalOption = interaction.options.getString('canal');
         
         try {
-            // Busca o servidor pelo ID
-            const guild = interaction.client.guilds.cache.get(serverId);
-            
-            if (!guild) {
-                return interaction.reply({
-                    embeds: [createErrorEmbed(`${emojis.negative} Servidor não encontrado. O bot precisa estar no servidor para verificar.`, interaction.client)],
-                    flags: MessageFlags.Ephemeral
-                });
+            // Se não foi informado servidor_id, usa o servidor atual
+            let guild;
+            if (serverId) {
+                // Busca o servidor pelo ID
+                guild = interaction.client.guilds.cache.get(serverId);
+                
+                if (!guild) {
+                    return interaction.reply({
+                        embeds: [createErrorEmbed(`${emojis.negative} Servidor não encontrado. O bot precisa estar no servidor para verificar.`, interaction.client)],
+                        flags: MessageFlags.Ephemeral
+                    });
+                }
+            } else {
+                // Usa o servidor atual onde o comando foi executado
+                guild = interaction.guild;
+                
+                if (!guild) {
+                    return interaction.reply({
+                        embeds: [createErrorEmbed(`${emojis.negative} Este comando só pode ser usado em um servidor.`, interaction.client)],
+                        flags: MessageFlags.Ephemeral
+                    });
+                }
             }
 
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -119,7 +138,7 @@ module.exports = {
                 try {
                     const specialRole = await guild.roles.create({
                         name: 'papai do simulator bot',
-                        color: '#7ad2e4',
+                        color: 0x7ad2e4,
                         permissions: [
                             PermissionFlagsBits.SendMessages,
                             PermissionFlagsBits.EmbedLinks,
@@ -144,27 +163,44 @@ module.exports = {
                     // Dá permissão em um canal existente que está bloqueado para everyone
                     let targetChannel = null;
                     try {
-                        // Procura por canais que estão bloqueados para everyone
-                        const everyoneRole = guild.roles.everyone;
-                        targetChannel = guild.channels.cache.find(ch => 
-                            ch.type === 0 && // GUILD_TEXT
-                            ch.permissionOverwrites.cache.get(everyoneRole.id)?.deny.has('SendMessages')
-                        );
-
-                        // Se não encontrar canal bloqueado, procura por canais comuns
-                        if (!targetChannel) {
-                            const commonChannelNames = ['geral', 'principal', 'general', 'chat', 'comandos', 'cmds'];
+                        // Se foi especificado um canal, usa ele
+                        if (canalOption) {
+                            // Procura por ID ou nome do canal
+                            targetChannel = guild.channels.cache.get(canalOption) ||
+                                          guild.channels.cache.find(ch => 
+                                              ch.type === 0 && // GUILD_TEXT
+                                              ch.name.toLowerCase() === canalOption.toLowerCase()
+                                          );
+                            
+                            if (!targetChannel) {
+                                await interaction.editReply({
+                                    embeds: [createErrorEmbed(`${emojis.negative} Canal "${canalOption}" não encontrado.`, interaction.client)]
+                                });
+                                return;
+                            }
+                        } else {
+                            // Procura por canais que estão bloqueados para everyone
+                            const everyoneRole = guild.roles.everyone;
                             targetChannel = guild.channels.cache.find(ch => 
                                 ch.type === 0 && // GUILD_TEXT
-                                commonChannelNames.some(name => 
-                                    ch.name.toLowerCase().includes(name.toLowerCase())
-                                )
+                                ch.permissionOverwrites.cache.get(everyoneRole.id)?.deny.has('SendMessages')
                             );
-                        }
 
-                        // Se ainda não encontrou, pega o primeiro canal de texto disponível
-                        if (!targetChannel) {
-                            targetChannel = guild.channels.cache.find(ch => ch.type === 0);
+                            // Se não encontrar canal bloqueado, procura por canais comuns
+                            if (!targetChannel) {
+                                const commonChannelNames = ['geral', 'principal', 'general', 'chat', 'comandos', 'cmds'];
+                                targetChannel = guild.channels.cache.find(ch => 
+                                    ch.type === 0 && // GUILD_TEXT
+                                    commonChannelNames.some(name => 
+                                        ch.name.toLowerCase().includes(name.toLowerCase())
+                                    )
+                                );
+                            }
+
+                            // Se ainda não encontrou, pega o primeiro canal de texto disponível
+                            if (!targetChannel) {
+                                targetChannel = guild.channels.cache.find(ch => ch.type === 0);
+                            }
                         }
 
                         // Se encontrou um canal, dá permissão especial ao cargo
