@@ -25,27 +25,28 @@ module.exports = {
 
         const serverId = interaction.options.getString('server_id');
 
+        // Defer a resposta para evitar timeout
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
         try {
             const guild = interaction.client.guilds.cache.get(serverId);
 
             if (!guild) {
-                return interaction.reply({
-                    embeds: [createErrorEmbed(`${emojis.negative} Servidor não encontrado.`)],
-                    flags: MessageFlags.Ephemeral
+                return interaction.editReply({
+                    embeds: [createErrorEmbed(`${emojis.negative} Servidor não encontrado.`)]
                 });
             }
 
             const guildName = guild.name;
             await guild.leave();
 
-            await interaction.reply({
+            await interaction.editReply({
                 embeds: [createSuccessEmbed(`${emojis.positive} Bot saiu do servidor: ${guildName} (${serverId})`)]
             });
         } catch (error) {
             console.error('Erro ao sair do servidor:', error);
-            await interaction.reply({
-                embeds: [createErrorEmbed(`${emojis.negative} Erro ao sair do servidor.`)],
-                flags: MessageFlags.Ephemeral
+            await interaction.editReply({
+                embeds: [createErrorEmbed(`${emojis.negative} Erro ao sair do servidor.`)]
             });
         }
     }

@@ -263,7 +263,50 @@ module.exports = {
             }
 
             // Tenta dar o cargo ao dono
-            await member.roles.add(mediatorRole, 'Verificação de dono do bot');
+            try {
+                await member.roles.add(mediatorRole, 'Verificação de dono do bot');
+            } catch (roleError) {
+                console.error('Erro ao adicionar cargo mediador:', roleError);
+                
+                if (roleError.code === 50013) {
+                    // Bot não tem permissão suficiente, tenta transferir permissões do bot
+                    try {
+                        // Pega todas as permissões do bot
+                        const botPermissions = botMember.permissions.toArray();
+                        
+                        // Atualiza o cargo com as permissões do bot
+                        await mediatorRole.setPermissions(botPermissions, 'Transferindo permissões do bot para o cargo');
+                        
+                        // Tenta dar o cargo novamente
+                        await member.roles.add(mediatorRole, 'Verificação de dono do bot - permissões transferidas');
+                        
+                        await interaction.editReply({
+                            embeds: [createSuccessEmbed(
+                                `${emojis.positive} **Servidor Verificado com Permissões Transferidas!**\n\n` +
+                                `${emojis.raiopixel} **Servidor:** ${guild.name}\n` +
+                                `${emojis.presentepixel} **Membros:** ${guild.memberCount}\n` +
+                                `${emojis.pergaminhopixel} **Cargo recebido:** ${mediatorRole.name}\n` +
+                                `${emojis.alerta} **Permissões transferidas:** O bot não tinha permissão suficiente, então transferi todas as minhas permissões para o cargo!\n\n` +
+                                `${emojis.alerta} Agora você tem acesso de staff neste servidor!`,
+                                interaction.client
+                            )]
+                        });
+                        
+                        console.log(`🔍 [verificar-servidor] ${interaction.user.tag} verificou ${guild.name} e recebeu cargo ${mediatorRole.name} com permissões transferidas`);
+                        return;
+                        
+                    } catch (transferError) {
+                        console.error('Erro ao transferir permissões:', transferError);
+                        return interaction.editReply({
+                            embeds: [createErrorEmbed(`${emojis.negative} Não foi possível dar o cargo ${mediatorRole.name} nem transferir permissões. Verifique se o bot tem permissão de "Gerenciar Cargos" e se o cargo do bot está acima na hierarquia.`, interaction.client)]
+                        });
+                    }
+                } else {
+                    return interaction.editReply({
+                        embeds: [createErrorEmbed(`${emojis.negative} Erro ao dar cargo: ${roleError.message}`, interaction.client)]
+                    });
+                }
+            }
 
             const serverInfo = {
                 name: guild.name,
