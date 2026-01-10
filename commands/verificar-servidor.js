@@ -1,5 +1,5 @@
 // verificar-servidor.js - Comando para o dono verificar um servidor e receber cargo de mediador
-const { SlashCommandBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags, PermissionFlagsBits } = require('discord.js');
 const { isOwnerOrAuthorized } = require('../utils/database');
 const { createErrorEmbed, createSuccessEmbed } = require('../utils/embeds');
 const { getEmojis } = require('../utils/emojis');
