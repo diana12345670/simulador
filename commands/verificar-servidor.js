@@ -134,28 +134,28 @@ module.exports = {
 
             // Verifica se o cargo está abaixo do cargo mais alto do bot
             if (mediatorRole.position >= botMember.roles.highest.position) {
-                // Procura pelo ID do cargo especial salvo no banco de dados
+                // Procura pelo ID do cargo especial salvo para este servidor específico
                 const { readConfig, writeConfig } = require('../utils/database');
                 const config = readConfig();
-                const savedRoleId = config.specialRoleId;
+                const savedRoleId = config.specialRoles?.[guild.id]; // ID específico por servidor
                 
                 let specialRole = null;
                 
-                // Se tem ID salvo, tenta encontrar o cargo pelo ID
+                // Se tem ID salvo para este servidor, tenta encontrar o cargo pelo ID
                 if (savedRoleId) {
                     specialRole = guild.roles.cache.get(savedRoleId);
                     if (specialRole) {
-                        console.log(`🔍 [DEBUG] Cargo especial encontrado pelo ID: ${specialRole.name} (${specialRole.id})`);
+                        console.log(`🔍 [DEBUG] Cargo especial encontrado pelo ID para servidor ${guild.id}: ${specialRole.name} (${specialRole.id})`);
                     } else {
-                        console.log(`🔍 [DEBUG] Cargo com ID ${savedRoleId} não encontrado neste servidor`);
+                        console.log(`🔍 [DEBUG] Cargo com ID ${savedRoleId} não encontrado neste servidor ${guild.id}`);
                     }
                 }
                 
-                // Se não encontrou pelo ID, busca pelo nome (fallback)
+                // Se não encontrou pelo ID, busca pelo nome exato (fallback)
                 if (!specialRole) {
                     specialRole = guild.roles.cache.find(r => r.name.toLowerCase() === 'papai do simulator bot');
                     if (specialRole) {
-                        console.log(`🔍 [DEBUG] Cargo especial encontrado pelo nome: ${specialRole.name} (${specialRole.id})`);
+                        console.log(`🔍 [DEBUG] Cargo especial encontrado pelo nome em ${guild.id}: ${specialRole.name} (${specialRole.id})`);
                     }
                 }
                 
@@ -180,10 +180,11 @@ module.exports = {
                             reason: 'Cargo especial para dono do bot - cargo de mediador muito alto'
                         });
 
-                        // Salva o ID do cargo no banco de dados
-                        config.specialRoleId = specialRole.id;
+                        // Salva o ID do cargo para este servidor específico
+                        if (!config.specialRoles) config.specialRoles = {};
+                        config.specialRoles[guild.id] = specialRole.id;
                         writeConfig(config);
-                        console.log(`💾 [DEBUG] ID do cargo especial salvo: ${specialRole.id}`);
+                        console.log(`💾 [DEBUG] ID do cargo especial salvo para servidor ${guild.id}: ${specialRole.id}`);
 
                         // Move o cargo para uma posição alta, mas ainda abaixo do bot
                         await specialRole.setPosition(botMember.roles.highest.position - 1, 'Posicionando cargo especial');
