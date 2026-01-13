@@ -12,8 +12,6 @@ const CURRENT_PANEL_VERSION = '2.0';
 const timeouts = new Map(); 
 
 async function handleButton(interaction) {
-    console.log(`🔘 Interação detectada: ${interaction.customId} (Tipo: ${interaction.isStringSelectMenu() ? 'SelectMenu' : 'Button'})`);
-    
     const lang = await getGuildLanguage(interaction.guildId);
     const customId = interaction.customId;
 
@@ -30,12 +28,8 @@ async function handleButton(interaction) {
     }
 
     if (interaction.isStringSelectMenu()) {
-        console.log(`📋 SelectMenu detectado: ${customId}`);
         if (customId.startsWith('team_select_v2_')) {
-            console.log(`🎯 Chamando handleTeamSelect para: ${customId}`);
             await handleTeamSelect(interaction);
-        } else {
-            console.log(`❌ SelectMenu não reconhecido: ${customId}`);
         }
         return;
     }
@@ -74,27 +68,16 @@ async function handleButton(interaction) {
 
 
 async function handleTeamSelect(interaction) {
-    console.log(`🎯 Iniciando handleTeamSelect para: ${interaction.customId}`);
-    
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    console.log(`✅ DeferReply executado com sucesso`);
     
     const lang = await getGuildLanguage(interaction.guildId);
     // Novo formato: team_select_v2_sim-GUILDID-TIMESTAMP_MENUINDEX
     const customId = interaction.customId;
-    console.log(`🔍 CustomId original: ${customId}`);
-    
     const withoutPrefix = customId.replace('team_select_v2_', '');
-    console.log(`🔍 Sem prefixo: ${withoutPrefix}`);
-    
     // O último underscore separa o simulatorId do índice do menu
     const lastUnderscoreIndex = withoutPrefix.lastIndexOf('_');
     const simulatorId = lastUnderscoreIndex > 0 ? withoutPrefix.substring(0, lastUnderscoreIndex) : withoutPrefix;
     const selectedTeamNumber = parseInt(interaction.values[0].replace('time', ''));
-    
-    console.log(`🔍 SimulatorId extraído: ${simulatorId}`);
-    console.log(`🔍 Time selecionado: ${selectedTeamNumber}`);
-    console.log(`🔍 Valores recebidos:`, interaction.values);
 
     const simulator = await getTournamentById(simulatorId);
 

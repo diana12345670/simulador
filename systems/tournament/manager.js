@@ -445,55 +445,32 @@ async function updateSimulatorPanel(client, simulatorId) {
         } else if (!isFull) {
             if (teamSelection === 'manual') {
 
-                if (totalTeams > 2) {
-                    const teamOptions = [];
-                    for (let i = 1; i <= totalTeams; i++) {
-                        teamOptions.push({
-                            label: `Time ${i}`,
-                            value: `time${i}`
-                        });
-                    }
+                const teamOptions = [];
+                for (let i = 1; i <= totalTeams; i++) {
+                    teamOptions.push({
+                        label: `Time ${i}`,
+                        value: `time${i}`
+                    });
+                }
 
-                    const MAX_OPTIONS = 25;
-                    const chunks = [];
-                    for (let i = 0; i < teamOptions.length; i += MAX_OPTIONS) {
-                        chunks.push(teamOptions.slice(i, i + MAX_OPTIONS));
-                    }
+                const MAX_OPTIONS = 25;
+                const chunks = [];
+                for (let i = 0; i < teamOptions.length; i += MAX_OPTIONS) {
+                    chunks.push(teamOptions.slice(i, i + MAX_OPTIONS));
+                }
 
-                    const maxMenus = Math.min(chunks.length, 4);
-                    for (let i = 0; i < maxMenus; i++) {
-                        const chunk = chunks[i];
-                        const startNum = i * MAX_OPTIONS + 1;
-                        const endNum = Math.min((i + 1) * MAX_OPTIONS, totalTeams);
+                const maxMenus = Math.min(chunks.length, 4);
+                for (let i = 0; i < maxMenus; i++) {
+                    const chunk = chunks[i];
+                    const startNum = i * MAX_OPTIONS + 1;
+                    const endNum = Math.min((i + 1) * MAX_OPTIONS, totalTeams);
 
-                        const selectMenu = new StringSelectMenuBuilder()
-                            .setCustomId(`team_select_v2_${simulatorId}_${i}`)
-                            .setPlaceholder(`Selecione um time (${startNum}-${endNum})...`)
-                            .addOptions(chunk);
+                    const selectMenu = new StringSelectMenuBuilder()
+                        .setCustomId(`team_select_v2_${simulatorId}_${i}`)
+                        .setPlaceholder(`Selecione um time (${startNum}-${endNum})...`)
+                        .addOptions(chunk);
 
-                        newComponents.push(new ActionRowBuilder().addComponents(selectMenu));
-                    }
-                } else {
-                    let currentRow = new ActionRowBuilder();
-                    let buttonsInRow = 0;
-
-                    for (let i = 1; i <= totalTeams; i++) {
-                        if (buttonsInRow >= 5) {
-                            newComponents.push(currentRow);
-                            currentRow = new ActionRowBuilder();
-                            buttonsInRow = 0;
-                        }
-                        currentRow.addComponents(
-                            new ButtonBuilder()
-                                .setCustomId(`team_join_v2_${simulatorId}_${i}`)
-                                .setLabel(`Time ${i}`)
-                                .setStyle(ButtonStyle.Primary)
-                        );
-                        buttonsInRow++;
-                    }
-                    if (buttonsInRow > 0) {
-                        newComponents.push(currentRow);
-                    }
+                    newComponents.push(new ActionRowBuilder().addComponents(selectMenu));
                 }
 
                 const controlButtons = new ActionRowBuilder()
