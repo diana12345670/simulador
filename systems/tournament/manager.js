@@ -146,35 +146,28 @@ async function createSimulator(client, guild, creator, options) {
                 const endNum = Math.min((i + 1) * MAX_OPTIONS, totalTeams);
 
                 const selectMenu = new StringSelectMenuBuilder()
-                    .setCustomId(`team_select_${simulatorId}_${i}`)
+                    .setCustomId(`team_select_v2_${simulatorId}_${i}`)
                     .setPlaceholder(t(lang, 'select_team_placeholder', { range: `${startNum}-${endNum}` }))
                     .addOptions(chunk);
 
                 components.push(new ActionRowBuilder().addComponents(selectMenu));
             }
-        } else {
-            // Botões para escolher time (máximo 5 por row)
-            let currentRow = new ActionRowBuilder();
-            let buttonsInRow = 0;
-
-            for (let i = 1; i <= totalTeams; i++) {
-                if (buttonsInRow >= 5) {
-                    components.push(currentRow);
-                    currentRow = new ActionRowBuilder();
-                    buttonsInRow = 0;
-                }
-                currentRow.addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`team_join_${simulatorId}_${i}`)
-                        .setLabel(t(lang, 'team_name', { num: i }))
-                        .setStyle(ButtonStyle.Primary)
-                );
-                buttonsInRow++;
-            }
-            if (buttonsInRow > 0) {
-                components.push(currentRow);
-            }
         }
+
+        const teamOptions = [];
+        for (let i = 1; i <= totalTeams; i++) {
+            teamOptions.push({
+                label: t(lang, 'team_name', { num: i }),
+                value: `time${i}`
+            });
+        }
+
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId(`team_select_v2_${simulatorId}`)
+            .setPlaceholder(t(lang, 'select_team_placeholder', { range: `1-${totalTeams}` }))
+            .addOptions(teamOptions);
+
+        components.push(new ActionRowBuilder().addComponents(selectMenu));
 
         // Adiciona botões de sair e cancelar
         const controlButtons = new ActionRowBuilder()
