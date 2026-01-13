@@ -65,7 +65,7 @@ module.exports = {
                 await handleButton(interaction);
                 // Se não houve resposta/defer, envia fallback para evitar timeout
                 if (!interaction.replied && !interaction.deferred) {
-                    console.log(`⚠️ ${type} não respondeu, enviando fallback`);
+                    console.log(`⚠️ ${type} não respondeu, enviando fallback - CustomId: ${interaction.customId}`);
                     await interaction.reply({
                         content: `${emojis.negative} A ação não respondeu a tempo. Tente novamente.`,
                         flags: MessageFlags.Ephemeral
