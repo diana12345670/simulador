@@ -166,6 +166,7 @@ async function handleTeamSelect(interaction) {
         teams_data: teamsData,
         players: newPlayers 
     });
+    console.log(`💾 Dados salvos no banco`);
 
     const actionText = currentTeam
         ? t(lang, 'switch_team', { team: selectedTeamNumber })
@@ -179,7 +180,10 @@ async function handleTeamSelect(interaction) {
     });
 
     console.log(`🔄 Atualizando painel após seleção de time: ${simulatorId}`);
-    await updateSimulatorPanel(interaction.client, simulatorId);
+    
+    // Atualiza o painel com os dados atualizados para evitar race condition
+    const updatedSimulator = { ...simulator, teams_data: teamsData, players: newPlayers };
+    await updateSimulatorPanel(interaction.client, simulatorId, updatedSimulator);
     console.log(`✅ Painel atualizado com sucesso`);
 }
 

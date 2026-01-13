@@ -345,9 +345,11 @@ async function cancelSimulatorIfNotFull(client, simulatorId) {
 /**
  * Atualiza o painel do simulador
  */
-async function updateSimulatorPanel(client, simulatorId) {
+async function updateSimulatorPanel(client, simulatorId, overrideData = null) {
     console.log(`🔄 Iniciando atualização do painel: ${simulatorId}`);
-    const simulator = await getTournamentById(simulatorId);
+    
+    // Usa dados fornecidos ou busca do banco
+    const simulator = overrideData || await getTournamentById(simulatorId);
 
     if (!simulator) return;
 
