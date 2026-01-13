@@ -18,7 +18,7 @@ async function handleButton(interaction) {
     // Verificar se é um painel antigo (sem versão)
     if (customId.startsWith('simu_') && !customId.includes('_v2_')) {
         const emojis = getEmojis(interaction.client);
-        return interaction.reply({
+        return interaction.editReply({
             embeds: [createErrorEmbed(
                 `${emojis.negative} ${t(lang, 'old_panel_warning', { alerta: emojis.alerta })}\n\n${t(lang, 'old_panel_solution')}`,
                 interaction.client
@@ -68,6 +68,8 @@ async function handleButton(interaction) {
 
 
 async function handleTeamSelect(interaction) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    
     const lang = await getGuildLanguage(interaction.guildId);
     // Novo formato: team_select_v2_sim-GUILDID-TIMESTAMP_MENUINDEX
     const customId = interaction.customId;
@@ -80,9 +82,8 @@ async function handleTeamSelect(interaction) {
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator || simulator.state !== 'open') {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'simul_closed'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'simul_closed'), interaction.client)]
         });
     }
 
@@ -90,36 +91,32 @@ async function handleTeamSelect(interaction) {
     const emojis = getEmojis(interaction.client);
 
     if (await isUserBanned(playerId)) {
-        return interaction.reply({
+        return interaction.editReply({
             embeds: [createRedEmbed({
                 title: `${emojis.negative} ${t(lang, 'banned_global_title')}`,
                 description: t(lang, 'banned_global_desc'),
                 timestamp: true
-            })],
-            flags: MessageFlags.Ephemeral
+            })]
         });
     }
 
     if (await isUserBannedInGuild(playerId, interaction.guildId)) {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'banned_local'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'banned_local'), interaction.client)]
         });
     }
 
     const currentPlayers = simulator.players || [];
 
     if (currentPlayers.includes(playerId)) {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'join_already'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'join_already'), interaction.client)]
         });
     }
 
     if (currentPlayers.length >= simulator.max_players) {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'join_full'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'join_full'), interaction.client)]
         });
     }
 
@@ -135,17 +132,15 @@ async function handleTeamSelect(interaction) {
     }
 
     if (currentTeam === `time${selectedTeamNumber}`) {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'team_same'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'team_same'), interaction.client)]
         });
     }
 
     const targetTeam = teamsData[`time${selectedTeamNumber}`] || [];
     if (targetTeam.length >= playersPerTeam) {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'team_full'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'team_full'), interaction.client)]
         });
     }
 
@@ -175,7 +170,7 @@ async function handleTeamSelect(interaction) {
     const actionText = currentTeam
         ? t(lang, 'switch_team', { team: selectedTeamNumber })
         : t(lang, 'join_team', { team: selectedTeamNumber });
-    await interaction.reply({
+    await interaction.editReply({
         embeds: [createRedEmbed({
             description: `${emojis.positive} ${actionText}`,
             timestamp: true
@@ -187,6 +182,8 @@ async function handleTeamSelect(interaction) {
 }
 
 async function handleTeamJoin(interaction) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    
     const parts = interaction.customId.split('_');
     // Formato antigo: team_join_simulatorId_teamNumber
     // Formato novo: team_join_v2_simulatorId_teamNumber
@@ -205,9 +202,8 @@ async function handleTeamJoin(interaction) {
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator || simulator.state !== 'open') {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'simul_closed'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'simul_closed'), interaction.client)]
         });
     }
 
@@ -215,16 +211,14 @@ async function handleTeamJoin(interaction) {
     const currentPlayers = simulator.players || [];
 
     if (currentPlayers.includes(playerId)) {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'join_already'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'join_already'), interaction.client)]
         });
     }
 
     if (currentPlayers.length >= simulator.max_players) {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'join_full'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'join_full'), interaction.client)]
         });
     }
 
@@ -240,17 +234,15 @@ async function handleTeamJoin(interaction) {
     }
 
     if (currentTeam === `time${teamNumber}`) {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'team_same'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'team_same'), interaction.client)]
         });
     }
 
     const targetTeam = teamsData[`time${teamNumber}`] || [];
     if (targetTeam.length >= playersPerTeam) {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'team_full'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'team_full'), interaction.client)]
         });
     }
 
@@ -278,7 +270,7 @@ async function handleTeamJoin(interaction) {
     });
 
     const action = currentTeam ? `trocou para o Time ${teamNumber}` : `entrou no Time ${teamNumber}`;
-    await interaction.reply({
+    await interaction.editReply({
         embeds: [createRedEmbed({
             description: `${emojis.positive} Você ${action}!`,
             timestamp: true
@@ -290,58 +282,55 @@ async function handleTeamJoin(interaction) {
 }
 
 async function handleJoin(interaction) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    
     const lang = await getGuildLanguage(interaction.guildId);
     const simulatorId = interaction.customId.replace('simu_join_v2_', '');
     const playerId = interaction.user.id;
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator || simulator.state !== 'open') {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'simul_closed'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'simul_closed'), interaction.client)]
         });
     }
 
     const emojis = getEmojis(interaction.client);
 
     if (await isUserBanned(playerId)) {
-        return interaction.reply({
+        return interaction.editReply({
             embeds: [createRedEmbed({
                 title: `${emojis.negative} ${t(lang, 'banned_global_title')}`,
                 description: t(lang, 'banned_global_desc'),
                 timestamp: true
-            })],
-            flags: MessageFlags.Ephemeral
+            })]
         });
     }
 
     if (await isUserBannedInGuild(playerId, interaction.guildId)) {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'banned_local'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'banned_local'), interaction.client)]
         });
     }
 
     // Verificação rigorosa de duplicidade e lotação
     const currentPlayers = simulator.players || [];
     if (currentPlayers.includes(playerId)) {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'join_already'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'join_already'), interaction.client)]
         });
     }
 
     if (currentPlayers.length >= simulator.max_players) {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'join_full'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'join_full'), interaction.client)]
         });
     }
 
     const newPlayers = [...currentPlayers, playerId];
     await updateTournament(simulatorId, { players: newPlayers });
 
-    await interaction.reply({
+    await interaction.editReply({
         embeds: [createRedEmbed({
             description: `${emojis.positive} ${t(lang, 'join_success')}`,
             timestamp: true
@@ -353,21 +342,21 @@ async function handleJoin(interaction) {
 }
 
 async function handleLeave(interaction) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    
     const lang = await getGuildLanguage(interaction.guildId);
     const simulatorId = interaction.customId.replace('simu_leave_v2_', '');
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator || simulator.state !== 'open') {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'simul_closed'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'simul_closed'), interaction.client)]
         });
     }
 
     if (!simulator.players.includes(interaction.user.id)) {
-        return interaction.reply({
-            embeds: [createErrorEmbed(t(lang, 'leave_not_in'), interaction.client)],
-            flags: MessageFlags.Ephemeral
+        return interaction.editReply({
+            embeds: [createErrorEmbed(t(lang, 'leave_not_in'), interaction.client)]
         });
     }
 
@@ -386,7 +375,7 @@ async function handleLeave(interaction) {
     });
 
     const emojis = getEmojis(interaction.client);
-    await interaction.reply({
+    await interaction.editReply({
         embeds: [createRedEmbed({
             description: `${emojis.negative} ${t(lang, 'leave_success')}`,
             timestamp: true
@@ -541,14 +530,14 @@ async function handleMatchWin(interaction, winnerTeamNum) {
     const OWNER_ID = process.env.OWNER_ID || '1339336477661724674';
     const OWNER_ID_2 = process.env.OWNER_ID_2 || '1438204670920364103';
     if (interaction.user.id !== simulator.creator_id && interaction.user.id !== OWNER_ID && interaction.user.id !== OWNER_ID_2) {
-        return interaction.reply({
+        return interaction.editReply({
             embeds: [createErrorEmbed('Apenas o criador pode declarar vencedor.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
     if (!simulator.bracket_data || !simulator.bracket_data.matches) {
-        return interaction.reply({
+        return interaction.editReply({
             embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
@@ -558,7 +547,7 @@ async function handleMatchWin(interaction, winnerTeamNum) {
     const match = simulator.bracket_data.matches.find(m => m.id === matchId);
 
     if (!match) {
-        return interaction.reply({
+        return interaction.editReply({
             embeds: [createErrorEmbed('Partida não encontrada.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
@@ -567,7 +556,7 @@ async function handleMatchWin(interaction, winnerTeamNum) {
     const winnerTeam = winnerTeamNum === 1 ? match.team1 : match.team2;
     
     if (!winnerTeam || !Array.isArray(winnerTeam)) {
-        return interaction.reply({
+        return interaction.editReply({
             embeds: [createErrorEmbed('Time inválido.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
@@ -601,14 +590,14 @@ async function handleWalkover(interaction) {
     const OWNER_ID_WO = process.env.OWNER_ID || '1339336477661724674';
     const OWNER_ID_WO_2 = process.env.OWNER_ID_2 || '1438204670920364103';
     if (interaction.user.id !== simulator.creator_id && interaction.user.id !== OWNER_ID_WO && interaction.user.id !== OWNER_ID_WO_2) {
-        return interaction.reply({
+        return interaction.editReply({
             embeds: [createErrorEmbed('Apenas o criador pode declarar W.O.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
     }
 
     if (!simulator.bracket_data || !simulator.bracket_data.matches) {
-        return interaction.reply({
+        return interaction.editReply({
             embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
@@ -617,7 +606,7 @@ async function handleWalkover(interaction) {
     const match = simulator.bracket_data.matches.find(m => m.id === matchId);
     
     if (!match || !match.team1 || !match.team2) {
-        return interaction.reply({
+        return interaction.editReply({
             embeds: [createErrorEmbed('Partida não encontrada ou times inválidos.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
@@ -642,7 +631,7 @@ async function handleWalkover(interaction) {
                 .setStyle(ButtonStyle.Secondary)
         );
 
-    await interaction.reply({
+    await interaction.editReply({
         embeds: [createRedEmbed({
             title: `${emojis.alerta} Declarar W.O.`,
             description: `**Time 1:** ${team1Mentions}\n**Time 2:** ${team2Mentions}\n\n**Quem VENCEU pelo W.O.?**\n(O adversário sumiu/não compareceu)`,
@@ -663,7 +652,7 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
     if (!simulator) return;
 
     if (!simulator.bracket_data || !simulator.bracket_data.matches) {
-        return interaction.reply({
+        return interaction.editReply({
             embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
@@ -673,7 +662,7 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
     const match = simulator.bracket_data.matches.find(m => m.id === matchId);
 
     if (!match || !match.team1 || !match.team2) {
-        return interaction.reply({
+        return interaction.editReply({
             embeds: [createErrorEmbed('Partida não encontrada ou times inválidos.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
@@ -683,7 +672,7 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
     const loserTeam = winnerTeamNum === 1 ? match.team2 : match.team1;
     
     if (!winnerTeam || !loserTeam || !Array.isArray(winnerTeam) || !Array.isArray(loserTeam)) {
-        return interaction.reply({
+        return interaction.editReply({
             embeds: [createErrorEmbed('Time inválido.', interaction.client)],
             flags: MessageFlags.Ephemeral
         });
