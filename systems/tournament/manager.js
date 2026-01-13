@@ -392,6 +392,7 @@ async function updateSimulatorPanel(client, simulatorId) {
 
             for (let i = 1; i <= totalTeams; i++) {
                 const teamPlayers = teamsData[`time${i}`] || [];
+                console.log(`🔍 Time ${i}: ${JSON.stringify(teamPlayers)} jogadores`);
                 const playerMentions = teamPlayers.length > 0 
                     ? teamPlayers.map(id => `<@${id}>`).join(', ')
                     : t(lang, 'panel_no_players');
