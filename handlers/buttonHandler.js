@@ -181,9 +181,14 @@ async function handleTeamSelect(interaction) {
 
     console.log(`🔄 Atualizando painel após seleção de time: ${simulatorId}`);
     
-    // Atualiza o painel com os dados atualizados para evitar race condition
-    const updatedSimulator = { ...simulator, teams_data: teamsData, players: newPlayers };
-    await updateSimulatorPanel(interaction.client, simulatorId, updatedSimulator);
+    // Pequeno delay para garantir que o banco tenha tempo de processar
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Busca dados atualizados do banco (agora deve estar consistente)
+    const freshSimulator = await getTournamentById(simulatorId);
+    console.log(`📊 Dados buscados do banco: teams_data=${JSON.stringify(freshSimulator.teams_data || {})}`);
+    
+    await updateSimulatorPanel(interaction.client, simulatorId);
     console.log(`✅ Painel atualizado com sucesso`);
 }
 
