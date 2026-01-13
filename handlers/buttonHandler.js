@@ -20,7 +20,7 @@ async function handleButton(interaction) {
         const emojis = getEmojis(interaction.client);
         return interaction.reply({
             embeds: [createErrorEmbed(
-                `${emojis.negative} ${t(lang, 'old_panel_warning')}\n\n${t(lang, 'old_panel_solution')}`,
+                `${emojis.negative} ${t(lang, 'old_panel_warning', { alerta: emojis.alerta })}\n\n${t(lang, 'old_panel_solution')}`,
                 interaction.client
             )],
             flags: MessageFlags.Ephemeral
@@ -439,7 +439,7 @@ async function handleCancel(interaction) {
                     embeds: [createRedEmbed({
                         title: `${emojis.fogo} Simulador ${simulator.mode} – ${simulator.jogo}`,
                         description: `${emojis.raiopixel} **Jogo:** ${simulator.jogo}\n${emojis.pergaminhopixel} **Versão:** ${simulator.versao}\n${emojis.trofeupixel} **Modo:** ${simulator.mode}\n${emojis.presentepixel} **Prêmio:** ${simulator.prize}\n\n${emojis.negative} **Este simulador foi cancelado**`,
-                        footer: { text: 'Simulador cancelado' },
+                        footer: { text: `${emojis.negative} Simulador cancelado` },
                         timestamp: true
                     })],
                     components: []
@@ -912,7 +912,7 @@ async function updateLiveRankPanels(client) {
                 const rankEmbed = createRedEmbed({
                     title: rankTitle,
                     description: rankDescription || 'Nenhum dado disponível',
-                    footer: { text: '🔴 AO VIVO - Atualiza automaticamente quando jogadores vencem' },
+                    footer: { text: `${emojis.fogo} AO VIVO - Atualiza automaticamente quando jogadores vencem` },
                     timestamp: true
                 });
 

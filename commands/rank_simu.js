@@ -73,11 +73,11 @@ module.exports = {
         }).join('\n\n');
 
         const footerText = atualizacao === 'ao_vivo' 
-            ? '🔴 AO VIVO - Atualiza automaticamente quando jogadores vencem'
+            ? `${emojis.fogo} AO VIVO - Atualiza automaticamente quando jogadores vencem`
             : `${emojis.moedapixel} Pontos: +1 por torneio vencido`;
 
         const rankEmbed = createRedEmbed({
-            title: rankTitle + (atualizacao === 'ao_vivo' ? ' 🔴' : ''),
+            title: rankTitle + (atualizacao === 'ao_vivo' ? ` ${emojis.fogo}` : ''),
             description: rankDescription || 'Nenhum dado disponível',
             footer: { text: footerText },
             timestamp: true

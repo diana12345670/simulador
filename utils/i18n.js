@@ -91,7 +91,7 @@ const dictionaries = {
         player_substituted_desc: 'Removed: {removed}\nAdded: {added}\n\nMatch: {match}\nPosition: {team}',
         tournament_footer: 'Tournament: {game} {mode}',
         error_substitute_player: 'Error substituting player. Please try again.',
-        old_panel_warning: '⚠️ This panel is from an old version and is no longer compatible.',
+        old_panel_warning: '{alerta} This panel is from an old version and is no longer compatible.',
         old_panel_solution: 'Please recreate the simulator to use the updated version with multilanguage support.',
         help_title: 'Bot Commands',
         help_description: 'Here are the main commands available in this server.',
@@ -168,7 +168,7 @@ const dictionaries = {
         banned_global_desc: 'Você está banido de jogar simuladores pela equipe Sky.\n\nRecorra: https://discord.com/invite/8M83fTdyRW',
         banned_local: 'Você está banido de simuladores neste servidor.',
         error_generic: 'Ocorreu um erro. Tente novamente.',
-        old_panel_warning: '⚠️ Este painel é de uma versão antiga e não é mais compatível.',
+        old_panel_warning: '{alerta} Este painel é de uma versão antiga e não é mais compatível.',
         old_panel_solution: 'Por favor, recrie o simulador para usar a versão atualizada com suporte multilíngue.',
         help_title: 'Comandos do Bot',
         help_description: 'Aqui estão os principais comandos disponíveis neste servidor.',
@@ -241,7 +241,7 @@ const dictionaries = {
         banned_global_desc: '你被 Sky 团队禁止参加模拟器。\n\n申诉: https://discord.com/invite/8M83fTdyRW',
         banned_local: '你在此服务器的模拟器中被封禁。',
         error_generic: '发生错误，请稍后再试。',
-        old_panel_warning: '⚠️ 此面板来自旧版本，不再兼容。',
+        old_panel_warning: '{alerta} 此面板来自旧版本，不再兼容。',
         old_panel_solution: '请重新创建模拟器以使用支持多语言的新版本。',
         help_title: '机器人指令',
         help_description: '以下是此服务器可用的主要指令。',
@@ -318,7 +318,7 @@ const dictionaries = {
         banned_global_desc: 'Estás vetado de jugar simuladores por el equipo Sky.\n\nApela en: https://discord.com/invite/8M83fTdyRW',
         banned_local: 'Estás vetado de simuladores en este servidor.',
         error_generic: 'Ocurrió un error. Inténtalo de nuevo.',
-        old_panel_warning: '⚠️ Este panel es de una versión antigua y ya no es compatible.',
+        old_panel_warning: '{alerta} Este panel es de una versión antigua y ya no es compatible.',
         old_panel_solution: 'Por favor recrea el simulador para usar la versión actualizada con soporte multiidioma.',
         help_title: 'Comandos del bot',
         help_description: 'Estos son los comandos principales disponibles en este servidor.',
@@ -381,7 +381,7 @@ const dictionaries = {
         banned_global_desc: 'Vous êtes banni des simulateurs par l’équipe Sky.\n\nFaites appel : https://discord.com/invite/8M83fTdyRW',
         banned_local: 'Vous êtes banni des simulateurs sur ce serveur.',
         error_generic: 'Une erreur est survenue. Réessayez.',
-        old_panel_warning: '⚠️ Ce panneau provient d\'une ancienne version et n\'est plus compatible.',
+        old_panel_warning: '{alerta} Ce panneau provient d\'une ancienne version et n\'est plus compatible.',
         old_panel_solution: 'Veuillez recréer le simulateur pour utiliser la version mise à jour avec support multilingue.',
         help_title: 'Commandes du bot',
         help_description: 'Voici les principales commandes disponibles sur ce serveur.',
@@ -444,7 +444,7 @@ const dictionaries = {
         banned_global_desc: 'Du bist vom Sky-Team für Simulatoren gebannt.\n\nEinspruch: https://discord.com/invite/8M83fTdyRW',
         banned_local: 'Du bist auf diesem Server für Simulatoren gebannt.',
         error_generic: 'Es ist ein Fehler aufgetreten. Bitte erneut versuchen.',
-        old_panel_warning: '⚠️ Dieses Panel stammt aus einer alten Version und ist nicht mehr kompatibel.',
+        old_panel_warning: '{alerta} Dieses Panel stammt aus einer alten Version und ist nicht mehr kompatibel.',
         old_panel_solution: 'Bitte erstelle den Simulator neu, um die aktualisierte Version mit mehrsprachiger Unterstützung zu verwenden.',
         help_title: 'Bot-Befehle',
         help_description: 'Hier sind die wichtigsten Befehle auf diesem Server.',
@@ -474,14 +474,7 @@ const dictionaries = {
 };
 
 function format(template, params = {}) {
-    console.log(`🌍 DEBUG FORMAT: Template="${template}"`, `Params=`, params);
-    const result = template.replace(/\{(\w+)\}/g, (_, k) => {
-        const replacement = params[k] ?? '';
-        console.log(`🌍 DEBUG FORMAT: Substituindo {${k}} -> "${replacement}"`);
-        return replacement;
-    });
-    console.log(`🌍 DEBUG FORMAT: Resultado final="${result}"`);
-    return result;
+    return template.replace(/\{(\w+)\}/g, (_, k) => params[k] ?? '');
 }
 
 function t(lang = 'en', key, params) {

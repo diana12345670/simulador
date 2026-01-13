@@ -445,12 +445,12 @@ async function giveVictoryByKaori(channel, confirmationData) {
         try {
             const victoryEmbed = new EmbedBuilder()
                 .setColor(0x00FF00)
-                .setTitle('🏆 Partida Finalizada!')
+                .setTitle(`${emojis.trofeupixel} Partida Finalizada!`)
                 .setDescription(`**Vencedor:** ${winnerMentions}\n\n**Perdedor:** ${loserMentions}`)
                 .addFields(
-                    { name: '📊 Status', value: confirmationData.isWO ? '⚠️ W.O. - Adversário não compareceu' : '✅ Vitória confirmada pelo adversário', inline: false }
+                    { name: `${emojis.raiopixel} Status`, value: confirmationData.isWO ? `${emojis.alerta} W.O. - Adversário não compareceu` : `${emojis.positive} Vitória confirmada pelo adversário`, inline: false }
                 )
-                .setFooter({ text: 'Resultado registrado pela Kaori ♡' })
+                .setFooter({ text: `${emojis.friendship} Resultado registrado pela Kaori ♡` })
                 .setTimestamp();
             
             await channel.send({ embeds: [victoryEmbed] });
