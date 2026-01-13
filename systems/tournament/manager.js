@@ -361,13 +361,18 @@ async function updateSimulatorPanel(client, simulatorId) {
     const playersPerTeam = simulator.playersPerTeam || simulator.players_per_team || parseInt((simulator.mode || '1v1').charAt(0));
     const totalTeams = simulator.totalTeams || simulator.total_teams || Math.floor((maxPlayers || 2) / playersPerTeam) || 1;
     const players = simulator.players || simulator.players_list || [];
-    const teamsData = simulator.teamsData || simulator.teams_data || {};
+    
+    // PADRÃO: Sempre usar teams_data (snake_case) para consistência
+    const teamsData = simulator.teams_data || simulator.teamsData || {};
     const teamSelection = simulator.teamSelection || simulator.team_selection || 'aleatorio';
     const startMode = simulator.startMode || simulator.start_mode || 'automatico';
     const guildLanguage = (simulator.language) || (simulator.guildLanguage) || null; // se vier salvo
     const { getGuildLanguage } = require('../../utils/lang');
     const lang = guildLanguage || 'en'; // Usa idioma salvo ou fallback para inglês
     const { t } = require('../../utils/i18n');
+
+    console.log(` updateSimulatorPanel: teamsData=${JSON.stringify(teamsData)}, players=${JSON.stringify(players)}`);
+    console.log(` updateSimulatorPanel: teamSelection=${teamSelection}, totalTeams=${totalTeams}`);
 
     const guild = client.guilds.cache.get(guildId);
     if (!guild) return;

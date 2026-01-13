@@ -202,14 +202,15 @@ async function handleTeamJoin(interaction) {
     
     if (parts[2] === 'v2') {
         // Formato novo: team_join_v2_simulatorId_teamNumber
-        simulatorId = parts[3];
-        teamNumber = parseInt(parts[4]);
+        simulatorId = parts.slice(3, parts.length - 1).join('_');
+        teamNumber = parseInt(parts[parts.length - 1]);
     } else {
         // Formato antigo: team_join_simulatorId_teamNumber
-        simulatorId = parts[2];
-        teamNumber = parseInt(parts[3]);
+        simulatorId = parts.slice(2, parts.length - 1).join('_');
+        teamNumber = parseInt(parts[parts.length - 1]);
     }
-
+    
+    const lang = await getGuildLanguage(interaction.guildId);
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator || simulator.state !== 'open') {
@@ -219,53 +220,50 @@ async function handleTeamJoin(interaction) {
     }
 
     const playerId = interaction.user.id;
-    const currentPlayers = simulator.players || [];
+    const emojis = getEmojis(interaction.client);
 
-    if (currentPlayers.includes(playerId)) {
+    if (await isUserBanned(playerId)) {
         return interaction.editReply({
-            embeds: [createErrorEmbed(t(lang, 'join_already'), interaction.client)]
+            embeds: [createRedEmbed({
+                title: `${emojis.negative} ${t(lang, 'banned_global_title')}`,
+                description: t(lang, 'banned_global_desc'),
+                timestamp: true
+            })]
         });
     }
 
-    if (currentPlayers.length >= simulator.max_players) {
+    if (await isUserBannedInGuild(playerId, interaction.guildId)) {
         return interaction.editReply({
-            embeds: [createErrorEmbed(t(lang, 'join_full'), interaction.client)]
+            embeds: [createErrorEmbed(t(lang, 'banned_local'), interaction.client)]
         });
     }
 
-    const teamsData = simulator.teams_data || {};
     const playersPerTeam = simulator.players_per_team || parseInt(simulator.mode.charAt(0));
-
-    let currentTeam = null;
-    for (const [teamKey, players] of Object.entries(teamsData)) {
-        if (players.includes(playerId)) {
-            currentTeam = teamKey;
-            break;
-        }
-    }
-
-    if (currentTeam === `time${teamNumber}`) {
-        return interaction.editReply({
-            embeds: [createErrorEmbed(t(lang, 'team_same'), interaction.client)]
-        });
-    }
-
+    const teamsData = simulator.teams_data || {};
     const targetTeam = teamsData[`time${teamNumber}`] || [];
+    
     if (targetTeam.length >= playersPerTeam) {
         return interaction.editReply({
             embeds: [createErrorEmbed(t(lang, 'team_full'), interaction.client)]
         });
     }
 
-    if (currentTeam) {
-        teamsData[currentTeam] = teamsData[currentTeam].filter(id => id !== playerId);
+    // Remove jogador de outros times se já estiver em algum
+    let currentTeam = null;
+    for (const [teamKey, teamPlayers] of Object.entries(teamsData)) {
+        const playerIndex = teamPlayers.indexOf(playerId);
+        if (playerIndex !== -1) {
+            currentTeam = teamKey;
+            teamPlayers.splice(playerIndex, 1);
+            break;
+        }
     }
 
-    if (!teamsData[`time${teamNumber}`]) {
-        teamsData[`time${teamNumber}`] = [];
-    }
+    // Adiciona ao novo time
     teamsData[`time${teamNumber}`].push(playerId);
+    console.log(`🔄 handleTeamJoin: Adicionando jogador ${playerId} ao time${teamNumber}`);
 
+    // Reconstrói array de players
     const newPlayers = [];
     for (const teamPlayers of Object.values(teamsData)) {
         for (const pid of teamPlayers) {
@@ -274,6 +272,8 @@ async function handleTeamJoin(interaction) {
             }
         }
     }
+
+    console.log(`📊 handleTeamJoin: teamsData=${JSON.stringify(teamsData)}, players=${JSON.stringify(newPlayers)}`);
 
     await updateTournament(simulatorId, { 
         teams_data: teamsData,
@@ -289,7 +289,17 @@ async function handleTeamJoin(interaction) {
         flags: MessageFlags.Ephemeral
     });
 
+    console.log(`🔄 handleTeamJoin: Atualizando painel após entrar no time: ${simulatorId}`);
+    
+    // Pequeno delay para garantir consistência
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Busca dados atualizados do banco
+    const freshSimulator = await getTournamentById(simulatorId);
+    console.log(`📊 handleTeamJoin: Dados buscados do banco: teams_data=${JSON.stringify(freshSimulator.teams_data || {})}`);
+    
     await updateSimulatorPanel(interaction.client, simulatorId);
+    console.log(`✅ handleTeamJoin: Painel atualizado com sucesso`);
 }
 
 async function handleJoin(interaction) {
@@ -375,9 +385,14 @@ async function handleLeave(interaction) {
 
     let teamsData = simulator.teams_data || {};
     if (simulator.team_selection === 'manual') {
+        console.log(`🔄 handleLeave: Removendo jogador ${interaction.user.id} dos times`);
+        
+        // Remove jogador de todos os times
         for (const teamKey of Object.keys(teamsData)) {
             teamsData[teamKey] = teamsData[teamKey].filter(id => id !== interaction.user.id);
         }
+        
+        console.log(`📊 handleLeave: teamsData após remoção=${JSON.stringify(teamsData)}`);
     }
 
     await updateTournament(simulatorId, { 
@@ -394,7 +409,17 @@ async function handleLeave(interaction) {
         flags: MessageFlags.Ephemeral
     });
 
+    console.log(`🔄 handleLeave: Atualizando painel após sair: ${simulatorId}`);
+    
+    // Pequeno delay para garantir consistência
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Busca dados atualizados do banco
+    const freshSimulator = await getTournamentById(simulatorId);
+    console.log(`📊 handleLeave: Dados buscados do banco: teams_data=${JSON.stringify(freshSimulator.teams_data || {})}`);
+    
     await updateSimulatorPanel(interaction.client, simulatorId);
+    console.log(`✅ handleLeave: Painel atualizado com sucesso`);
 }
 
 async function handleCancel(interaction) {
