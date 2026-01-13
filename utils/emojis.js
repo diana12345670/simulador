@@ -3,8 +3,8 @@
 
 const bot1Emojis = {
     alerta: '<:alerta:1442668042873081866>',
-    negative: '<:negative:1442668040465682643>',
-    positive: '<:positive:1442668038691491943>',
+    negative: '<:Negativo:1460760180705984603>',
+    positive: '<:Posiivo:1460760177908125852>',
     joiapixel: '<:joiapixel:1442668036090888274>',
     pergaminhopixel: '<:pergaminhopixel:1442668033242959963>',
     moedapixel: '<:moedapixel:1442668030932029461>',
@@ -18,8 +18,8 @@ const bot1Emojis = {
 
 const bot2Emojis = {
     alerta: '<:atencao:1445015352974250075>',
-    negative: '<:negative:1445015440303849515>',
-    positive: '<:positive:1445015497908162601>',
+    negative: '<:Negativo:1460761014420246672>',
+    positive: '<:Positivo:1460761011564056650>',
     joiapixel: '<:gema:1445015562995503206>',
     pergaminhopixel: '<:pergaminho:1445015608302370887>',
     moedapixel: '<:moeda:1445015655874166915>',
