@@ -145,13 +145,13 @@ async function handleTeamSelect(interaction) {
     }
 
     if (currentTeam) {
+        console.log(`🔄 Removendo jogador do time atual: ${currentTeam}`);
         teamsData[currentTeam] = teamsData[currentTeam].filter(id => id !== playerId);
     }
 
-    if (!teamsData[`time${selectedTeamNumber}`]) {
-        teamsData[`time${selectedTeamNumber}`] = [];
-    }
+    console.log(`➕ Adicionando jogador ao time${selectedTeamNumber}`);
     teamsData[`time${selectedTeamNumber}`].push(playerId);
+    console.log(`📊 teamsData após atualização:`, JSON.stringify(teamsData));
 
     const newPlayers = [];
     for (const teamPlayers of Object.values(teamsData)) {
