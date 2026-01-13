@@ -15,7 +15,7 @@ const dictionaries = {
         panel_prize: 'Prize',
         button_join: 'Join',
         button_leave: 'Leave',
-        button_cancel: 'Cancel',
+        button_cancel: 'Cancel simulator',
         button_wo: 'W.O.',
         button_team1_wins: 'Team 1',
         button_team2_wins: 'Team 2',
@@ -131,9 +131,9 @@ const dictionaries = {
         panel_version: 'Versão',
         panel_mode: 'Modo/Mapa',
         panel_prize: 'Prêmio',
-        button_join: 'ENTRAR',
-        button_leave: 'SAIR',
-        button_cancel: 'CANCELAR',
+        button_join: 'Entrar',
+        button_leave: 'Sair',
+        button_cancel: 'Cancelar simulador',
         button_wo: 'W.O.',
         button_team1_wins: 'TIME 1',
         button_team2_wins: 'TIME 2',
@@ -206,7 +206,7 @@ const dictionaries = {
         panel_prize: '奖品',
         button_join: '加入',
         button_leave: '离开',
-        button_cancel: '取消',
+        button_cancel: '取消模拟器',
         button_wo: '弃权',
         button_team1_wins: '队伍1',
         button_team2_wins: '队伍2',
@@ -283,7 +283,7 @@ const dictionaries = {
         panel_prize: 'Premio',
         button_join: 'Unirse',
         button_leave: 'Salir',
-        button_cancel: 'Cancelar',
+        button_cancel: 'Cancelar simulador',
         button_wo: 'W.O.',
         button_team1_wins: 'Equipo 1',
         button_team2_wins: 'Equipo 2',
@@ -360,7 +360,7 @@ const dictionaries = {
         panel_prize: 'Prix',
         button_join: 'Rejoindre',
         button_leave: 'Quitter',
-        button_cancel: 'Annuler',
+        button_cancel: 'Annuler simulateur',
         button_wo: 'W.O.',
         button_team1_wins: 'Équipe 1',
         button_team2_wins: 'Équipe 2',
@@ -423,7 +423,7 @@ const dictionaries = {
         panel_prize: 'Preis',
         button_join: 'Beitreten',
         button_leave: 'Verlassen',
-        button_cancel: 'Abbrechen',
+        button_cancel: 'Simulator abbrechen',
         button_wo: 'W.O.',
         button_team1_wins: 'Team 1',
         button_team2_wins: 'Team 2',
@@ -474,7 +474,14 @@ const dictionaries = {
 };
 
 function format(template, params = {}) {
-    return template.replace(/\{(\w+)\}/g, (_, k) => params[k] ?? '');
+    console.log(`🌍 DEBUG FORMAT: Template="${template}"`, `Params=`, params);
+    const result = template.replace(/\{(\w+)\}/g, (_, k) => {
+        const replacement = params[k] ?? '';
+        console.log(`🌍 DEBUG FORMAT: Substituindo {${k}} -> "${replacement}"`);
+        return replacement;
+    });
+    console.log(`🌍 DEBUG FORMAT: Resultado final="${result}"`);
+    return result;
 }
 
 function t(lang = 'en', key, params) {

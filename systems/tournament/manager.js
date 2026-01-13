@@ -95,7 +95,11 @@ async function createSimulator(client, guild, creator, options) {
         // Monta lista de times para seleção manual
         let teamsText = '';
         for (let i = 1; i <= totalTeams; i++) {
-            teamsText += `\n${t(lang, 'panel_team_line', { num: i, count: 0, max: playersPerTeam, players: t(lang, 'panel_no_players') })}`;
+            const params = { num: i, count: 0, max: playersPerTeam, players: t(lang, 'panel_no_players') };
+            console.log(`🌍 DEBUG: Traduzindo panel_team_line com lang=${lang} e params=`, params);
+            const translated = t(lang, 'panel_team_line', params);
+            console.log(`🌍 DEBUG: Resultado: "${translated}"`);
+            teamsText += `\n${translated}`;
         }
         panelDescription = `${emojis.raiopixel} **${t(lang, 'panel_game')}:** ${jogo}\n${emojis.pergaminhopixel} **${t(lang, 'panel_version')}:** ${versao}\n${emojis.joiapixel} **${t(lang, 'panel_mode')}:** ${modo}\n${selectionText}\n${emojis.presentepixel} **${t(lang, 'panel_prize')}:** ${prize}\n\n${t(lang, 'panel_players', { count: 0, max: maxPlayers })}${teamsText}`;
     } else {
