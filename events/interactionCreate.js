@@ -57,7 +57,9 @@ module.exports = {
         else if (interaction.isButton() || interaction.isStringSelectMenu()) {
             const type = interaction.isButton() ? 'botão' : 'select menu';
             console.log(`🔘 Interação de ${type} detectada: ${interaction.customId}`);
-            console.log(`🔍 Tipo: ${interaction.type}, CustomId: ${interaction.customId}, Valores: ${interaction.values || 'N/A'}`);
+            console.log(`🔍 Tipo bruto: ${interaction.type}`);
+            console.log(`🔍 isButton: ${interaction.isButton()}, isStringSelectMenu: ${interaction.isStringSelectMenu()}`);
+            console.log(`🔍 CustomId: ${interaction.customId}, Valores: ${interaction.values || 'N/A'}`);
             
             if (!interaction.customId) {
                 console.error('❌ Interação sem customId!');
