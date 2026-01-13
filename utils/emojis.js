@@ -33,18 +33,21 @@ const bot2Emojis = {
 };
 
 const bot3Emojis = {
-    alerta: '<:alerta:1442668042873081866>',
-    negative: '<:negative:1442668040465682643>',
-    positive: '<:positive:1442668038691491943>',
-    joiapixel: '<:joiapixel:1442668036090888274>',
-    pergaminhopixel: '<:pergaminhopixel:1442668033242959963>',
-    moedapixel: '<:moedapixel:1442668030932029461>',
-    raiopixel: '<:raiopixel:1442668029065564341>',
-    coroapixel: '<:coroapixel:1442668026813087836>',
-    trofeupixel: '<:trofeupixel:1442668024891969588>',
-    presentepixel: '<:presentepixel:1442667950313308332>',
-    fogo: '<:fogo:1442667877332422847>',
-    trofeu: '<:trofeu:1442667772097200168>'
+    alerta: '<:Perigo:1460706171982970921>',
+    negative: '<:Negative:1460706149803495508>',
+    positive: '<:Positive:1460706147647356928>',
+    joiapixel: '<:gema:1460706174214078567>',
+    pergaminhopixel: '<:pergaminho:1460706170024235092>',
+    moedapixel: '<:moeda:1460706167977152534>',
+    raiopixel: '<:raio:1460706165959823383>',
+    coroapixel: '<:coroa:1460706155721527328>',
+    trofeupixel: '<:trofeu:1460706155721527328>',
+    presentepixel: '<:presente:1460706161593684040>',
+    fogo: '<:fogo:1460706164000948446>',
+    trofeu: '<:trofeu:1460706155721527328>',
+    estrela: '<:estrela:1460706152819195914>',
+    friendship: '<:friendship:1460706159970357442>',
+    workshop: '<:workshop:1460706157617217676>'
 };
 
 function getEmojis(client) {

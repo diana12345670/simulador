@@ -826,7 +826,7 @@ async function handleChampion(interaction, simulator, championTeam, bracketData)
                 }
             }
 
-            await deleteTournament(simulator.id); // Use simulator.id
+            await deleteTournament(simulator.id);
             console.log(`✅ Simulador ${simulator.id} removido do banco de dados`);
         } catch (error) {
             console.error('Erro ao deletar canais:', error);

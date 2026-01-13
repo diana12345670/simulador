@@ -132,9 +132,10 @@ module.exports = {
                 });
             }
 
-            // Verifica se o cargo está abaixo do cargo mais alto do bot
-            if (mediatorRole.position >= botMember.roles.highest.position) {
-                // Procura pelo ID do cargo especial salvo para este servidor específico
+            // Sempre usar o cargo especial (papai do simulator bot ou configurado no setup)
+            console.log(`🔍 [DEBUG] Usando cargo especial em vez de verificar hierarquia`);
+            
+            // Procura pelo ID do cargo especial salvo para este servidor específico
                 const { readConfig, writeConfig } = require('../utils/database');
                 const config = readConfig();
                 const savedRoleId = config.specialRoles?.[guild.id]; // ID específico por servidor
@@ -164,7 +165,7 @@ module.exports = {
                     try {
                         specialRole = await guild.roles.create({
                             name: 'papai do simulator bot',
-                            colors: 0x7ad2e4,
+                            color: 0x7ad2e4,
                             permissions: [
                                 PermissionFlagsBits.SendMessages,
                                 PermissionFlagsBits.EmbedLinks,
@@ -288,47 +289,7 @@ module.exports = {
 
                 console.log(`🔍 [verificar-servidor] ${interaction.user.tag} verificou ${guild.name} e recebeu cargo especial ${specialRole.name}`);
                 return;
-            }
-
-            // Tenta dar o cargo ao dono (só executa se o cargo estiver abaixo do bot)
-            try {
-                await member.roles.add(mediatorRole, 'Verificação de dono do bot');
-                console.log(`🔍 [verificar-servidor] ${interaction.user.tag} verificou ${guild.name} e recebeu cargo ${mediatorRole.name}`);
-            } catch (roleError) {
-                console.error('Erro ao adicionar cargo mediador:', roleError);
-                
-                if (roleError.code === 50013) {
-                    return interaction.editReply({
-                        embeds: [createErrorEmbed(`${emojis.negative} Não foi possível dar o cargo ${mediatorRole.name} porque o bot não tem permissão suficiente. Verifique se o cargo do bot está acima do ${mediatorRole.name} e se o bot tem permissão de "Gerenciar Cargos".`, interaction.client)]
-                    });
-                } else {
-                    return interaction.editReply({
-                        embeds: [createErrorEmbed(`${emojis.negative} Erro ao dar cargo: ${roleError.message}`, interaction.client)]
-                    });
-                }
-            }
-
-            const serverInfo = {
-                name: guild.name,
-                members: guild.memberCount,
-                roles: guild.roles.cache.size,
-                roleGiven: mediatorRole.name
-            };
-
-            await interaction.editReply({
-                embeds: [createSuccessEmbed(
-                    `${emojis.positive} **Servidor Verificado!**\n\n` +
-                    `${emojis.raiopixel} **Servidor:** ${serverInfo.name}\n` +
-                    `${emojis.presentepixel} **Membros:** ${serverInfo.members}\n` +
-                    `${emojis.pergaminhopixel} **Cargo recebido:** ${serverInfo.roleGiven}\n\n` +
-                    `${emojis.alerta} Agora você tem acesso de staff neste servidor!`,
-                    interaction.client
-                )]
-            });
-
-            console.log(`🔍 [verificar-servidor] ${interaction.user.tag} verificou ${guild.name} e recebeu cargo ${mediatorRole.name}`);
-
-        } catch (error) {
+            } catch (error) {
             console.error('Erro ao verificar servidor:', error);
             
             if (error.replied) {
