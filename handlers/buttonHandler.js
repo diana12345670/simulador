@@ -519,6 +519,8 @@ async function handleStart(interaction) {
 }
 
 async function handleMatchWin(interaction, winnerTeamNum) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    
     const emojis = getEmojis(interaction.client);
     const parts = interaction.customId.split('_');
     const simulatorId = parts[2];
@@ -531,15 +533,13 @@ async function handleMatchWin(interaction, winnerTeamNum) {
     const OWNER_ID_2 = process.env.OWNER_ID_2 || '1438204670920364103';
     if (interaction.user.id !== simulator.creator_id && interaction.user.id !== OWNER_ID && interaction.user.id !== OWNER_ID_2) {
         return interaction.editReply({
-            embeds: [createErrorEmbed('Apenas o criador pode declarar vencedor.', interaction.client)],
-            flags: MessageFlags.Ephemeral
+            embeds: [createErrorEmbed('Apenas o criador pode declarar vencedor.', interaction.client)]
         });
     }
 
     if (!simulator.bracket_data || !simulator.bracket_data.matches) {
         return interaction.editReply({
-            embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)],
-            flags: MessageFlags.Ephemeral
+            embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)]
         });
     }
 
@@ -548,8 +548,7 @@ async function handleMatchWin(interaction, winnerTeamNum) {
 
     if (!match) {
         return interaction.editReply({
-            embeds: [createErrorEmbed('Partida não encontrada.', interaction.client)],
-            flags: MessageFlags.Ephemeral
+            embeds: [createErrorEmbed('Partida não encontrada.', interaction.client)]
         });
     }
 
@@ -557,8 +556,7 @@ async function handleMatchWin(interaction, winnerTeamNum) {
     
     if (!winnerTeam || !Array.isArray(winnerTeam)) {
         return interaction.editReply({
-            embeds: [createErrorEmbed('Time inválido.', interaction.client)],
-            flags: MessageFlags.Ephemeral
+            embeds: [createErrorEmbed('Time inválido.', interaction.client)]
         });
     }
 
@@ -579,6 +577,8 @@ async function handleMatchWin(interaction, winnerTeamNum) {
 }
 
 async function handleWalkover(interaction) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    
     const emojis = getEmojis(interaction.client);
     const parts = interaction.customId.split('_');
     const simulatorId = parts[2];
@@ -591,15 +591,13 @@ async function handleWalkover(interaction) {
     const OWNER_ID_WO_2 = process.env.OWNER_ID_2 || '1438204670920364103';
     if (interaction.user.id !== simulator.creator_id && interaction.user.id !== OWNER_ID_WO && interaction.user.id !== OWNER_ID_WO_2) {
         return interaction.editReply({
-            embeds: [createErrorEmbed('Apenas o criador pode declarar W.O.', interaction.client)],
-            flags: MessageFlags.Ephemeral
+            embeds: [createErrorEmbed('Apenas o criador pode declarar W.O.', interaction.client)]
         });
     }
 
     if (!simulator.bracket_data || !simulator.bracket_data.matches) {
         return interaction.editReply({
-            embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)],
-            flags: MessageFlags.Ephemeral
+            embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)]
         });
     }
 
@@ -607,8 +605,7 @@ async function handleWalkover(interaction) {
     
     if (!match || !match.team1 || !match.team2) {
         return interaction.editReply({
-            embeds: [createErrorEmbed('Partida não encontrada ou times inválidos.', interaction.client)],
-            flags: MessageFlags.Ephemeral
+            embeds: [createErrorEmbed('Partida não encontrada ou times inválidos.', interaction.client)]
         });
     }
 
@@ -637,12 +634,13 @@ async function handleWalkover(interaction) {
             description: `**Time 1:** ${team1Mentions}\n**Time 2:** ${team2Mentions}\n\n**Quem VENCEU pelo W.O.?**\n(O adversário sumiu/não compareceu)`,
             timestamp: true
         })],
-        components: [woButtons],
-        flags: MessageFlags.Ephemeral
+        components: [woButtons]
     });
 }
 
 async function handleWalkoverSelection(interaction, winnerTeamNum) {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    
     const emojis = getEmojis(interaction.client);
     const parts = interaction.customId.split('_');
     const simulatorId = parts[2];
@@ -653,8 +651,7 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
 
     if (!simulator.bracket_data || !simulator.bracket_data.matches) {
         return interaction.editReply({
-            embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)],
-            flags: MessageFlags.Ephemeral
+            embeds: [createErrorEmbed('Dados do torneio não encontrados.', interaction.client)]
         });
     }
 
@@ -663,8 +660,7 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
 
     if (!match || !match.team1 || !match.team2) {
         return interaction.editReply({
-            embeds: [createErrorEmbed('Partida não encontrada ou times inválidos.', interaction.client)],
-            flags: MessageFlags.Ephemeral
+            embeds: [createErrorEmbed('Partida não encontrada ou times inválidos.', interaction.client)]
         });
     }
 
@@ -673,8 +669,7 @@ async function handleWalkoverSelection(interaction, winnerTeamNum) {
     
     if (!winnerTeam || !loserTeam || !Array.isArray(winnerTeam) || !Array.isArray(loserTeam)) {
         return interaction.editReply({
-            embeds: [createErrorEmbed('Time inválido.', interaction.client)],
-            flags: MessageFlags.Ephemeral
+            embeds: [createErrorEmbed('Time inválido.', interaction.client)]
         });
     }
 
