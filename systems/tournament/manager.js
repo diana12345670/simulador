@@ -346,6 +346,7 @@ async function cancelSimulatorIfNotFull(client, simulatorId) {
  * Atualiza o painel do simulador
  */
 async function updateSimulatorPanel(client, simulatorId) {
+    console.log(`🔄 Iniciando atualização do painel: ${simulatorId}`);
     const simulator = await getTournamentById(simulatorId);
 
     if (!simulator) return;
