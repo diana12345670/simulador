@@ -178,7 +178,9 @@ async function handleTeamSelect(interaction) {
         flags: MessageFlags.Ephemeral
     });
 
+    console.log(`🔄 Atualizando painel após seleção de time: ${simulatorId}`);
     await updateSimulatorPanel(interaction.client, simulatorId);
+    console.log(`✅ Painel atualizado com sucesso`);
 }
 
 async function handleTeamJoin(interaction) {
