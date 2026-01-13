@@ -50,6 +50,42 @@ const bot3Emojis = {
     workshop: '<:workshop:1460706157617217676>'
 };
 
+const bot4Emojis = {
+    alerta: '⚠️',
+    negative: '❌',
+    positive: '✅',
+    joiapixel: '💎',
+    pergaminhopixel: '📜',
+    moedapixel: '🪙',
+    raiopixel: '⚡',
+    coroapixel: '👑',
+    trofeupixel: '🏆',
+    presentepixel: '🎁',
+    fogo: '🔥',
+    trofeu: '🏆',
+    estrela: '⭐',
+    friendship: '🤝',
+    workshop: '🔧'
+};
+
+const bot5Emojis = {
+    alerta: '⚠️',
+    negative: '❌',
+    positive: '✅',
+    joiapixel: '💎',
+    pergaminhopixel: '📜',
+    moedapixel: '🪙',
+    raiopixel: '⚡',
+    coroapixel: '👑',
+    trofeupixel: '🏆',
+    presentepixel: '🎁',
+    fogo: '🔥',
+    trofeu: '🏆',
+    estrela: '⭐',
+    friendship: '🤝',
+    workshop: '🔧'
+};
+
 function getEmojis(client) {
     if (!client || !client.botConfig) {
         return bot1Emojis;
@@ -62,6 +98,10 @@ function getEmojis(client) {
             return bot2Emojis;
         case 'Bot 3':
             return bot3Emojis;
+        case 'Bot 4':
+            return bot4Emojis;
+        case 'Bot 5':
+            return bot5Emojis;
         default:
             return bot1Emojis;
     }
@@ -71,5 +111,7 @@ module.exports = {
     bot1Emojis,
     bot2Emojis,
     bot3Emojis,
+    bot4Emojis,
+    bot5Emojis,
     getEmojis
 };

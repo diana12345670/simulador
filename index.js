@@ -81,9 +81,15 @@ app.get('/debug-env', (req, res) => {
         BOT_TOKEN_1: process.env.BOT_TOKEN_1 ? '✅ Definido' : '❌ Não definido',
         BOT_TOKEN: process.env.BOT_TOKEN ? '✅ Definido' : '❌ Não definido',
         BOT_TOKEN_2: process.env.BOT_TOKEN_2 ? '✅ Definido' : '❌ Não definido',
+        BOT_TOKEN_3: process.env.BOT_TOKEN_3 ? '✅ Definido' : '❌ Não definido',
+        BOT_TOKEN_4: process.env.BOT_TOKEN_4 ? '✅ Definido' : '❌ Não definido',
+        BOT_TOKEN_5: process.env.BOT_TOKEN_5 ? '✅ Definido' : '❌ Não definido',
         APPLICATION_ID_1: process.env.APPLICATION_ID_1 || '❌ Não definido',
         APPLICATION_ID: process.env.APPLICATION_ID || '❌ Não definido',
         APPLICATION_ID_2: process.env.APPLICATION_ID_2 || '❌ Não definido',
+        APPLICATION_ID_3: process.env.APPLICATION_ID_3 || '❌ Não definido',
+        APPLICATION_ID_4: process.env.APPLICATION_ID_4 || '❌ Não definido',
+        APPLICATION_ID_5: process.env.APPLICATION_ID_5 || '❌ Não definido',
         OWNER_ID: process.env.OWNER_ID || '❌ Não definido',
         OWNER_ID_2: process.env.OWNER_ID_2 || '❌ Não definido'
     };
@@ -142,13 +148,22 @@ console.log('🔍 Verificando variáveis de ambiente:');
 console.log(`   BOT_TOKEN_1: ${process.env.BOT_TOKEN_1 ? '✅ Definido' : '❌ Não definido'}`);
 console.log(`   BOT_TOKEN: ${process.env.BOT_TOKEN ? '✅ Definido' : '❌ Não definido'}`);
 console.log(`   BOT_TOKEN_2: ${process.env.BOT_TOKEN_2 ? '✅ Definido' : '❌ Não definido'}`);
+console.log(`   BOT_TOKEN_3: ${process.env.BOT_TOKEN_3 ? '✅ Definido' : '❌ Não definido'}`);
+console.log(`   BOT_TOKEN_4: ${process.env.BOT_TOKEN_4 ? '✅ Definido' : '❌ Não definido'}`);
+console.log(`   BOT_TOKEN_5: ${process.env.BOT_TOKEN_5 ? '✅ Definido' : '❌ Não definido'}`);
 console.log(`   APPLICATION_ID_1: ${process.env.APPLICATION_ID_1 || '❌ Não definido'}`);
 console.log(`   APPLICATION_ID: ${process.env.APPLICATION_ID || '❌ Não definido'}`);
 console.log(`   APPLICATION_ID_2: ${process.env.APPLICATION_ID_2 || '❌ Não definido'}`);
+console.log(`   APPLICATION_ID_3: ${process.env.APPLICATION_ID_3 || '❌ Não definido'}`);
+console.log(`   APPLICATION_ID_4: ${process.env.APPLICATION_ID_4 || '❌ Não definido'}`);
+console.log(`   APPLICATION_ID_5: ${process.env.APPLICATION_ID_5 || '❌ Não definido'}`);
 
 const token1 = process.env.BOT_TOKEN_1 || process.env.BOT_TOKEN;
 if (token1) botConfigs.push({ name: 'Bot 1', token: token1, applicationId: process.env.APPLICATION_ID_1 || process.env.APPLICATION_ID || null });
 if (process.env.BOT_TOKEN_2) botConfigs.push({ name: 'Bot 2', token: process.env.BOT_TOKEN_2, applicationId: process.env.APPLICATION_ID_2 || null });
+if (process.env.BOT_TOKEN_3) botConfigs.push({ name: 'Bot 3', token: process.env.BOT_TOKEN_3, applicationId: process.env.APPLICATION_ID_3 || null });
+if (process.env.BOT_TOKEN_4) botConfigs.push({ name: 'Bot 4', token: process.env.BOT_TOKEN_4, applicationId: process.env.APPLICATION_ID_4 || null });
+if (process.env.BOT_TOKEN_5) botConfigs.push({ name: 'Bot 5', token: process.env.BOT_TOKEN_5, applicationId: process.env.APPLICATION_ID_5 || null });
 
 console.log(`📦 Configurações de bots criadas: ${botConfigs.length}`);
 botConfigs.forEach((config, index) => {
