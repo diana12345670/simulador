@@ -601,12 +601,11 @@ async function handleMatchWin(interaction, winnerTeamNum) {
     await updateTournament(simulator.id, { bracket_data: result.bracketData });
 
     const winnerMentions = winnerTeam.map(id => `<@${id}>`).join(', ');
-    await interaction.update({
+    await interaction.editReply({
         embeds: [createRedEmbed({
             description: `${emojis.positive} Vencedor: ${winnerMentions}`,
             timestamp: true
-        })],
-        components: []
+        })]
     });
 
     await checkRoundComplete(interaction, simulator, result);
