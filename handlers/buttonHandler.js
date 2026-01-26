@@ -44,6 +44,10 @@ async function handleButton(interaction) {
         await handleStart(interaction);
     } else if (customId.startsWith('team_join_v2_')) {
         await handleTeamJoin(interaction);
+    } else if (customId === 'confirm_leave') {
+        await handleMassLeaveConfirm(interaction);
+    } else if (customId === 'cancel_leave') {
+        await handleMassLeaveCancel(interaction);
     } else if (customId.startsWith('match_win1_')) {
         await handleMatchWin(interaction, 1);
     } else if (customId.startsWith('match_win2_')) {
@@ -946,4 +950,83 @@ async function updateLiveRankPanels(client) {
     }
 }
 
-module.exports = { handleButton, checkRoundComplete };
+// Armazenamento temporário para dados do comando sair-em-massa
+const massLeaveData = new Map();
+
+async function handleMassLeaveConfirm(interaction) {
+    const emojis = getEmojis(interaction.client);
+    
+    // Verifica se é o dono do bot
+    if (interaction.user.id !== process.env.OWNER_ID) {
+        return interaction.update({
+            embeds: [createErrorEmbed(`${emojis.negative} Apenas o dono do bot pode usar este comando.`, interaction.client)],
+            components: []
+        });
+    }
+
+    // Recupera dados armazenados
+    const data = massLeaveData.get(interaction.user.id);
+    if (!data) {
+        return interaction.update({
+            embeds: [createErrorEmbed(`${emojis.negative} Dados da operação não encontrados. Tente novamente.`, interaction.client)],
+            components: []
+        });
+    }
+
+    await interaction.update({
+        embeds: [createRedEmbed({
+            title: `${emojis.trofeupixel} Saindo dos servidores...`,
+            description: `Aguarde enquanto o bot sai dos ${data.serversToLeave.size} servidores...`,
+            timestamp: true
+        })],
+        components: []
+    });
+
+    let successCount = 0;
+    let failCount = 0;
+    const failedServers = [];
+
+    // Sai de cada servidor
+    for (const [guildId, guild] of data.serversToLeave) {
+        try {
+            await guild.leave();
+            successCount++;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay de 1 segundo
+        } catch (error) {
+            failCount++;
+            failedServers.push(`${guild.name} (${guild.id})`);
+            console.error(`Erro ao sair do servidor ${guild.name}:`, error);
+        }
+    }
+
+    // Limpa dados armazenados
+    massLeaveData.delete(interaction.user.id);
+
+    // Envia resultado final
+    const resultEmbed = createRedEmbed({
+        title: `${emojis.trofeupixel} Operação Concluída`,
+        description: `${emojis.positive} **${successCount}** servidores removidos com sucesso\n${failCount > 0 ? `${emojis.negative} **${failCount}** falhas` : ''}`,
+        fields: failedServers.length > 0 ? [{
+            name: 'Servidores com falha:',
+            value: failedServers.join('\n'),
+            inline: false
+        }] : [],
+        timestamp: true
+    });
+
+    await interaction.followUp({
+        embeds: [resultEmbed],
+        flags: MessageFlags.Ephemeral
+    });
+}
+
+async function handleMassLeaveCancel(interaction) {
+    const emojis = getEmojis(interaction.client);
+    
+    await interaction.update({
+        embeds: [createErrorEmbed(`${emojis.negative} Operação cancelada.`, interaction.client)],
+        components: []
+    });
+}
+
+module.exports = { handleButton, checkRoundComplete, handleMassLeaveConfirm, handleMassLeaveCancel, massLeaveData };
